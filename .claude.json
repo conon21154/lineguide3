@@ -1,0 +1,315 @@
+{
+  "numStartups": 12,
+  "installMethod": "unknown",
+  "autoUpdates": true,
+  "theme": "light",
+  "tipsHistory": {
+    "new-user-warmup": 1,
+    "ide-hotkey": 9,
+    "terminal-setup": 10,
+    "shift-enter": 11,
+    "memory-command": 12
+  },
+  "promptQueueUseCount": 2,
+  "firstStartTime": "2025-08-02T13:15:50.337Z",
+  "userID": "dea96f5f8984aedff9b93c5edddd0f3705a7c31779d894d4078c26159ee02315",
+  "projects": {
+    "/home/conon": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "한글로 부탁해",
+          "pastedContents": {}
+        },
+        {
+          "display": "linegide작업하는 파일은 어디에 경로해있니?",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +20 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "[plugin:vite:css] [postcss] /home/conon/src/index.css:25:5: The `hover:bg-success-700` class does not exist. If `hover:bg-success-700` is a custom class, make sure it is defined within a `@layer` directive.\n/home/conon/src/index.css:25:5\n23 |    \n24 |    .btn-success {\n25 |      @apply bg-success-600 text-white hover:bg-success-700 focus:ring-success-500;\n   |       ^\n26 |    }\n27 |\n    at Input.error (/home/conon/node_modules/postcss/lib/input.js:135:16)\n    at AtRule.error (/home/conon/node_modules/postcss/lib/node.js:146:32)\n    at processApply (/home/conon/node_modules/tailwindcss/lib/lib/expandApplyAtRules.js:380:29)\n    at /home/conon/node_modules/tailwindcss/lib/lib/expandApplyAtRules.js:551:9\n    at /home/conon/node_modules/tailwindcss/lib/processTailwindFeatures.js:55:50\n    at async plugins (/home/conon/node_modules/tailwindcss/lib/plugin.js:38:17)\n    at async LazyResult.runAsync (/home/conon/node_modules/postcss/lib/lazy-result.js:293:11)\n    at async compileCSS (file:///home/conon/node_modules/vite/dist/node/chunks/dep-827b23df.js:38904:25)\n    at async TransformContext.transform (file:///home/conon/node_modules/vite/dist/node/chunks/dep-827b23df.js:38301:56)\n    at async Object.transform (file:///home/conon/node_modules/vite/dist/node/chunks/dep-827b23df.js:44356:30)\n    at async loadAndTransform (file:///home/conon/node_modules/vite/dist/node/chunks/dep-827b23df.js:55088:29)\n    at async viteTransformMiddleware (file:///home/conon/node_modules/vite/dist/node/chunks/dep-827b23df.js:64699:32\nClick outside, press Esc key, or fix the code to dismiss."
+            }
+          }
+        },
+        {
+          "display": "회신 메모는 불필요 할거 같은데 그리고 작업게시판을 관리자가 한번에 비울수있게 하면 좋겠어.우리가 개발중인데 하나씩 지우려니 불편해\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "아주 좋았어 이제 작업자가 회신을 해야되는 항목이 있어~작업지시서에 메모 항목에 ex)[중부산운용팀 DU측] ㅇ 관리번호 : 25_인빌딩_0042 ㅇ 국사 명 :동래국사 ㅇ RU 광신호 유/무 : 유 ㅇ 5G MUX : 0107B-14S-08 ㅇ 5G TIE 선번 : 동래-동래5G SF-5003-280 ㅇ 특이사항 :  [중부산운용팀 RU측] ㅇ 관리번호 : 25_인빌딩_0042 ㅇ 국사 명 : 동래국사 ㅇ RU 광신호 유/무 : 유 ㅇ 특이사항 : 없음 이런식으로 관리번호와 국사명 국사명=5g집중국명이야,ru 광신호 유/무 는 :만 표시 특이사항도: 운용자가 적을수 있게 관리번호와 집중국명은 작업지시서에서 자동으로 가져오게 셋팅해줘!현재까지 좋아",
+          "pastedContents": {}
+        },
+        {
+          "display": "기본 정보\n관리번호:\n25_인빌딩_0207_DU측\n작업요청일:\nDU CELL 생성 후\n운용팀: 김해T\n상태: 대기\nRU 정보\n대표 RU ID: NPKN02927S\n5G Co-Site 수량: 1\n5G 집중국명: 율하R1(분기)\n장비 정보\n장비 타입: 5G 장비\n장비명: [지하]김해무계남명더라우106동(SK)_8T_B01\n종류: 10G_3CH (DU측)\n서비스 구분: RT / COT 신설\nDU 정보\nDU ID: 미생성\nDU명: 미생성\n채널카드: 미생성\n포트: 미생성\n선번장 정보\n4.37255E+11      선번장 정보가 또 잘못나오고있어\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +61 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "📌 목적:\n업로드된 Excel 파일은 5G 개통 작업지시서이며, 각 \"관리번호\"에 대해 \"DU측\"과 \"RU측\" 작업이 나뉘어 있음.\n목표는 Excel에서 다음 항목들을 추출하여 JSON 배열로 반환하는 것.\n\n1. Excel 파일은 상단 2~3행에 병합된 헤더를 포함함\n2. 헤더는 자동으로 탐지하고, 4행부터 실제 데이터가 시작됨\n3. 동일한 관리번호가 여러 번 나오는데, 이는 각각 DU측과 RU측 작업을 의미함\n   - 각 행의 \"작업구분\" 또는 관련 열을 통해 \"DU측\" / \"RU측\"을 구분해야 함\n4. 각 작업은 독립된 JSON 객체로 파싱되어야 함\n5. 총 15개의 항목을 추출하며, 누락된 항목은 \"N/A\"로 처리\n\n📌 추출할 항목 (총 15개):\n- 관리번호\n- 작업요청일\n- 작업구분 (DU측 또는 RU측)\n- DU측_운용팀\n- RU측_운용팀\n- 대표_RU_ID\n- 대표_RU_명\n- 5G_Co_Site_수량\n- 5G_집중국명\n- 선번장\n- 종류\n- 서비스_구분\n- DU_ID\n- DU_명\n- 채널카드\n- 포트_A\n\n📌 출력 형식 (JSON 예시):\n[\n  {\n    \"관리번호\": \"25_인빌딩_0042\",\n    \"작업요청일\": \"08월07일(수)\",\n    \"작업구분\": \"DU측\",\n    \"DU측_운용팀\": \"중부산운용팀\",\n    \"RU측_운용팀\": \"중부산운용팀\",\n    \"대표_RU_ID\": \"NPPS01492S\",\n    \"대표_RU_명\": \"동래국사\",\n    \"5G_Co_Site_수량\": \"2\",\n    \"5G_집중국명\": \"중부산망(안)\",\n    \"선번장\": \"LTE MUX : B0833-06-18...\",\n    \"종류\": \"10G_4CH\",\n    \"서비스_구분\": \"CH3\",\n    \"DU_ID\": \"NS00260285\",\n    \"DU_명\": \"중부산망(안)-01-03(5G)\",\n    \"채널카드\": \"3\",\n    \"포트_A\": \"9\"\n  },\n  {\n    \"관리번호\": \"25_인빌딩_0042\",\n    \"작업요청일\": \"08월07일(수)\",\n    \"작업구분\": \"RU측\",\n    ...\n  }\n]\n\n📌 추가 조건:\n- \"작업구분\"은 열 이름 또는 값 내에 \"DU\" / \"RU\"가 포함된 텍스트로 판단\n- 다중 병합 셀을 자동 처리해야 함\n- Excel의 구조가 일정 부분 달라질 수 있으므로 키워드 기반 헤더 탐지가 필요함\n"
+            }
+          }
+        },
+        {
+          "display": "혹시 이제 엑셀 작업지시 파일의 구성을 정확히 인지했어?",
+          "pastedContents": {}
+        },
+        {
+          "display": " cp /mnt/c/Users/conon/Desktop/작업지시.xlsx /home/conon/",
+          "pastedContents": {}
+        },
+        {
+          "display": "'c:/Users/conon/Desktop/작업지시.xlsx'",
+          "pastedContents": {}
+        },
+        {
+          "display": "혹시 실제 엑셀파일을 니가 볼수는 없니?",
+          "pastedContents": {}
+        },
+        {
+          "display": "25_인빌딩_0211\nDEBUG: 관리번호 = \"25_인빌딩_0211\"\n25_인빌딩_0211\nDEBUG: 작업요청일 = \"25_인빌딩_0211\"\n서부산T    NS00260284    서부산망(안)    RT 2군 / COT 신설\n25_인빌딩_0212\nDEBUG: 관리번호 = \"25_인빌딩_0212\"\n25_인빌딩_0212\nDEBUG: 작업요청일 = \"25_인빌딩_0212\"\n서부산T    NS00260284    서부산망(안)    RT 2군 / COT 신설\n25_인빌딩_0213\nDEBUG: 관리번호 = \"25_인빌딩_0213\"\n25_인빌딩_0213\nDEBUG: 작업요청일 = \"25_인빌딩_0213\"\n서부산T    NS00260909    서부산망(안)    RT / COT 신설\n25_인빌딩_0214\nDEBUG: 관리번호 = \"25_인빌딩_0214\"\n25_인빌딩_0214\nDEBUG: 작업요청일 = \"25_인빌딩_0214\"\n서부산T    NS00260909    서부산망(안)    RT / COT 신설\n25_인빌딩_0217\nDEBUG: 관리번호 = \"25_인빌딩_0217\"\n25_인빌딩_0217\nDEBUG: 작업요청일 = \"25_인빌딩_0217\"\n동부산T    NS00260224    양산국사    RT / COT 신설",
+          "pastedContents": {}
+        },
+        {
+          "display": "업로드 화면 자체도 작업요청일이 관리번호랑 같이 입력이 되어있네",
+          "pastedContents": {}
+        },
+        {
+          "display": "업로드 화면 자체도 작업요청일이 관리번호랑 같이 입력이 되어있네\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "근데 아직 작업 지시서에 작업요청일이 관리번호랑 같이 입력이 되어있어\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "이거 앱으로 볼수도 있니?",
+          "pastedContents": {}
+        },
+        {
+          "display": "이제 잘되네 근데 운용팀이 기타로 나오네 업로드 파일에는 분명 김해T로 되어있는데.업로드 파일 기준 운용팀이 들어가야되고 작업게시판에 관리번호와 작업요청일이 같이 표시가 되고 있어ㅠㅠ\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "작업지시서가 작업게시판으로 안넘어가는데?",
+          "pastedContents": {}
+        },
+        {
+          "display": "좋았어 이제 작업게시판이 작동을 하네.이제 여러개 작업지시를 운용팀 여러곳도 같이 올려볼께.그리고 작업게시판에 운용팀별로 카테고리가 나뉠수있도록 하면 좋겠어.운용팀은 엑셀 업로드 기준으로 분류 부탁해",
+          "pastedContents": {}
+        },
+        {
+          "display": "좋았어 근데 작업계시판에는 또 운용팀이 운용1팀으로 표시되고 있고 감사합니다.수고하십시오!도 들어가있어^^그리고 작업 지시를 클릭하면 세부 선번장과 모든 14개 항목이 보일수있게 해주면 좋겠고 업로드된 작업지시서 선번장에 있는 데이터가 회선번호가 들어가있어.원래 LTE MUX:B0~~이런식으로 들어가는건데 이상한 데이터가 들어가있네\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "업로드 했느데 선번장 칼럼에 있는 데이터가 안맞고 DU측 운용팀이 실제는 서부산T인데 운용1팀으로 표시가 되어 있네.그리고 마지막에 \"감사합니다.수고하십시오!\"이런 데이터는 불필요 하고 업로드가 되면 작업 게시판에 게시가 되야해.",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #2 +54 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "이 Excel 파일은 5G MUX 개통 작업을 위한 작업지시서입니다.\n\n🎯 목표:\n아래의 14개 항목을 정확히 추출해 JSON 배열 형태로 출력하세요.\n\n✅ 엑셀 구조 요약:\n- 1~3행: 병합된 헤더 존재 (상단/하단 조합 필요)\n- 4행부터: 실제 데이터\n- 헤더 중복 및 유사 키워드 존재 (문맥 추론 필요)\n- 일부 셀은 병합되거나 비어 있음\n\n✅ 추출할 필드 (14개):\n1. 관리번호 → 키워드: 관리번호, ID, 번호\n2. 작업요청일 → 키워드: 작업요청일, 요청일, 일정, 날짜, 예정일\n3. DU측_운용팀 → 반드시 \"DU측\" + \"운용팀\" 조합이어야 함 (RU측은 제외)\n4. 대표_RU_ID → 키워드: 대표, RU_ID, RU ID, RUID\n5. 대표_RU_명 → 키워드: 대표, RU_명, RU명\n6. 5G_Co_Site_수량 → 키워드: 5G, Co-Site, 수량\n7. 5G_집중국명 → 키워드: 5G, 집중국명, 센터명, 국명\n8. 선번장 → 키워드: 선번장, LTE MUX, 국간망, 간선망, 회선번호\n9. 종류 → 위치: 대개 26번째 열(Z열), 또는 키워드: 종류, 타입, Type\n10. 서비스_구분 → 키워드: 서비스 구분, SERVICE\n11. DU_ID → 키워드: DU ID, DU_ID, DU코드\n12. DU_명 → 키워드: DU 명, DU_명, DU이름\n13. 채널카드 → 키워드: 채널카드, CH, 카드\n14. 포트_A → 키워드: 포트A, PORT A, Port A\n\n⚠️ 주의사항:\n- DU측 운용팀만 추출 (RU측 운용팀은 제외)\n- 운용팀은 ‘운용1팀’, ‘중부산T’, ‘동부산T’ 등 다양하게 존재할 수 있음\n- “감사합니다” “수고하십시오” 등 메시지는 무시\n- 빈 값은 \"N/A\"로 처리\n- 유효한 데이터인지 확인하려면 관리번호, DU_ID, 작업요청일 중 1개라도 있어야 함\n\n🧾 출력 JSON 예시:\n[\n  {\n    \"관리번호\": \"25_인빌딩_0212\",\n    \"작업요청일\": \"08월07일(목) 내\",\n    \"DU측_운용팀\": \"운용2팀\",\n    \"대표_RU_ID\": \"NPPS01492S\",\n    \"대표_RU_명\": \"중부산T\",\n    \"5G_Co_Site_수량\": \"2\",\n    \"5G_집중국명\": \"중부산망(안)\",\n    \"선번장\": \"LTE MUX : B0833-06-18...\",\n    \"종류\": \"10G_4CH\",\n    \"서비스_구분\": \"CH3\",\n    \"DU_ID\": \"NS00260285\",\n    \"DU_명\": \"중부산망(안)-01-03(5G)\",\n    \"채널카드\": \"3\",\n    \"포트_A\": \"9\"\n  }\n]\n\n🎯 출력은 반드시 JSON 배열로 출력하고, 최대 5건만 미리보기로 보여주세요.\n"
+            },
+            "2": {
+              "id": 2,
+              "type": "text",
+              "content": "이 Excel 파일은 5G MUX 개통 작업을 위한 작업지시서입니다.\n\n🎯 목표:\n아래의 14개 항목을 정확히 추출해 JSON 배열 형태로 출력하세요.\n\n✅ 엑셀 구조 요약:\n- 1~3행: 병합된 헤더 존재 (상단/하단 조합 필요)\n- 4행부터: 실제 데이터\n- 헤더 중복 및 유사 키워드 존재 (문맥 추론 필요)\n- 일부 셀은 병합되거나 비어 있음\n\n✅ 추출할 필드 (14개):\n1. 관리번호 → 키워드: 관리번호, ID, 번호\n2. 작업요청일 → 키워드: 작업요청일, 요청일, 일정, 날짜, 예정일\n3. DU측_운용팀 → 반드시 \"DU측\" + \"운용팀\" 조합이어야 함 (RU측은 제외)\n4. 대표_RU_ID → 키워드: 대표, RU_ID, RU ID, RUID\n5. 대표_RU_명 → 키워드: 대표, RU_명, RU명\n6. 5G_Co_Site_수량 → 키워드: 5G, Co-Site, 수량\n7. 5G_집중국명 → 키워드: 5G, 집중국명, 센터명, 국명\n8. 선번장 → 키워드: 선번장, LTE MUX, 국간망, 간선망, 회선번호\n9. 종류 → 위치: 대개 26번째 열(Z열), 또는 키워드: 종류, 타입, Type\n10. 서비스_구분 → 키워드: 서비스 구분, SERVICE\n11. DU_ID → 키워드: DU ID, DU_ID, DU코드\n12. DU_명 → 키워드: DU 명, DU_명, DU이름\n13. 채널카드 → 키워드: 채널카드, CH, 카드\n14. 포트_A → 키워드: 포트A, PORT A, Port A\n\n⚠️ 주의사항:\n- DU측 운용팀만 추출 (RU측 운용팀은 제외)\n- 운용팀은 ‘운용1팀’, ‘중부산T’, ‘동부산T’ 등 다양하게 존재할 수 있음\n- “감사합니다” “수고하십시오” 등 메시지는 무시\n- 빈 값은 \"N/A\"로 처리\n- 유효한 데이터인지 확인하려면 관리번호, DU_ID, 작업요청일 중 1개라도 있어야 함\n\n🧾 출력 JSON 예시:\n[\n  {\n    \"관리번호\": \"25_인빌딩_0212\",\n    \"작업요청일\": \"08월07일(목) 내\",\n    \"DU측_운용팀\": \"운용2팀\",\n    \"대표_RU_ID\": \"NPPS01492S\",\n    \"대표_RU_명\": \"중부산T\",\n    \"5G_Co_Site_수량\": \"2\",\n    \"5G_집중국명\": \"중부산망(안)\",\n    \"선번장\": \"LTE MUX : B0833-06-18...\",\n    \"종류\": \"10G_4CH\",\n    \"서비스_구분\": \"CH3\",\n    \"DU_ID\": \"NS00260285\",\n    \"DU_명\": \"중부산망(안)-01-03(5G)\",\n    \"채널카드\": \"3\",\n    \"포트_A\": \"9\"\n  }\n]\n\n🎯 출력은 반드시 JSON 배열로 출력하고, 최대 5건만 미리보기로 보여주세요."
+            }
+          }
+        },
+        {
+          "display": "한굴로 답변부탁하고 현재 웹페이지 안열리는데",
+          "pastedContents": {}
+        },
+        {
+          "display": "lineguide 작업하다가 끊겼네.하던 작업 계속 진행하자",
+          "pastedContents": {}
+        },
+        {
+          "display": "웹에서 한번 해보자",
+          "pastedContents": {}
+        },
+        {
+          "display": "엑셀 파일로부터 작업지시 데이터를 추출하려고 해.  \n파일에는 2~3행에 걸쳐 병합된 헤더가 있으며,  \n4행부터는 실제 개통 작업 데이터가 시작돼.\n\n각 행은 하나의 개통 작업을 의미하며, 총 14개의 필드만 JSON 형태로 추출하고 싶어.  \n엑셀 구조는 병합된 셀로 인해 첫 번째 줄은 대분류, 두 번째 줄은 소분류 형태야.\n\n❗ 데이터는 항상 4행부터 시작해.  \n❗ 열 수는 30개 이상이지만, 내가 필요한 건 일부야.  \n❗ 항목의 순서나 위치는 바뀔 수 있으므로 헤더 텍스트를 기준으로 필드를 찾아야 해.\n\n추출해야 할 항목은 아래와 같아:\n\n관리번호\n\n작업요청일\n\nDU측_운용팀\n\n대표_RU_ID\n\n대표_RU_명\n\n5G_Co_Site_수량\n\n5G_집중국명\n\n선번장\n\n종류\n\n서비스_구분\n\nDU_ID\n\nDU_명\n\n채널카드\n\n포트_A",
+          "pastedContents": {}
+        },
+        {
+          "display": "웹접속으로 한번 해보자",
+          "pastedContents": {}
+        },
+        {
+          "display": "아래와 같은 구조의 Excel 파일을 업로드하면, 병합된 셀을 포함하여 2~3행을 병합해서 헤더를 구성하고, 4행부터 데이터를 추출해줘.\n\n그리고 아래 14개의 항목만 추출해서 JSON 형태로 정리해줘. 빈 칸은 \"N/A\"로 처리해도 좋아.\n\n1. 관리번호  \n2. 작업요청일  \n3. DU측 운용팀  \n4. 대표 RU_ID  \n5. 대표 RU_명  \n6. 5G Co-Site 수량  \n7. 5G 집중국명  \n8. 선번장 (LTE MUX 또는 국간망/간선망 회선번호)  \n9. 종류  \n10. 서비스 구분  \n11. DU ID  \n12. DU 명  \n13. 채널카드  \n14. 포트 A\n\n출력 결과는 JSON 배열 형태여야 하고, 각 항목은 키 값으로 구분되게 해줘.\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "lineguide작업 계속 해볼까?",
+          "pastedContents": {}
+        },
+        {
+          "display": "사이트 접속해보자",
+          "pastedContents": {}
+        },
+        {
+          "display": "테스트 해보자",
+          "pastedContents": {}
+        },
+        {
+          "display": "한글로 보여줘",
+          "pastedContents": {}
+        },
+        {
+          "display": "● 새로운 엑셀 구조 분석 완료!\n\n  - 헤더: 2-3행 (2행 메인헤더, 3행 서브헤더)\n  - 데이터: 4행부터 시작\n  - 정확한 컬럼 매핑:\n    - A열: 관리번호 (25_인빌딩_0211)\n    - C열: 작업요청일 (08월06일(수) 내)\n    - D열: DU측 운용팀 (서부산T)\n    - F열: RU측 운용팀 (서부산T)\n    - I열: 대표 RU_ID (NPPS01491S)\n    - K열: 5G CO-SITE수량 (1)\n    - L열: 5G 집중국명 (서부산망(안))\n    - P열: 선번장 (LTE MUX : B0833-06-17...)\n    - Q열: MUX 종류 (10G_3CH)\n    - [열: 서비스구분 (CH4)\n    - \\열: DU ID (NS00260284)\n    - ]열: DU명 (서부산망(안)-01-02(5G))\n    - ^열: 채널카드 (2)\n    - _열: 포트 (8)\n\n  이제 이 정확한 매핑으로 파서를 업데이트하겠습니다.",
+          "pastedContents": {}
+        },
+        {
+          "display": "엑셀 구조 파악이 되었니?",
+          "pastedContents": {}
+        },
+        {
+          "display": "자 간결한 구조의 엑셀을 만들었어.일단1. 관리번호 2.작업요청일 3.DU측 운용팀 4.RU측 운용팀 5.대표 RU_ID 5.5G CO-SITE수량 6.5G 집중국명 7.선번장 8 MUX종 9.서비스 구분 10.DU ID 11.DU명 12.채널카드 13.포트 이렇게 작업지시서에 들어가야할 항목이야 구조 파악해봐.지금 수정했어\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "엑셀 파일 칼럼이 복잡해서 내가 엑셀 구조를 조금 간결하게 바꿔서 업로드 해볼께 ",
+          "pastedContents": {}
+        },
+        {
+          "display": "예를들어 J은 OSP협력사야 엑셀파일에 그리고 I 열은 시설협력사잖아?근데 아래 16번 행부터 또 칼럼이 바뀌어서 니가 오류가 생기는거같은데.위와 아래의 8번에서 13번 행은 같은 칼럼.16번 부터 21번행은 또다른 칼럼이잖아?이부분을 해결해야 정상적인 작업 지시서가 나올수있을거 같은데\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "25_인빌딩_0211\n08월06일(수) 내    운용1팀    \n장비명: 남포동6가_더베이먼트테라스스위트(LGU+)_8T_F11\n5G 집중국: 서부산망(안)\n구분: RT 2군 / COT 신설\n서비스: 아라\nDU ID: 4.37245E+11\nDU 명: LTE MUX : B0833-06-17 - 작업 전 MUX렉에 LTE MUX 있는지 확인 후 작업요청\n채널카드: 부산광역시\n포트: 중구             전혀 안맞아!!뭐가 문제일까?",
+          "pastedContents": {}
+        },
+        {
+          "display": "수정해야될것들이 많구나.작업 요청일은 엑셀 파일 a열에 8월06일 이내 로 표시되는 부분들이고 운용팀은 서부산T이런식이고 구분 신설 5G집중국 명은 서부산망(안)이런식으로 보면돼.현재 업로드된 작업은 4건이야.장비명과 아래 [MUX설치 정보]칼럼에서 보면 대표RU명으로 구분하면돼.우리가 작업지시에 필요한 칼럼은 1.작업요청일,2운용팀,3 5G집중국명,4장비구분 5장비명6.종류 7.서비스구분 8.DU ID 9.DU 명 10.채널카드 11.포트 13 선번장(LTE MUX/국간,간선망) 14.관리번호가 가장 먼저와야해 관리번호로 작업을 구분해낼거야.딱 여기 까지 작업 지시서에서 필요한 부분이야.엑셀자료 업로드된 부분에서 추출할 내용들",
+          "pastedContents": {}
+        },
+        {
+          "display": "업로드 되었다가 바로 없어져버리는데 작업 지시가?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Excel 파일 파싱에 실패했습니다\n\n• 15행: 필수 필드가 누락되었습니다.\n• 17행: 필수 필드가 누락되었습니다.\n• 23행: 필수 필드가 누락되었습니다.",
+          "pastedContents": {}
+        },
+        {
+          "display": "ch칼럼은 채널카드야 채널카드로 보면돼",
+          "pastedContents": {}
+        },
+        {
+          "display": "'c:/Users/conon/Desktop/작업지시.xlsx'",
+          "pastedContents": {}
+        },
+        {
+          "display": "혹시 지금 업로드된 엑셀파일 분석 가능하니?",
+          "pastedContents": {}
+        },
+        {
+          "display": "실행이 안되는데? 사이트에 연결할수없음으로 localhost에서 연결을 거부했습니다",
+          "pastedContents": {}
+        },
+        {
+          "display": "npm run dev",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +16 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "LineGuide는 KT 통신장비 유지보수와 관련된 현장 작업지시를 관리하는 실무 플랫폼입니다. 현재는 HTML 기반 PWA로 회선 정보를 검색하는 기능만 제공하고 있으며, 이 버전은 직원들이 참고용으로 계속 사용할 예정입니다.\n\n이번 작업의 목적은 이 LineGuide를 React 기반 실무 플랫폼으로 업그레이드하여, '작업지시 자동 정제 → 운용팀별 작업 게시 → 상태 관리 및 완료 기록'까지 전체 프로세스를 웹상에서 관리하는 시스템으로 구축하는 것입니다.\n\n기본 흐름은 다음과 같습니다:\n\n1. 관리자는 작업지시서(Excel)를 업로드합니다. 이 파일은 병합된 셀을 포함하고 있으며, 7~8행이 병합된 헤더로 구성되어 있고, 9행부터 작업 내역이 시작됩니다.\n2. 필요한 정보는 아래와 같습니다: `작업요청일`, `운용팀`, `장비ID`, `5G 집중국명`, `MUX선번`, `서비스구분`, `DU ID`, `DU 명`, `CH`, `CARD`, `PORT`\n3. 업로드된 작업 내역은 운용팀별로 분리되어 작업게시판에 보여지고, 각 항목에 대해 실시간으로 `대기`, `진행중`, `완료` 상태를 설정할 수 있습니다.\n4. 향후에는 작업 완료 시 현장 사진이나 메모도 저장하고, 대시보드 형태로 이력 관리가 가능해야 합니다.\n\n기술적으로는 React + Tailwind CSS 기반으로 구성하며, 필요 시 LocalStorage 또는 IndexedDB를 사용해 오프라인 대응도 고려할 예정입니다.\n\n이 프로젝트의 핵심은 복잡한 Excel 구조를 분석하여 필요한 정보만 추출하고, 실무에 적합한 인터페이스로 React 앱을 구성하는 것입니다. 앞으로 이 목표에 맞춰 컴포넌트 분할, 데이터 파싱, 상태 관리, UI 구성 등을 하나씩 개발할 계획입니다.\n\nReact 기반으로 개발을 시작하며, 초기 구조와 컴포넌트 설계부터 도와주세요.\n"
+            }
+          }
+        },
+        {
+          "display": "[Pasted text #1 +637 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "◎ 개통현황(인빌딩)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n팀\n\n집중국\n\nCH1\n\nCH2\n\nCH3\n\nCH4\n\nCH5\n\nCH6\n\n총합계\n\n서부산T\n\n서부산망(안)\n\n　\n\n　\n\n　\n\n2\n\n2\n\n　\n\n4\n\n합계\n\n　\n\n　\n\n　\n\n2\n\n2\n\n　\n\n4\n\n\n\n[5G 개통 정보]\n\n작업\n요청일\n\nDU측\n운용팀\n\nDU측\n담당자\n\n구분\n\n5G 집중국명\n\n장비구분\n\n장비ID\n\n장비명\n\n시설협력사\n\nOSP협력사\n\n회선번호\n\n선번장\n(LTE MUX / 국간,간선망)\n\n종류\n\n서비스\n구분\n\nDU ID\n\nDU 명\n\n채널카드\n\n포트A\n\n\n\n이설전 국소 ID\n\n이설전 국소 명\n\nMUX선번\n\nSFP번호\n\nDU ID\n\nDU 명\n\nCARD\n\nPORT\n\n비고\n\nSFP분출 여부\n\n08월06일(수) 내\n\n서부산T\n\n권성문\n\n신설\n\n서부산망(안)\n\n8T\n\nNPPS01491S\n\n남포동6가_더베이먼트테라스스위트(LGU+)_8T_F11\n\n한울\n\n아라\n\n437245100179\n\nLTE MUX : B0833-06-17 - 작업 전 MUX렉에 LTE MUX 있는지 확인 후 작업요청\n\n10G_3CH\n\nCH4\n\nNS00260284\n\n서부산망(안)-01-02(5G)\n\n2\n\n8\n\n◀\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\nO\n\n08월06일(수) 내\n\n서부산T\n\n권성문\n\n신설\n\n서부산망(안)\n\n8T\n\nNPPS01800S\n\n남포동6가_더베이먼트테라스스위트(LGU+)_8T_B02\n\n한울\n\n아라\n\n437255110062\n\nLTE MUX : B0833-06-16 - 작업 전 MUX렉에 LTE MUX 있는지 확인 후 작업요청\n\n10G_3CH\n\nCH5\n\nNS00260284\n\n서부산망(안)-01-02(5G)\n\n2\n\n9\n\n◀\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\nO\n\n08월06일(수) 내\n\n서부산T\n\n권성문\n\n신설\n\n서부산망(안)\n\n8T\n\nNPPS03652S\n\n[인]부산문화방송범일사옥(부산MBC)_KT_8T_11F\n\n한울\n\n금강통신\n\n437255170042\n\n남부산-부산안-FO-0006-122 / SF016-120B\n\n10G_3CH\n\nCH4\n\nNS00260909\n\n서부산망(안)-04-05\n\n1\n\n7\n\n◀\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\nO\n\n08월06일(수) 내\n\n서부산T\n\n권성문\n\n신설\n\n서부산망(안)\n\n8T\n\nNPPS03651S\n\n[인]부산문화방송범일사옥(부산MBC)_KT_8T_B02\n\n한울\n\n금강통신\n\n437255170041\n\n남부산-부산안-FO-0006-121 / SF016-120A\n\n10G_3CH\n\nCH5\n\nNS00260909\n\n서부산망(안)-04-05\n\n1\n\n6\n\n◀\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\n0\n\nO\n\n\n\n[MUX 설치 정보]\n\n관리번호\n\n\n\n작업\n요청일\n\nDU측\n운용팀\n\nDU측\n담당자\n\nRU측\n운용팀\n\nRU측\n담당자\n\n구분\n\n대표\nRU_ID\n\n대표\nRU_명\n\n5G CO-\nSITE 수량\n\n5G 집중국명\n\n시설\n협력사\n\nOSP\n협력사\n\n회선번호\n\n선번장\n(LTE MUX / 국간,간선망)\n\nMUX 종류\n\n시/도\n\n시/군/구\n\n읍/면/동(리)\n\n번지\n\n건물명\n\n장비\n위치\n\n비고\n\nMUX 분출여부\n\n25_인빌딩_0211\n\n\n\n08월06일(수) 내\n\n서부산T\n\n권성문\n\n서부산T\n\n신현준\n\nRT 2군 / COT 신설\n\nNPPS01491S\n\n남포동6가_더베이먼트테라스스위트(LGU+)_8T_F11\n\n1\n\n서부산망(안)\n\n한울\n\n아라\n\n437245100179\n\nLTE MUX : B0833-06-17 - 작업 전 MUX렉에 LTE MUX 있는지 확인 후 작업요청\n\n10G_3CH\n\n부산광역시\n\n중구\n\n남포동6가\n\n85\n\n 더베이먼트테라스스위트(24년9월)\n\n지상 11층 EPS실\n\n0\n\nO\n\n25_인빌딩_0212\n\n\n\n08월06일(수) 내\n\n서부산T\n\n권성문\n\n서부산T\n\n신현준\n\nRT 2군 / COT 신설\n\nNPPS01800S\n\n남포동6가_더베이먼트테라스스위트(LGU+)_8T_B02\n\n1\n\n서부산망(안)\n\n한울\n\n아라\n\n437255110062\n\nLTE MUX : B0833-06-16 - 작업 전 MUX렉에 LTE MUX 있는지 확인 후 작업요청\n\n10G_3CH\n\n부산광역시\n\n중구\n\n남포동6가\n\n85\n\n 더베이먼트테라스스위트(24년9월)\n\n지하 2층 EPS실\n\n0\n\nO\n\n25_인빌딩_0213\n\n\n\n08월06일(수) 내\n\n서부산T\n\n권성문\n\n중부산T\n\n염명훈\n\nRT / COT 신설\n\nNPPS03652S\n\n[인]부산문화방송범일사옥(부산MBC)_KT_8T_11F\n\n1\n\n서부산망(안)\n\n한울\n\n금강통신\n\n437255170042\n\n남부산-부산안-FO-0006-122 / SF016-120B\n\n10G_3CH\n\n부산광역시\n\n동구\n\n범일동\n\n830-30\n\n부산문화방송범일사옥\n\n지상 11층_EPS실\n\n0\n\nO\n\n25_인빌딩_0214\n\n\n\n08월06일(수) 내\n\n서부산T\n\n권성문\n\n중부산T\n\n염명훈\n\nRT / COT 신설\n\nNPPS03651S\n\n[인]부산문화방송범일사옥(부산MBC)_KT_8T_B02\n\n1\n\n서부산망(안)\n\n한울\n\n금강통신\n\n437255170041\n\n남부산-부산안-FO-0006-121 / SF016-120A\n\n10G_3CH\n\n부산광역시\n\n동구\n\n범일동\n\n830-30\n\n부산문화방송범일사옥\n\n지하 2층_EPS실\n\n0\n\nO\n\n\n\n감사합니다. 수고하십시오!\n\n"
+            }
+          }
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 5,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 13.252861850000004,
+      "lastAPIDuration": 3083959,
+      "lastDuration": 17971919,
+      "lastLinesAdded": 1662,
+      "lastLinesRemoved": 378,
+      "lastTotalInputTokens": 58178,
+      "lastTotalOutputTokens": 127099,
+      "lastTotalCacheCreationInputTokens": 830679,
+      "lastTotalCacheReadInputTokens": 27367144,
+      "lastSessionId": "b38a9631-9c09-4709-8335-0a8bae4ba434"
+    },
+    "/home/conon/claude-test": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "잘되네~~고마워",
+          "pastedContents": {}
+        },
+        {
+          "display": "간단한 사다리타기 게임 만들어줄수있니?",
+          "pastedContents": {}
+        },
+        {
+          "display": "1",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 3,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0
+    }
+  },
+  "oauthAccount": {
+    "accountUuid": "6098fe46-b2a0-4fa6-88e8-f8f370972fc1",
+    "emailAddress": "dandiaimos@gmail.com",
+    "organizationUuid": "257e9b86-6305-45dc-8447-4ec6577a0fca",
+    "organizationRole": "admin",
+    "workspaceRole": null,
+    "organizationName": "dandiaimos@gmail.com's Organization"
+  },
+  "isQualifiedForDataSharing": false,
+  "hasCompletedOnboarding": true,
+  "lastOnboardingVersion": "1.0.67",
+  "subscriptionNoticeCount": 0,
+  "hasAvailableSubscription": false,
+  "cachedChangelog": "# Changelog\n\n## 1.0.65\n\n- IDE: Fixed connection stability issues and error handling for diagnostics\n- Windows: Fixed shell environment setup for users without .bashrc files\n\n## 1.0.64\n\n- Agents: Added model customization support - you can now specify which model an agent should use\n- Agents: Fixed unintended access to the recursive agent tool\n- Hooks: Added systemMessage field to hook JSON output for displaying warnings and context\n- SDK: Fixed user input tracking across multi-turn conversations\n- Added hidden files to file search and @-mention suggestions\n\n## 1.0.63\n\n- Windows: Fixed file search, @agent mentions, and custom slash commands functionality\n\n## 1.0.62\n\n- Added @-mention support with typeahead for custom agents. @<your-custom-agent> to invoke it\n- Hooks: Added SessionStart hook for new session initialization\n- /add-dir command now supports typeahead for directory paths\n- Improved network connectivity check reliability\n\n## 1.0.61\n\n- Transcript mode (Ctrl+R): Changed Esc to exit transcript mode rather than interrupt\n- Settings: Added `--settings` flag to load settings from a JSON file\n- Settings: Fixed resolution of settings files paths that are symlinks\n- OTEL: Fixed reporting of wrong organization after authentication changes\n- Slash commands: Fixed permissions checking for allowed-tools with Bash\n- IDE: Added support for pasting images in VSCode MacOS using ⌘+V\n- IDE: Added `CLAUDE_CODE_AUTO_CONNECT_IDE=false` for disabling IDE auto-connection\n- Added `CLAUDE_CODE_SHELL_PREFIX` for wrapping Claude and user-provided shell commands run by Claude Code\n\n## 1.0.60\n\n- You can now create custom subagents for specialized tasks! Run /agents to get started\n\n## 1.0.59\n\n- SDK: Added tool confirmation support with canUseTool callback\n- SDK: Allow specifying env for spawned process\n- Hooks: Exposed PermissionDecision to hooks (including \"ask\")\n- Hooks: UserPromptSubmit now supports additionalContext in advanced JSON output\n- Fixed issue where some Max users that specified Opus would still see fallback to Sonnet\n\n## 1.0.58\n\n- Added support for reading PDFs\n- MCP: Improved server health status display in 'claude mcp list'\n- Hooks: Added CLAUDE_PROJECT_DIR env var for hook commands\n\n## 1.0.57\n\n- Added support for specifying a model in slash commands\n- Improved permission messages to help Claude understand allowed tools\n- Fix: Remove trailing newlines from bash output in terminal wrapping\n\n## 1.0.56\n\n- Windows: Enabled shift+tab for mode switching on versions of Node.js that support terminal VT mode\n- Fixes for WSL IDE detection\n- Fix an issue causing awsRefreshHelper changes to .aws directory not to be picked up\n\n## 1.0.55\n\n- Clarified knowledge cutoff for Opus 4 and Sonnet 4 models\n- Windows: fixed Ctrl+Z crash\n- SDK: Added ability to capture error logging\n- Add --system-prompt-file option to override system prompt in print mode\n\n## 1.0.54\n\n- Hooks: Added UserPromptSubmit hook and the current working directory to hook inputs\n- Custom slash commands: Added argument-hint to frontmatter\n- Windows: OAuth uses port 45454 and properly constructs browser URL\n- Windows: mode switching now uses alt + m, and plan mode renders properly\n- Shell: Switch to in-memory shell snapshot to fix file-related errors\n\n## 1.0.53\n\n- Updated @-mention file truncation from 100 lines to 2000 lines\n- Add helper script settings for AWS token refresh: awsAuthRefresh (for foreground operations like aws sso login) and awsCredentialExport (for background operation with STS-like response).\n\n## 1.0.52\n\n- Added support for MCP server instructions\n\n## 1.0.51\n\n- Added support for native Windows (requires Git for Windows)\n- Added support for Bedrock API keys through environment variable AWS_BEARER_TOKEN_BEDROCK\n- Settings: /doctor can now help you identify and fix invalid setting files\n- `--append-system-prompt` can now be used in interactive mode, not just --print/-p.\n- Increased auto-compact warning threshold from 60% to 80%\n- Fixed an issue with handling user directories with spaces for shell snapshots\n- OTEL resource now includes os.type, os.version, host.arch, and wsl.version (if running on Windows Subsystem for Linux)\n- Custom slash commands: Fixed user-level commands in subdirectories\n- Plan mode: Fixed issue where rejected plan from sub-task would get discarded\n\n## 1.0.48\n\n- Fixed a bug in v1.0.45 where the app would sometimes freeze on launch\n- Added progress messages to Bash tool based on the last 5 lines of command output\n- Added expanding variables support for MCP server configuration\n- Moved shell snapshots from /tmp to ~/.claude for more reliable Bash tool calls\n- Improved IDE extension path handling when Claude Code runs in WSL\n- Hooks: Added a PreCompact hook\n- Vim mode: Added c, f/F, t/T\n\n## 1.0.45\n\n- Redesigned Search (Grep) tool with new tool input parameters and features\n- Disabled IDE diffs for notebook files, fixing \"Timeout waiting after 1000ms\" error\n- Fixed config file corruption issue by enforcing atomic writes\n- Updated prompt input undo to Ctrl+\\_ to avoid breaking existing Ctrl+U behavior, matching zsh's undo shortcut\n- Stop Hooks: Fixed transcript path after /clear and fixed triggering when loop ends with tool call\n- Custom slash commands: Restored namespacing in command names based on subdirectories. For example, .claude/commands/frontend/component.md is now /frontend:component, not /component.\n\n## 1.0.44\n\n- New /export command lets you quickly export a conversation for sharing\n- MCP: resource_link tool results are now supported\n- MCP: tool annotations and tool titles now display in /mcp view\n- Changed Ctrl+Z to suspend Claude Code. Resume by running `fg`. Prompt input undo is now Ctrl+U.\n\n## 1.0.43\n\n- Fixed a bug where the theme selector was saving excessively\n- Hooks: Added EPIPE system error handling\n\n## 1.0.42\n\n- Added tilde (`~`) expansion support to `/add-dir` command\n\n## 1.0.41\n\n- Hooks: Split Stop hook triggering into Stop and SubagentStop\n- Hooks: Enabled optional timeout configuration for each command\n- Hooks: Added \"hook_event_name\" to hook input\n- Fixed a bug where MCP tools would display twice in tool list\n- New tool parameters JSON for Bash tool in `tool_decision` event\n\n## 1.0.40\n\n- Fixed a bug causing API connection errors with UNABLE_TO_GET_ISSUER_CERT_LOCALLY if `NODE_EXTRA_CA_CERTS` was set\n\n## 1.0.39\n\n- New Active Time metric in OpenTelemetry logging\n\n## 1.0.38\n\n- Released hooks. Special thanks to community input in https://github.com/anthropics/claude-code/issues/712. Docs: https://docs.anthropic.com/en/docs/claude-code/hooks\n\n## 1.0.37\n\n- Remove ability to set `Proxy-Authorization` header via ANTHROPIC_AUTH_TOKEN or apiKeyHelper\n\n## 1.0.36\n\n- Web search now takes today's date into context\n- Fixed a bug where stdio MCP servers were not terminating properly on exit\n\n## 1.0.35\n\n- Added support for MCP OAuth Authorization Server discovery\n\n## 1.0.34\n\n- Fixed a memory leak causing a MaxListenersExceededWarning message to appear\n\n## 1.0.33\n\n- Improved logging functionality with session ID support\n- Added prompt input undo functionality (Ctrl+Z and vim 'u' command)\n- Improvements to plan mode\n\n## 1.0.32\n\n- Updated loopback config for litellm\n- Added forceLoginMethod setting to bypass login selection screen\n\n## 1.0.31\n\n- Fixed a bug where ~/.claude.json would get reset when file contained invalid JSON\n\n## 1.0.30\n\n- Custom slash commands: Run bash output, @-mention files, enable thinking with thinking keywords\n- Improved file path autocomplete with filename matching\n- Added timestamps in Ctrl-r mode and fixed Ctrl-c handling\n- Enhanced jq regex support for complex filters with pipes and select\n\n## 1.0.29\n\n- Improved CJK character support in cursor navigation and rendering\n\n## 1.0.28\n\n- Slash commands: Fix selector display during history navigation\n- Resizes images before upload to prevent API size limit errors\n- Added XDG_CONFIG_HOME support to configuration directory\n- Performance optimizations for memory usage\n- New attributes (terminal.type, language) in OpenTelemetry logging\n\n## 1.0.27\n\n- Streamable HTTP MCP servers are now supported\n- Remote MCP servers (SSE and HTTP) now support OAuth\n- MCP resources can now be @-mentioned\n- /resume slash command to switch conversations within Claude Code\n\n## 1.0.25\n\n- Slash commands: moved \"project\" and \"user\" prefixes to descriptions\n- Slash commands: improved reliability for command discovery\n- Improved support for Ghostty\n- Improved web search reliability\n\n## 1.0.24\n\n- Improved /mcp output\n- Fixed a bug where settings arrays got overwritten instead of merged\n\n## 1.0.23\n\n- Released TypeScript SDK: import @anthropic-ai/claude-code to get started\n- Released Python SDK: pip install claude-code-sdk to get started\n\n## 1.0.22\n\n- SDK: Renamed `total_cost` to `total_cost_usd`\n\n## 1.0.21\n\n- Improved editing of files with tab-based indentation\n- Fix for tool_use without matching tool_result errors\n- Fixed a bug where stdio MCP server processes would linger after quitting Claude Code\n\n## 1.0.18\n\n- Added --add-dir CLI argument for specifying additional working directories\n- Added streaming input support without require -p flag\n- Improved startup performance and session storage performance\n- Added CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR environment variable to freeze working directory for bash commands\n- Added detailed MCP server tools display (/mcp)\n- MCP authentication and permission improvements\n- Added auto-reconnection for MCP SSE connections on disconnect\n- Fixed issue where pasted content was lost when dialogs appeared\n\n## 1.0.17\n\n- We now emit messages from sub-tasks in -p mode (look for the parent_tool_use_id property)\n- Fixed crashes when the VS Code diff tool is invoked multiple times quickly\n- MCP server list UI improvements\n- Update Claude Code process title to display \"claude\" instead of \"node\"\n\n## 1.0.11\n\n- Claude Code can now also be used with a Claude Pro subscription\n- Added /upgrade for smoother switching to Claude Max plans\n- Improved UI for authentication from API keys and Bedrock/Vertex/external auth tokens\n- Improved shell configuration error handling\n- Improved todo list handling during compaction\n\n## 1.0.10\n\n- Added markdown table support\n- Improved streaming performance\n\n## 1.0.8\n\n- Fixed Vertex AI region fallback when using CLOUD_ML_REGION\n- Increased default otel interval from 1s -> 5s\n- Fixed edge cases where MCP_TIMEOUT and MCP_TOOL_TIMEOUT weren't being respected\n- Fixed a regression where search tools unnecessarily asked for permissions\n- Added support for triggering thinking non-English languages\n- Improved compacting UI\n\n## 1.0.7\n\n- Renamed /allowed-tools -> /permissions\n- Migrated allowedTools and ignorePatterns from .claude.json -> settings.json\n- Deprecated claude config commands in favor of editing settings.json\n- Fixed a bug where --dangerously-skip-permissions sometimes didn't work in --print mode\n- Improved error handling for /install-github-app\n- Bugfixes, UI polish, and tool reliability improvements\n\n## 1.0.6\n\n- Improved edit reliability for tab-indented files\n- Respect CLAUDE_CONFIG_DIR everywhere\n- Reduced unnecessary tool permission prompts\n- Added support for symlinks in @file typeahead\n- Bugfixes, UI polish, and tool reliability improvements\n\n## 1.0.4\n\n- Fixed a bug where MCP tool errors weren't being parsed correctly\n\n## 1.0.1\n\n- Added `DISABLE_INTERLEAVED_THINKING` to give users the option to opt out of interleaved thinking.\n- Improved model references to show provider-specific names (Sonnet 3.7 for Bedrock, Sonnet 4 for Console)\n- Updated documentation links and OAuth process descriptions\n\n## 1.0.0\n\n- Claude Code is now generally available\n- Introducing Sonnet 4 and Opus 4 models\n\n## 0.2.125\n\n- Breaking change: Bedrock ARN passed to `ANTHROPIC_MODEL` or `ANTHROPIC_SMALL_FAST_MODEL` should no longer contain an escaped slash (specify `/` instead of `%2F`)\n- Removed `DEBUG=true` in favor of `ANTHROPIC_LOG=debug`, to log all requests\n\n## 0.2.117\n\n- Breaking change: --print JSON output now returns nested message objects, for forwards-compatibility as we introduce new metadata fields\n- Introduced settings.cleanupPeriodDays\n- Introduced CLAUDE_CODE_API_KEY_HELPER_TTL_MS env var\n- Introduced --debug mode\n\n## 0.2.108\n\n- You can now send messages to Claude while it works to steer Claude in real-time\n- Introduced BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS env vars\n- Fixed a bug where thinking was not working in -p mode\n- Fixed a regression in /cost reporting\n- Deprecated MCP wizard interface in favor of other MCP commands\n- Lots of other bugfixes and improvements\n\n## 0.2.107\n\n- CLAUDE.md files can now import other files. Add @path/to/file.md to ./CLAUDE.md to load additional files on launch\n\n## 0.2.106\n\n- MCP SSE server configs can now specify custom headers\n- Fixed a bug where MCP permission prompt didn't always show correctly\n\n## 0.2.105\n\n- Claude can now search the web\n- Moved system & account status to /status\n- Added word movement keybindings for Vim\n- Improved latency for startup, todo tool, and file edits\n\n## 0.2.102\n\n- Improved thinking triggering reliability\n- Improved @mention reliability for images and folders\n- You can now paste multiple large chunks into one prompt\n\n## 0.2.100\n\n- Fixed a crash caused by a stack overflow error\n- Made db storage optional; missing db support disables --continue and --resume\n\n## 0.2.98\n\n- Fixed an issue where auto-compact was running twice\n\n## 0.2.96\n\n- Claude Code can now also be used with a Claude Max subscription (https://claude.ai/upgrade)\n\n## 0.2.93\n\n- Resume conversations from where you left off from with \"claude --continue\" and \"claude --resume\"\n- Claude now has access to a Todo list that helps it stay on track and be more organized\n\n## 0.2.82\n\n- Added support for --disallowedTools\n- Renamed tools for consistency: LSTool -> LS, View -> Read, etc.\n\n## 0.2.75\n\n- Hit Enter to queue up additional messages while Claude is working\n- Drag in or copy/paste image files directly into the prompt\n- @-mention files to directly add them to context\n- Run one-off MCP servers with `claude --mcp-config <path-to-file>`\n- Improved performance for filename auto-complete\n\n## 0.2.74\n\n- Added support for refreshing dynamically generated API keys (via apiKeyHelper), with a 5 minute TTL\n- Task tool can now perform writes and run bash commands\n\n## 0.2.72\n\n- Updated spinner to indicate tokens loaded and tool usage\n\n## 0.2.70\n\n- Network commands like curl are now available for Claude to use\n- Claude can now run multiple web queries in parallel\n- Pressing ESC once immediately interrupts Claude in Auto-accept mode\n\n## 0.2.69\n\n- Fixed UI glitches with improved Select component behavior\n- Enhanced terminal output display with better text truncation logic\n\n## 0.2.67\n\n- Shared project permission rules can be saved in .claude/settings.json\n\n## 0.2.66\n\n- Print mode (-p) now supports streaming output via --output-format=stream-json\n- Fixed issue where pasting could trigger memory or bash mode unexpectedly\n\n## 0.2.63\n\n- Fixed an issue where MCP tools were loaded twice, which caused tool call errors\n\n## 0.2.61\n\n- Navigate menus with vim-style keys (j/k) or bash/emacs shortcuts (Ctrl+n/p) for faster interaction\n- Enhanced image detection for more reliable clipboard paste functionality\n- Fixed an issue where ESC key could crash the conversation history selector\n\n## 0.2.59\n\n- Copy+paste images directly into your prompt\n- Improved progress indicators for bash and fetch tools\n- Bugfixes for non-interactive mode (-p)\n\n## 0.2.54\n\n- Quickly add to Memory by starting your message with '#'\n- Press ctrl+r to see full output for long tool results\n- Added support for MCP SSE transport\n\n## 0.2.53\n\n- New web fetch tool lets Claude view URLs that you paste in\n- Fixed a bug with JPEG detection\n\n## 0.2.50\n\n- New MCP \"project\" scope now allows you to add MCP servers to .mcp.json files and commit them to your repository\n\n## 0.2.49\n\n- Previous MCP server scopes have been renamed: previous \"project\" scope is now \"local\" and \"global\" scope is now \"user\"\n\n## 0.2.47\n\n- Press Tab to auto-complete file and folder names\n- Press Shift + Tab to toggle auto-accept for file edits\n- Automatic conversation compaction for infinite conversation length (toggle with /config)\n\n## 0.2.44\n\n- Ask Claude to make a plan with thinking mode: just say 'think' or 'think harder' or even 'ultrathink'\n\n## 0.2.41\n\n- MCP server startup timeout can now be configured via MCP_TIMEOUT environment variable\n- MCP server startup no longer blocks the app from starting up\n\n## 0.2.37\n\n- New /release-notes command lets you view release notes at any time\n- `claude config add/remove` commands now accept multiple values separated by commas or spaces\n\n## 0.2.36\n\n- Import MCP servers from Claude Desktop with `claude mcp add-from-claude-desktop`\n- Add MCP servers as JSON strings with `claude mcp add-json <n> <json>`\n\n## 0.2.34\n\n- Vim bindings for text input - enable with /vim or /config\n\n## 0.2.32\n\n- Interactive MCP setup wizard: Run \"claude mcp add\" to add MCP servers with a step-by-step interface\n- Fix for some PersistentShell issues\n\n## 0.2.31\n\n- Custom slash commands: Markdown files in .claude/commands/ directories now appear as custom slash commands to insert prompts into your conversation\n- MCP debug mode: Run with --mcp-debug flag to get more information about MCP server errors\n\n## 0.2.30\n\n- Added ANSI color theme for better terminal compatibility\n- Fixed issue where slash command arguments weren't being sent properly\n- (Mac-only) API keys are now stored in macOS Keychain\n\n## 0.2.26\n\n- New /approved-tools command for managing tool permissions\n- Word-level diff display for improved code readability\n- Fuzzy matching for slash commands\n\n## 0.2.21\n\n- Fuzzy matching for /commands\n",
+  "changelogLastFetched": 1754201262073,
+  "fallbackAvailableWarningThreshold": 0.5,
+  "hasIdeOnboardingBeenShown": {
+    "vscode": true
+  },
+  "lastReleaseNotesSeen": "1.0.67"
+}
