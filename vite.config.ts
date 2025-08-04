@@ -15,7 +15,7 @@ export default defineConfig({
     strictPort: false,
   },
   // GitHub Pages 배포용 설정
-  base: '/lineguide-5g/',
+  base: '/lineguide3/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

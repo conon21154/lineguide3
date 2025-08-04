@@ -192,11 +192,6 @@ class WorkOrderStore {
     const completed = this.workOrders.filter(o => o.status === 'completed').length;
 
     const byTeam: Record<OperationTeam, { pending: number; inProgress: number; completed: number }> = {
-      '운용1팀': { pending: 0, inProgress: 0, completed: 0 },
-      '운용2팀': { pending: 0, inProgress: 0, completed: 0 },
-      '운용3팀': { pending: 0, inProgress: 0, completed: 0 },
-      '운용4팀': { pending: 0, inProgress: 0, completed: 0 },
-      '운용5팀': { pending: 0, inProgress: 0, completed: 0 },
       '울산T': { pending: 0, inProgress: 0, completed: 0 },
       '동부산T': { pending: 0, inProgress: 0, completed: 0 },
       '중부산T': { pending: 0, inProgress: 0, completed: 0 },
@@ -205,6 +200,7 @@ class WorkOrderStore {
       '창원T': { pending: 0, inProgress: 0, completed: 0 },
       '진주T': { pending: 0, inProgress: 0, completed: 0 },
       '통영T': { pending: 0, inProgress: 0, completed: 0 },
+      '지하철T': { pending: 0, inProgress: 0, completed: 0 },
       '기타': { pending: 0, inProgress: 0, completed: 0 }
     };
 

@@ -425,7 +425,7 @@ const SimpleCalendar = () => {
 
 export default function Dashboard() {
   const statistics = useWorkOrderStatistics()
-  const { workOrders, markResponseNoteAsChecked } = useWorkOrders()
+  const { markResponseNoteAsChecked } = useWorkOrders()
   const completedResponseNotes = useCompletedResponseNotes()
   const [viewingResponseNote, setViewingResponseNote] = useState<WorkOrder | null>(null)
   const [expandedTeams, setExpandedTeams] = useState<Set<OperationTeam>>(new Set())

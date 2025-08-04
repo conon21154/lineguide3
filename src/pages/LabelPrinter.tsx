@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { Printer, Search, QrCode, BarChart3, Download } from 'lucide-react'
+import { useState } from 'react'
+import { Printer, Search, QrCode, BarChart3 } from 'lucide-react'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { WorkOrder } from '@/types'
 
@@ -236,7 +236,7 @@ export default function LabelPrinter() {
             </style>
           </head>
           <body>
-            ${Array.from({ length: printQuantity }, (_, i) => `
+            ${Array.from({ length: printQuantity }, () => `
               <div class="label">
                 ${selectedTemplate.fields.map(field => {
                   let content = ''
