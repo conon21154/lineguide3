@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { BarChart3, Upload, Clipboard, Clock, ChevronLeft, ChevronRight, Printer, LogOut, User } from 'lucide-react'
+import { BarChart3, Upload, Clipboard, Clock, ChevronLeft, ChevronRight, Printer, LogOut, User, Menu, X } from 'lucide-react'
 import clsx from 'clsx'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { useAuth } from '@/contexts/AuthContext'
@@ -95,6 +95,7 @@ const RecentWorkOrdersSidebar = ({ isCollapsed, onToggle }: { isCollapsed: boole
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, logout, isAdmin } = useAuth()
 
   const toggleSidebar = () => {
@@ -107,17 +108,77 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-bold text-gray-900">
-                  LineGuide
-                </h1>
-                <span className="ml-2 text-sm text-gray-500">
-                  KT 통신장비 유지보수 관리
+          <div className="flex justify-between items-center h-16">
+            {/* 로고 */}
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold text-gray-900">LineGuide</h1>
+              <span className="hidden sm:inline ml-2 text-sm text-gray-500">
+                KT 통신장비 유지보수 관리
+              </span>
+            </div>
+
+            {/* 데스크톱 네비게이션 */}
+            <div className="hidden sm:flex sm:space-x-8">
+              {navigation.map((item) => {
+                const Icon = item.icon
+                const isActive = location.pathname === item.href
+                
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={clsx(
+                      'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium',
+                      isActive
+                        ? 'border-primary-500 text-gray-900'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    )}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    {item.name}
+                  </Link>
+                )
+              })}
+            </div>
+
+            {/* 사용자 정보 및 모바일 메뉴 */}
+            <div className="flex items-center space-x-4">
+              {/* 사용자 정보 */}
+              <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-600">
+                <User className="w-4 h-4" />
+                <span className="font-medium">
+                  {user?.team} {user?.userType === 'admin' ? '관리자' : '현장팀'}
                 </span>
               </div>
-              <div className="ml-2 sm:ml-6 flex flex-wrap sm:space-x-8 gap-1 sm:gap-0">
+              
+              {/* 로그아웃 버튼 */}
+              <button
+                onClick={logout}
+                className="hidden sm:flex items-center space-x-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                title="로그아웃"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>로그아웃</span>
+              </button>
+
+              {/* 모바일 메뉴 버튼 */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="sm:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* 모바일 메뉴 */}
+          {mobileMenuOpen && (
+            <div className="sm:hidden border-t border-gray-200 py-2">
+              <div className="flex flex-col space-y-1">
                 {navigation.map((item) => {
                   const Icon = item.icon
                   const isActive = location.pathname === item.href
@@ -126,41 +187,40 @@ export default function Layout({ children }: LayoutProps) {
                     <Link
                       key={item.name}
                       to={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
                       className={clsx(
-                        'inline-flex items-center px-2 sm:px-1 pt-1 border-b-2 text-xs sm:text-sm font-medium',
+                        'flex items-center px-4 py-3 text-base font-medium rounded-md',
                         isActive
-                          ? 'border-primary-500 text-gray-900'
-                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                          ? 'bg-primary-50 border-primary-500 text-primary-700'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       )}
                     >
-                      <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">{item.name}</span>
-                      <span className="sm:hidden">{item.name.split(' ')[0]}</span>
+                      <Icon className="w-5 h-5 mr-3" />
+                      {item.name}
                     </Link>
                   )
                 })}
+                
+                {/* 모바일 사용자 정보 및 로그아웃 */}
+                <div className="border-t border-gray-200 pt-2 mt-2">
+                  <div className="px-4 py-2 text-sm text-gray-500">
+                    <User className="w-4 h-4 inline mr-2" />
+                    {user?.team} {user?.userType === 'admin' ? '관리자' : '현장팀'}
+                  </div>
+                  <button
+                    onClick={() => {
+                      logout()
+                      setMobileMenuOpen(false)
+                    }}
+                    className="flex items-center w-full px-4 py-3 text-base font-medium text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut className="w-5 h-5 mr-3" />
+                    로그아웃
+                  </button>
+                </div>
               </div>
             </div>
-            
-            {/* 사용자 정보 및 로그아웃 */}
-            <div className="flex items-center space-x-1 sm:space-x-4">
-              <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-600">
-                <User className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="font-medium">
-                  <span className="hidden sm:inline">{user?.team} {user?.userType === 'admin' ? '관리자' : '현장팀'}</span>
-                  <span className="sm:hidden">{user?.team}</span>
-                </span>
-              </div>
-              <button
-                onClick={logout}
-                className="flex items-center space-x-1 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-                title="로그아웃"
-              >
-                <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">로그아웃</span>
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </nav>
 

@@ -2,7 +2,7 @@
   "name": "LineGuide - 5G 작업관리 시스템",
   "short_name": "LineGuide",
   "description": "KT 통신장비 유지보수 관리 시스템",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
