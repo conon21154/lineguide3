@@ -405,7 +405,77 @@ export default function WorkOrderTable({ workOrders }: WorkOrderTableProps) {
 
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* 모바일: 카드 형태 */}
+      <div className="block sm:hidden">
+        {workOrders.map((workOrder) => (
+          <div key={workOrder.id} className="border-b border-gray-200 p-4">
+            <div className="flex justify-between items-start mb-2">
+              <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                <div className="flex items-center space-x-1">
+                  <span>{workOrder.managementNumber.replace(/_DU측|_RU측/g, '')}</span>
+                  {workOrder.managementNumber.includes('_DU측') && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      DU
+                    </span>
+                  )}
+                  {workOrder.managementNumber.includes('_RU측') && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      RU
+                    </span>
+                  )}
+                </div>
+              </div>
+              <StatusBadge status={workOrder.status} />
+            </div>
+            
+            <div className="space-y-2 text-sm">
+              <div><strong>운용팀:</strong> {workOrder.operationTeam}</div>
+              <div><strong>작업요청일:</strong> {workOrder.requestDate}</div>
+              <div><strong>장비명:</strong> {workOrder.equipmentName}</div>
+              <div><strong>5G 집중국:</strong> {workOrder.concentratorName5G}</div>
+              {workOrder.coSiteCount5G && (
+                <div><strong>CO-SITE 수량:</strong> <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{workOrder.coSiteCount5G}</span></div>
+              )}
+              <div><strong>DU ID:</strong> {workOrder.duId}</div>
+              <div><strong>DU 명:</strong> {workOrder.duName}</div>
+            </div>
+            
+            <div className="flex space-x-2 mt-3 pt-3 border-t border-gray-100">
+              <button
+                onClick={() => setViewingDetailId(workOrder.id)}
+                className="text-blue-600 hover:text-blue-900 p-1"
+                title="상세보기"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setResponseNoteId(workOrder.id)}
+                className={`hover:text-green-900 p-1 ${workOrder.responseNote ? 'text-green-600' : 'text-gray-400'}`}
+                title="현장 회신 메모"
+              >
+                <MessageSquare className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleEditStart(workOrder)}
+                className="text-primary-600 hover:text-primary-900 p-1"
+                title="상태 변경"
+              >
+                <Edit3 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleDelete(workOrder.id)}
+                className="text-danger-600 hover:text-danger-900 p-1"
+                title="삭제"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 데스크톱: 테이블 형태 */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

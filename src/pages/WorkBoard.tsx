@@ -109,11 +109,11 @@ export default function WorkBoard() {
   const activeFiltersCount = [selectedTeam, selectedStatus, searchTerm].filter(Boolean).length
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+    <div className="space-y-4 px-2 sm:px-0">
+      <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">작업게시판</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">작업게시판</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             {isAdmin 
               ? '운용팀별 작업지시를 확인하고 상태를 관리하세요'
               : `${user?.team} 작업지시를 확인하고 상태를 관리하세요`
@@ -121,46 +121,48 @@ export default function WorkBoard() {
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex gap-2">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setViewMode('teams')}
-              className={`btn ${viewMode === 'teams' ? 'btn-primary' : 'btn-secondary'}`}
+              className={`btn text-sm ${viewMode === 'teams' ? 'btn-primary' : 'btn-secondary'}`}
             >
-              <Users className="w-4 h-4 mr-2" />
+              <Users className="w-4 h-4 mr-1" />
               팀별 보기
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+              className={`btn text-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
             >
               전체 목록
             </button>
           </div>
           
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="관리번호, 장비명, DU명 등으로 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input pl-10 w-full sm:w-64"
-            />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="관리번호, 장비명 등으로 검색..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input pl-10 w-full text-sm"
+              />
+            </div>
+            
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`btn text-sm ${activeFiltersCount > 0 ? 'btn-primary' : 'btn-secondary'} relative`}
+            >
+              <Filter className="w-4 h-4 mr-1" />
+              필터
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-danger-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
           </div>
-          
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`btn ${activeFiltersCount > 0 ? 'btn-primary' : 'btn-secondary'} relative`}
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            필터
-            {activeFiltersCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-danger-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
         </div>
       </div>
 

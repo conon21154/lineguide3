@@ -117,7 +117,7 @@ export default function Layout({ children }: LayoutProps) {
                   KT 통신장비 유지보수 관리
                 </span>
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <div className="ml-2 sm:ml-6 flex flex-wrap sm:space-x-8 gap-1 sm:gap-0">
                 {navigation.map((item) => {
                   const Icon = item.icon
                   const isActive = location.pathname === item.href
@@ -127,14 +127,15 @@ export default function Layout({ children }: LayoutProps) {
                       key={item.name}
                       to={item.href}
                       className={clsx(
-                        'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium',
+                        'inline-flex items-center px-2 sm:px-1 pt-1 border-b-2 text-xs sm:text-sm font-medium',
                         isActive
                           ? 'border-primary-500 text-gray-900'
                           : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                       )}
                     >
-                      <Icon className="w-4 h-4 mr-2" />
-                      {item.name}
+                      <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">{item.name}</span>
+                      <span className="sm:hidden">{item.name.split(' ')[0]}</span>
                     </Link>
                   )
                 })}
@@ -142,20 +143,21 @@ export default function Layout({ children }: LayoutProps) {
             </div>
             
             {/* 사용자 정보 및 로그아웃 */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <User className="w-4 h-4" />
+            <div className="flex items-center space-x-1 sm:space-x-4">
+              <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-600">
+                <User className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="font-medium">
-                  {user?.team} {user?.userType === 'admin' ? '관리자' : '현장팀'}
+                  <span className="hidden sm:inline">{user?.team} {user?.userType === 'admin' ? '관리자' : '현장팀'}</span>
+                  <span className="sm:hidden">{user?.team}</span>
                 </span>
               </div>
               <button
                 onClick={logout}
-                className="flex items-center space-x-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                className="flex items-center space-x-1 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
                 title="로그아웃"
               >
-                <LogOut className="w-4 h-4" />
-                <span>로그아웃</span>
+                <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">로그아웃</span>
               </button>
             </div>
           </div>
@@ -163,14 +165,14 @@ export default function Layout({ children }: LayoutProps) {
       </nav>
 
       <div className="flex">
-        <main className={`flex-1 py-6 sm:px-6 lg:px-8 transition-all duration-300 ${
+        <main className={`flex-1 py-2 sm:py-6 px-2 sm:px-6 lg:px-8 transition-all duration-300 ${
           location.pathname === '/' 
             ? sidebarCollapsed 
               ? 'max-w-7xl mx-auto' 
               : 'max-w-5xl mx-auto'
             : 'max-w-7xl mx-auto'
         }`}>
-          <div className="px-4 py-6 sm:px-0">
+          <div className="py-2 sm:py-6">
             {children}
           </div>
         </main>
