@@ -238,7 +238,6 @@ const SimpleCalendar = () => {
   // 작업요청일 파싱 함수 - 더 유연한 파싱
   const parseRequestDate = (requestDate: string) => {
     try {
-      console.log('파싱할 날짜:', requestDate)
       
       // 여러 가지 형식 시도
       // 1. "08월06일(수) 내" 형식
@@ -247,7 +246,6 @@ const SimpleCalendar = () => {
         const month = parseInt(matches[1], 10) - 1
         const day = parseInt(matches[2], 10)
         const date = new Date(currentYear, month, day)
-        console.log('파싱된 날짜:', date)
         return date
       }
       
@@ -266,10 +264,8 @@ const SimpleCalendar = () => {
         return date
       }
       
-      console.log('날짜 파싱 실패:', requestDate)
       return null
     } catch (error) {
-      console.log('날짜 파싱 에러:', error)
       return null
     }
   }
@@ -278,11 +274,9 @@ const SimpleCalendar = () => {
   const workDates = useMemo(() => {
     const dates: { [key: number]: WorkOrder[] } = {}
     
-    console.log('전체 작업지시 수:', workOrders.length)
     
     workOrders.forEach((wo, index) => {
       if (index < 5) { // 첫 5개만 로그
-        console.log(`작업지시[${index}]:`, wo.requestDate, wo.operationTeam)
       }
       
       const requestDate = parseRequestDate(wo.requestDate)
@@ -293,11 +287,9 @@ const SimpleCalendar = () => {
         const day = requestDate.getDate()
         if (!dates[day]) dates[day] = []
         dates[day].push(wo)
-        console.log(`${day}일에 작업 추가:`, wo.operationTeam)
       }
     })
     
-    console.log('캘린더 작업 데이터:', dates)
     return dates
   }, [workOrders, currentMonth, currentYear])
 

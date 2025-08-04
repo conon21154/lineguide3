@@ -72,23 +72,17 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
   }
 
   const handleConfirmUpload = async () => {
-    console.log('🔄 업로드 확인 시작:', parseResult?.data?.length, '건')
     
     if (!parseResult?.success || !parseResult.data.length) {
-      console.log('❌ 업로드 조건 불만족:', { success: parseResult?.success, length: parseResult?.data?.length })
       return
     }
 
     try {
       const convertedData = convertToWorkOrderFormat(parseResult.data);
-      console.log('✅ 데이터 변환 완료:', convertedData.length, '건')
-      console.log('📄 변환된 데이터 샘플:', convertedData[0])
       
       const result = await addWorkOrders(convertedData)
-      console.log('📊 addWorkOrders 결과:', result)
       
       if (result.success) {
-        console.log('✅ 작업지시 저장 성공!')
         
         // 성공 상태로 변경하되 데이터는 유지하여 사용자가 확인할 수 있도록 함
         setParseResult({
@@ -101,13 +95,10 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
         onUploadComplete?.(parseResult)
         
         // 3초 후 작업 게시판으로 자동 이동
-        console.log('⏰ 3초 후 작업게시판으로 이동 예정...')
         setTimeout(() => {
-          console.log('🚀 작업게시판으로 이동 중...')
           navigate('/workboard')
         }, 3000)
       } else {
-        console.log('❌ 작업지시 저장 실패:', result.error)
       }
     } catch (error) {
       console.error('💥 업로드 과정에서 오류 발생:', error)

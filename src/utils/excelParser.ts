@@ -58,7 +58,6 @@ function normalizeOperationTeam(value: string): OperationTeam {
 function processMergedHeaders(jsonData: unknown[][]): { [key: string]: number } {
   const headerMapping: { [key: string]: number } = {};
   
-  console.log('🔍 실제 엑셀 파일 헤더 구조 분석:');
   
   // 15개 필수 필드의 헤더 텍스트 패턴 정의
   const headerPatterns = {
@@ -118,9 +117,6 @@ function processMergedHeaders(jsonData: unknown[][]): { [key: string]: number } 
     const row2 = jsonData[1] || []; // 2행 (상위 헤더)
     const row3 = jsonData[2] || []; // 3행 (하위 헤더)
     
-    console.log('📋 1행:', jsonData[0]?.slice(0, 20).join(' | ') || 'N/A');
-    console.log('📋 2행:', row2.slice(0, 20).join(' | '));
-    console.log('📋 3행:', row3.slice(0, 20).join(' | ') || 'N/A');
     
     
     // 최대 컬럼 수까지 검사
@@ -148,7 +144,6 @@ function processMergedHeaders(jsonData: unknown[][]): { [key: string]: number } 
           
           if (isMatch) {
             headerMapping[fieldName] = colIndex;
-            console.log(`✅ ${fieldName} -> 컬럼 ${colIndex} (${header2} ${header3})`);
             break;
           }
         }
@@ -156,12 +151,10 @@ function processMergedHeaders(jsonData: unknown[][]): { [key: string]: number } 
     }
   }
   
-  console.log('📊 최종 헤더 매핑 결과:', headerMapping);
   
   // 매핑되지 않은 필드 확인 및 경고
   const unmappedFields = Object.keys(headerPatterns).filter(field => headerMapping[field] === undefined);
   if (unmappedFields.length > 0) {
-    console.log('⚠️ 매핑되지 않은 필드:', unmappedFields);
     
     // 기본 순서대로 매핑 (fallback)
     let fallbackIndex = 0;

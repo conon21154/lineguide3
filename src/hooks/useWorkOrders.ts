@@ -11,10 +11,8 @@ export function useWorkOrders(filter?: WorkOrderFilter) {
       let orders;
       if (filter) {
         orders = workOrderStore.getWorkOrdersByFilter(filter);
-        console.log('🔍 필터된 작업지시 로드:', orders.length, '건, 필터:', filter);
       } else {
         orders = workOrderStore.getAllWorkOrders();
-        console.log('📋 전체 작업지시 로드:', orders.length, '건');
       }
       setWorkOrders(orders);
     };
