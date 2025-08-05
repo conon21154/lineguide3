@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Eye, MessageSquare, Check, Clock, Filter, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Eye, MessageSquare, Check, Filter, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { useCompletedResponseNotes, useWorkOrders } from '../hooks/useWorkOrders';
 import { WorkOrder, OperationTeam } from '../types';
 import { useAuth } from '../contexts/AuthContext';

@@ -15,7 +15,7 @@ function AppContent() {
 
   // 개발 환경에서 플랫폼 정보 로깅
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       logPlatformInfo()
     }
   }, [])
