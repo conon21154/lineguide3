@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Upload, CheckCircle, AlertCircle, X } from 'lucide-react'
 import { parseExcelFile, convertToWorkOrderFormat } from '@/utils/excelParser'
+import { parseCSVFile, convertCSVToWorkOrderFormat } from '@/utils/csvParser'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { ExcelParseResult } from '@/types'
 
@@ -44,11 +45,14 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
   }
 
   const handleFile = async (file: File) => {
-    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+    const isExcel = file.name.match(/\.(xlsx|xls)$/i)
+    const isCSV = file.name.match(/\.csv$/i)
+    
+    if (!isExcel && !isCSV) {
       setParseResult({
         success: false,
         data: [],
-        errors: ['Excel 파일(.xlsx, .xls)만 업로드 가능합니다.']
+        errors: ['Excel 파일(.xlsx, .xls) 또는 CSV 파일(.csv)만 업로드 가능합니다.']
       })
       return
     }
@@ -57,7 +61,16 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
     setParseResult(null)
 
     try {
-      const result = await parseExcelFile(file)
+      let result: ExcelParseResult
+      
+      if (isCSV) {
+        console.log('📄 CSV 파일 파싱 시작')
+        result = await parseCSVFile(file)
+      } else {
+        console.log('📊 Excel 파일 파싱 시작')
+        result = await parseExcelFile(file)
+      }
+      
       setParseResult(result)
       onUploadComplete?.(result)
     } catch (error) {
@@ -78,7 +91,10 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
     }
 
     try {
-      const convertedData = convertToWorkOrderFormat(parseResult.data);
+      // CSV인지 Excel인지에 따라 다른 변환 함수 사용
+      const convertedData = parseResult.data[0]?.서비스_구분 !== undefined 
+        ? convertCSVToWorkOrderFormat(parseResult.data)  // CSV용 변환
+        : convertToWorkOrderFormat(parseResult.data);    // Excel용 변환
       
       const result = await addWorkOrders(convertedData)
       
@@ -336,7 +352,7 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
         <input
           ref={fileInputRef}
           type="file"
-          accept=".xlsx,.xls"
+          accept=".xlsx,.xls,.csv"
           onChange={handleFileSelect}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           disabled={uploading}
@@ -354,12 +370,12 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
           <div>
             <p className="text-lg text-gray-600">
               {uploading 
-                ? 'Excel 파일을 분석하고 있습니다...'
-                : 'Excel 파일을 여기로 드래그하거나 클릭하여 선택하세요'
+                ? '파일을 분석하고 있습니다...'
+                : 'Excel 또는 CSV 파일을 여기로 드래그하거나 클릭하여 선택하세요'
               }
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              .xlsx, .xls 파일만 지원됩니다
+              .xlsx, .xls, .csv 파일을 지원합니다
             </p>
           </div>
           
@@ -373,16 +389,38 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
 
       <div className="bg-gray-50 rounded-lg p-4">
         <h3 className="text-lg font-medium text-gray-900 mb-3">
-          📋 Excel 파일 요구사항
+          📋 파일 요구사항
         </h3>
-        <ul className="text-sm text-gray-600 space-y-2">
-          <li>• <strong>헤더 구조:</strong> 2~3행에 병합된 헤더 (대분류/소분류)</li>
-          <li>• <strong>데이터 시작:</strong> 4행부터 개통 작업 데이터</li>
-          <li>• <strong>필수 필드 (14개):</strong> 관리번호, 작업요청일, DU측_운용팀, 대표_RU_ID, 대표_RU_명, 5G_Co_Site_수량, 5G_집중국명, 선번장, 종류, 서비스_구분, DU_ID, DU_명, 채널카드, 포트_A</li>
-          <li>• <strong>컬럼 순서:</strong> 헤더 텍스트 기반 자동 매핑 (순서 무관)</li>
-          <li>• <strong>운용팀 형식:</strong> 지역명 (울산T, 동부산T, 중부산T, 서부산T, 김해T, 창원T, 진주T, 통영T, 지하철T)</li>
-          <li>• <strong>빈 값 처리:</strong> 자동으로 "N/A"로 변환</li>
-        </ul>
+        
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">📊 Excel 파일 (.xlsx, .xls)</h4>
+            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+              <li>• <strong>헤더 구조:</strong> 2~3행에 병합된 헤더 (대분류/소분류)</li>
+              <li>• <strong>데이터 시작:</strong> 4행부터 개통 작업 데이터</li>
+              <li>• <strong>컬럼 순서:</strong> 헤더 텍스트 기반 자동 매핑 (순서 무관)</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">📄 CSV 파일 (.csv) - 권장</h4>
+            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+              <li>• <strong>헤더:</strong> 첫 번째 행에 컬럼명</li>
+              <li>• <strong>데이터:</strong> 두 번째 행부터 작업 데이터</li>
+              <li>• <strong>인코딩:</strong> UTF-8 (한글 지원)</li>
+              <li>• <strong>장점:</strong> 파싱 안정성, 데이터 무결성 보장 (CH3, CH6 등 원본 값 유지)</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">📝 공통 요구사항</h4>
+            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+              <li>• <strong>필수 필드:</strong> 관리번호, 작업요청일, DU측_운용팀, 대표_RU_ID, 대표_RU_명, 5G_Co_Site_수량, 5G_집중국명, 선번장, 종류, 서비스_구분, DU_ID, DU_명, 채널카드, 포트_A</li>
+              <li>• <strong>운용팀 형식:</strong> 울산T, 동부산T, 중부산T, 서부산T, 김해T, 창원T, 진주T, 통영T, 지하철T</li>
+              <li>• <strong>빈 값 처리:</strong> 자동으로 "N/A"로 변환</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   )

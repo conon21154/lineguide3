@@ -163,6 +163,7 @@ function processMergedHeaders(jsonData: unknown[][]): { [key: string]: number } 
     }
   }
   
+  console.log('🗂️ 헤더 매핑 결과:', headerMapping);
   return headerMapping;
 }
 
@@ -181,6 +182,11 @@ function extractWorkOrders(row: unknown[], headerMapping: { [key: string]: numbe
   const lineNumberStr = rawLineNumber !== undefined && rawLineNumber !== null ? 
     String(rawLineNumber) : 'N/A';
   
+  // 서비스 구분 디버깅
+  const serviceTypeRaw = row[headerMapping['서비스_구분']];
+  const serviceTypeProcessed = safeStringValue(serviceTypeRaw);
+  console.log(`🔍 서비스 구분 파싱 - 원본: "${serviceTypeRaw}", 처리후: "${serviceTypeProcessed}", 컬럼: ${headerMapping['서비스_구분']}`);
+
   const baseData = {
     관리번호: safeStringValue(row[headerMapping['관리번호']]),
     작업요청일: safeStringValue(row[headerMapping['작업요청일']]),
@@ -191,7 +197,7 @@ function extractWorkOrders(row: unknown[], headerMapping: { [key: string]: numbe
     회선번호: lineNumberStr,
     선번장: safeStringValue(row[headerMapping['선번장']]),
     종류: safeStringValue(row[headerMapping['종류']]),
-    서비스_구분: safeStringValue(row[headerMapping['서비스_구분']]),
+    서비스_구분: serviceTypeProcessed,
     DU_ID: safeStringValue(row[headerMapping['DU_ID']]),
     DU_명: safeStringValue(row[headerMapping['DU_명']]),
     채널카드: safeStringValue(row[headerMapping['채널카드']]),

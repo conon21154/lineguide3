@@ -17,7 +17,7 @@ export default function Upload() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">작업지시 업로드</h1>
         <p className="mt-2 text-gray-600">
-          Excel 파일을 업로드하여 작업지시를 시스템에 등록하세요
+          Excel 또는 CSV 파일을 업로드하여 작업지시를 시스템에 등록하세요
         </p>
       </div>
 

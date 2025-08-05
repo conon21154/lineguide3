@@ -40,6 +40,9 @@ export interface WorkOrder {
   lineNumber: string;                 // 선번장 (P열: LTE MUX : B0833-06-17...)
   // 여러 RU 정보 배열 (CO-SITE 수량만큼)
   ruInfoList?: RuInfo[];              // RU 정보 목록 (A, B, G 등)
+  // BAY, FDF 정보 (CSV 매핑용)
+  bay?: string;                       // BAY 정보 (CSV에서 매핑)
+  fdf?: string;                       // FDF 정보 (CSV에서 매핑)
   status: WorkOrderStatus;
   createdAt: string;
   updatedAt: string;
@@ -98,3 +101,23 @@ export interface WorkOrderFilter {
   };
   searchTerm?: string;
 }
+
+// DU-BAY-FDF 매핑 인터페이스
+export interface DuMappingData {
+  duName: string;    // DU명 (예: 중부산-00-00(5G))
+  bay: string;       // BAY (예: B0210)
+  fdf: string;       // FDF (예: FDF-1)
+}
+
+// 라벨 프린터 전용 데이터 인터페이스
+export interface LabelPrintData {
+  equipmentId: string;      // 장비ID (예: NPPS03608S)
+  duName: string;          // DU명 (예: 녹산R2(분기)-01-03(5G))
+  channelCard: string;     // 채널카드
+  port: string;            // 포트
+  bay: string;             // BAY 정보
+  fdf: string;             // FDF 정보
+  equipmentName: string;   // 장비명
+  mux5GInfo?: string;      // 5G MUX 정보 (현장 입력)
+}
+
