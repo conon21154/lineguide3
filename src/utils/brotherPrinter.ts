@@ -188,7 +188,7 @@ export function createPrintableHTML(content: LabelContent, quantity: number = 1)
           <button class="print-button" onclick="window.print()">🖨️ 인쇄하기</button>
         </div>
         
-        ${Array.from({ length: quantity }, (_, index) => `
+        ${Array.from({ length: quantity }, () => `
           <div class="label">
             <div class="first-row">
               <div class="first-line">${content.firstLine}</div>

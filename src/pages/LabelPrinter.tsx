@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Printer, Search, BarChart3, Upload, Bluetooth, Smartphone, Settings } from 'lucide-react'
+import { Printer, Search, BarChart3, Upload, Bluetooth, Smartphone } from 'lucide-react'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { WorkOrder, DuMappingData, LabelPrintData } from '@/types'
 import { parseDuMappingCSV, createLabelPrintData, formatFirstLine, formatSecondLine } from '@/utils/duMapping'
 import { 
   createPrintableHTML, 
   openBrotherApp, 
-  TZE_TAPES, 
-  DEFAULT_CONFIG,
-  BrotherPrinterConfig,
   LabelContent 
 } from '@/utils/brotherPrinter'
 
@@ -147,8 +144,7 @@ export default function LabelPrinter() {
   const [duMappingData, setDuMappingData] = useState<DuMappingData[]>([])
   const [labelData, setLabelData] = useState<LabelPrintData | null>(null)
   const [bluetoothConnected, setBluetoothConnected] = useState(false)
-  const [printerConfig, setPrinterConfig] = useState<BrotherPrinterConfig>(DEFAULT_CONFIG)
-  const [connectedDevice, setConnectedDevice] = useState<BluetoothDevice | null>(null)
+  const [connectedDevice, setConnectedDevice] = useState<any>(null)
   
   // CSV 데이터 로드
   useEffect(() => {
@@ -166,16 +162,9 @@ export default function LabelPrinter() {
   }, [selectedWorkOrder, duMappingData, mux5GInfo])
   
   const loadDuMappingData = async () => {
-    try {
-      // CSV 데이터 로드 (대체 이벤트 리스너를 위한 fetch)
-      const response = await fetch('/양식.csv')
-      const csvContent = await response.text()
-      const mappingData = parseDuMappingCSV(csvContent)
-      setDuMappingData(mappingData)
-    } catch (error) {
-      console.error('DU 매핑 데이터 로드 실패:', error)
-      // 페이지에서 직접 CSV 로드할 수 있도록 할 예정
-    }
+    // DU 매핑 데이터는 사용자가 직접 업로드하는 것으로 변경
+    // 기본 파일 로드 시도 제거하여 404 오류 방지
+    console.log('ℹ️ DU 매핑 데이터를 업로드해주세요.')
   }
   
   // 검색 필터링된 작업지시
@@ -231,7 +220,7 @@ export default function LabelPrinter() {
         console.log('📱 연결된 기기:', device.name, device.id)
         
         // GATT 서버 연결
-        const server = await device.gatt!.connect()
+        await device.gatt!.connect()
         console.log('🔗 GATT 서버 연결 성공')
         
         setConnectedDevice(device)
