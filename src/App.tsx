@@ -26,9 +26,16 @@ function AppContent() {
 
   // 환경에 따른 기본 홈페이지 결정
   const getHomeComponent = () => {
+    const mobile = isMobileApp();
+    console.log('🏠 Home Component Selection:', {
+      isAdmin,
+      isMobileApp: mobile,
+      selectedComponent: isAdmin ? (mobile ? 'WorkBoard' : 'Dashboard') : 'WorkBoard'
+    });
+    
     if (isAdmin) {
       // 관리자: 웹에서는 대시보드, 앱에서는 작업게시판
-      return isMobileApp() ? <WorkBoard /> : <Dashboard />
+      return mobile ? <WorkBoard /> : <Dashboard />
     } else {
       // 현장팀: 항상 작업게시판
       return <WorkBoard />

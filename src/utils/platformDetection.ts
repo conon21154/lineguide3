@@ -33,8 +33,22 @@ export const isWebApp = (): boolean => {
 };
 
 export const isMobileApp = (): boolean => {
-  // 모바일 기기이면서 웹앱 환경인 경우를 모바일 앱으로 간주
-  return isMobileDevice() && (isWebApp() || window.innerWidth <= 768);
+  // 모바일 기기이면서 웹앱 환경이거나 화면 폭이 768px 이하인 경우를 모바일 앱으로 간주
+  const mobile = isMobileDevice();
+  const webApp = isWebApp();
+  const narrowScreen = window.innerWidth <= 768;
+  const result = mobile && (webApp || narrowScreen);
+  
+  // 디버깅을 위한 로그
+  console.log('🔍 Platform Detection:', {
+    isMobileDevice: mobile,
+    isWebApp: webApp,
+    screenWidth: window.innerWidth,
+    narrowScreen,
+    isMobileApp: result
+  });
+  
+  return result;
 };
 
 export const isDesktopWeb = (): boolean => {

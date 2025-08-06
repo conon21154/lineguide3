@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Search, Filter, ChevronDown, ChevronRight, Users, Trash2 } from 'lucide-react'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { useAuth } from '@/contexts/AuthContext'
@@ -31,6 +31,22 @@ export default function WorkBoard() {
   }, [selectedTeam, selectedStatus, searchTerm, isAdmin, user?.team])
 
   const { workOrders } = useWorkOrders(filter)
+  
+  // 디버깅: 작업지시 로드 상태 확인
+  useEffect(() => {
+    console.log('📋 WorkBoard 디버깅:', {
+      totalWorkOrders: workOrders.length,
+      filter,
+      user: user?.team,
+      isAdmin,
+      workOrdersSample: workOrders.slice(0, 3).map(wo => ({
+        id: wo.id,
+        managementNumber: wo.managementNumber,
+        operationTeam: wo.operationTeam,
+        status: wo.status
+      }))
+    });
+  }, [workOrders, filter, user, isAdmin])
 
   // 운용팀별로 작업지시 그룹화
   const workOrdersByTeam = useMemo(() => {

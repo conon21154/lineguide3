@@ -9,10 +9,20 @@ export function useWorkOrders(filter?: WorkOrderFilter) {
   useEffect(() => {
     const updateWorkOrders = () => {
       let orders;
+      const allOrders = workOrderStore.getAllWorkOrders();
+      
       if (filter) {
         orders = workOrderStore.getWorkOrdersByFilter(filter);
+        console.log('🔍 useWorkOrders 필터링:', {
+          filter,
+          totalOrders: allOrders.length,
+          filteredOrders: orders.length
+        });
       } else {
-        orders = workOrderStore.getAllWorkOrders();
+        orders = allOrders;
+        console.log('📊 useWorkOrders 전체:', {
+          totalOrders: orders.length
+        });
       }
       setWorkOrders(orders);
     };
