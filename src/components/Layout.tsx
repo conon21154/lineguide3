@@ -298,7 +298,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </main>
         
-        {location.pathname === '/' && (
+        {location.pathname === '/' && !isMobileApp() && (
           <RecentWorkOrdersSidebar 
             isCollapsed={sidebarCollapsed} 
             onToggle={toggleSidebar} 

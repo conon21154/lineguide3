@@ -289,15 +289,15 @@ export default function WorkBoard() {
                       
                       <div className="flex space-x-4 text-sm">
                         <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 bg-warning-400 rounded-full"></div>
+                          <div className="w-3 h-3 bg-amber-400 rounded-full"></div>
                           <span className="text-gray-600">대기 {stats.pending}</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 bg-primary-400 rounded-full"></div>
+                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                           <span className="text-gray-600">진행중 {stats.inProgress}</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 bg-success-400 rounded-full"></div>
+                          <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
                           <span className="text-gray-600">완료 {stats.completed}</span>
                         </div>
                       </div>
