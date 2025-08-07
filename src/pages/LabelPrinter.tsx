@@ -52,7 +52,19 @@ const LabelPreview = ({
   selectedWorkOrder: WorkOrder | null
   duMappingData: DuMappingData[]
 }) => {
-  const scale = 3 // mm to px conversion for preview
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+  
+  // 윈도우 리사이즈 이벤트 핸들러
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  
+  // 반응형 스케일 계산 (모바일에서는 작게, 데스크톱에서는 크게)
+  const isMobile = windowWidth < 768
+  const maxWidth = isMobile ? windowWidth - 80 : 414 // 모바일에서는 좌우 여백 40px씩 고려
+  const scale = Math.min(3, maxWidth / LABEL_TEMPLATE.width) // 최대 3배, 화면에 맞게 조정
   
   // 미리보기용 데이터 생성 - CSV 데이터가 없어도 작업지시 정보로 표시
   let previewData = labelData
@@ -79,57 +91,60 @@ const LabelPreview = ({
   return (
     <div className="border-2 border-dashed border-gray-300 p-4 bg-gray-50">
       <h3 className="text-sm font-medium text-gray-700 mb-2">라벨 미리보기</h3>
-      <div 
-        className="bg-white border border-gray-400 relative mx-auto"
-        style={{ 
-          width: `${LABEL_TEMPLATE.width * scale}px`, 
-          height: `${LABEL_TEMPLATE.height * scale}px` 
-        }}
-      >
-        {/* 1열: 장비ID + DU명 */}
-        <div
-          className="absolute border border-gray-200 flex items-center px-1 text-xs font-bold"
-          style={{
-            left: `${LABEL_TEMPLATE.fields.firstLine.x * scale}px`,
-            top: `${LABEL_TEMPLATE.fields.firstLine.y * scale}px`,
-            width: `${LABEL_TEMPLATE.fields.firstLine.width * scale}px`,
-            height: `${LABEL_TEMPLATE.fields.firstLine.height * scale}px`,
-            fontSize: `${LABEL_TEMPLATE.fields.firstLine.fontSize * scale / 4}px`
+      <div className="overflow-x-auto">
+        <div 
+          className="bg-white border border-gray-400 relative mx-auto min-w-max"
+          style={{ 
+            width: `${LABEL_TEMPLATE.width * scale}px`, 
+            height: `${LABEL_TEMPLATE.height * scale}px` 
           }}
         >
-          <span className="truncate">{firstLineText}</span>
-        </div>
-        
-        {/* 1열 우측: BAY, FDF */}
-        <div
-          className="absolute border border-gray-200 flex items-center justify-center text-xs"
-          style={{
-            left: `${LABEL_TEMPLATE.fields.bayFdf.x * scale}px`,
-            top: `${LABEL_TEMPLATE.fields.bayFdf.y * scale}px`,
-            width: `${LABEL_TEMPLATE.fields.bayFdf.width * scale}px`,
-            height: `${LABEL_TEMPLATE.fields.bayFdf.height * scale}px`,
-            fontSize: `${LABEL_TEMPLATE.fields.bayFdf.fontSize * scale / 4}px`
-          }}
-        >
-          <span className="truncate">{bayFdfText}</span>
-        </div>
-        
-        {/* 2열: 장비명 + 5G MUX */}
-        <div
-          className="absolute border border-gray-200 flex items-center px-1 text-xs"
-          style={{
-            left: `${LABEL_TEMPLATE.fields.secondLine.x * scale}px`,
-            top: `${LABEL_TEMPLATE.fields.secondLine.y * scale}px`,
-            width: `${LABEL_TEMPLATE.fields.secondLine.width * scale}px`,
-            height: `${LABEL_TEMPLATE.fields.secondLine.height * scale}px`,
-            fontSize: `${LABEL_TEMPLATE.fields.secondLine.fontSize * scale / 4}px`
-          }}
-        >
-          <span className="truncate">{secondLineText}</span>
+          {/* 1열: 장비ID + DU명 */}
+          <div
+            className="absolute border border-gray-200 flex items-center px-1 text-xs font-bold"
+            style={{
+              left: `${LABEL_TEMPLATE.fields.firstLine.x * scale}px`,
+              top: `${LABEL_TEMPLATE.fields.firstLine.y * scale}px`,
+              width: `${LABEL_TEMPLATE.fields.firstLine.width * scale}px`,
+              height: `${LABEL_TEMPLATE.fields.firstLine.height * scale}px`,
+              fontSize: `${LABEL_TEMPLATE.fields.firstLine.fontSize * scale / 4}px`
+            }}
+          >
+            <span className="truncate">{firstLineText}</span>
+          </div>
+          
+          {/* 1열 우측: BAY, FDF */}
+          <div
+            className="absolute border border-gray-200 flex items-center justify-center text-xs"
+            style={{
+              left: `${LABEL_TEMPLATE.fields.bayFdf.x * scale}px`,
+              top: `${LABEL_TEMPLATE.fields.bayFdf.y * scale}px`,
+              width: `${LABEL_TEMPLATE.fields.bayFdf.width * scale}px`,
+              height: `${LABEL_TEMPLATE.fields.bayFdf.height * scale}px`,
+              fontSize: `${LABEL_TEMPLATE.fields.bayFdf.fontSize * scale / 4}px`
+            }}
+          >
+            <span className="truncate">{bayFdfText}</span>
+          </div>
+          
+          {/* 2열: 장비명 + 5G MUX */}
+          <div
+            className="absolute border border-gray-200 flex items-center px-1 text-xs"
+            style={{
+              left: `${LABEL_TEMPLATE.fields.secondLine.x * scale}px`,
+              top: `${LABEL_TEMPLATE.fields.secondLine.y * scale}px`,
+              width: `${LABEL_TEMPLATE.fields.secondLine.width * scale}px`,
+              height: `${LABEL_TEMPLATE.fields.secondLine.height * scale}px`,
+              fontSize: `${LABEL_TEMPLATE.fields.secondLine.fontSize * scale / 4}px`
+            }}
+          >
+            <span className="truncate">{secondLineText}</span>
+          </div>
         </div>
       </div>
       <div className="text-xs text-gray-500 mt-2 text-center">
         {LABEL_TEMPLATE.width}mm × {LABEL_TEMPLATE.height}mm
+        {isMobile && <span className="block text-gray-400">모바일 최적화 크기</span>}
       </div>
     </div>
   )
