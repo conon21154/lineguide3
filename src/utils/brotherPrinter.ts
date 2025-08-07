@@ -62,7 +62,6 @@ export function openBrotherApp(content: LabelContent): void {
   // 모바일 환경 감지
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-  const isAndroid = /Android/i.test(navigator.userAgent)
 
   if (isMobile) {
     // 사용자에게 안내 메시지 표시
