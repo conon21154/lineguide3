@@ -11,6 +11,7 @@ export interface LabelContent {
   firstLine: string
   bayFdf: string
   secondLine: string
+  mux5G?: string
 }
 
 // PT-P300BT 기본 설정
@@ -56,7 +57,9 @@ export function createBrotherPrintCommand(content: LabelContent, config: Brother
 
 // Brother P-touch Design&Print 2 앱 호출 (개선된 버전)
 export function openBrotherApp(content: LabelContent): void {
-  const text = `${content.firstLine}\n${content.bayFdf}\n${content.secondLine}`
+  const text = content.mux5G ? 
+    `${content.firstLine}\n${content.bayFdf}\n${content.secondLine} | ${content.mux5G}` :
+    `${content.firstLine}\n${content.bayFdf}\n${content.secondLine}`
   const encodedText = encodeURIComponent(text)
   
   // 모바일 환경 감지
@@ -216,6 +219,25 @@ export function createPrintableHTML(content: LabelContent, quantity: number = 1)
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            width: 95mm;
+          }
+          .mux5g {
+            font-size: 8px;
+            font-weight: normal;
+            height: 4mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            position: absolute;
+            right: 2mm;
+            top: 7mm;
+            width: 35mm;
+            background-color: #fffbeb;
+            color: #92400e;
+            border: 1px solid #f59e0b;
           }
           .instructions {
             margin: 20px 0;
@@ -263,6 +285,7 @@ export function createPrintableHTML(content: LabelContent, quantity: number = 1)
               <div class="bay-fdf">${content.bayFdf}</div>
             </div>
             <div class="second-line">${content.secondLine}</div>
+            ${content.mux5G ? `<div class="mux5g">${content.mux5G}</div>` : ''}
           </div>
         `).join('')}
       </body>

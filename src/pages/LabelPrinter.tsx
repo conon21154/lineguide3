@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Printer, Search, BarChart3, Upload, Bluetooth, Smartphone } from 'lucide-react'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { WorkOrder, DuMappingData, LabelPrintData } from '@/types'
-import { parseDuMappingCSV, createLabelPrintData, formatFirstLine, formatSecondLine } from '@/utils/duMapping'
+import { parseDuMappingCSV, createLabelPrintData, formatFirstLine } from '@/utils/duMapping'
 import { 
   createPrintableHTML, 
   openBrotherApp, 
@@ -33,7 +33,15 @@ const LABEL_TEMPLATE = {
     secondLine: {
       x: 2,
       y: 7,
-      width: 134,
+      width: 95,  // 5G MUX 공간 확보를 위해 너비 축소
+      height: 4,
+      fontSize: 8,
+      fontWeight: 'normal'
+    },
+    mux5G: {
+      x: 99,      // secondLine 우측
+      y: 7,
+      width: 37,   // 우측 하단 영역
       height: 4,
       fontSize: 8,
       fontWeight: 'normal'
@@ -88,10 +96,11 @@ const LabelPreview = ({
   const firstLineText = previewData ? formatFirstLine(previewData) : '장비ID (DU명-채널카드-포트)'
   const bayFdfText = previewData ? `${previewData.bay} ${previewData.fdf}` : 'BAY FDF'
   
-  // mux5GInfo를 항상 최신 상태로 반영
-  const secondLineText = previewData ? 
-    formatSecondLine({...previewData, mux5GInfo: mux5GInfo || previewData.mux5GInfo || ''}) : 
-    '장비명 + 5G MUX 정보'
+  // secondLine에서는 장비명만 표시 (5G MUX 제외)
+  const secondLineText = previewData ? previewData.equipmentName : '장비명'
+  
+  // 5G MUX 정보는 별도 영역에 표시
+  const mux5GText = mux5GInfo.trim() || (previewData?.mux5GInfo?.trim()) || ''
   
   return (
     <div className="border-2 border-dashed border-gray-300 p-4 bg-gray-50">
@@ -132,7 +141,7 @@ const LabelPreview = ({
             <span className="truncate">{bayFdfText}</span>
           </div>
           
-          {/* 2열: 장비명 + 5G MUX */}
+          {/* 2열 좌측: 장비명 */}
           <div
             className="absolute border border-gray-200 flex items-center px-1 text-xs"
             style={{
@@ -144,6 +153,22 @@ const LabelPreview = ({
             }}
           >
             <span className="truncate">{secondLineText}</span>
+          </div>
+          
+          {/* 2열 우측: 5G MUX 정보 */}
+          <div
+            className="absolute border border-gray-200 flex items-center justify-center px-1 text-xs"
+            style={{
+              left: `${LABEL_TEMPLATE.fields.mux5G.x * scale}px`,
+              top: `${LABEL_TEMPLATE.fields.mux5G.y * scale}px`,
+              width: `${LABEL_TEMPLATE.fields.mux5G.width * scale}px`,
+              height: `${LABEL_TEMPLATE.fields.mux5G.height * scale}px`,
+              fontSize: `${LABEL_TEMPLATE.fields.mux5G.fontSize * scale / 4}px`,
+              backgroundColor: mux5GText ? '#fffbeb' : '#f9fafb', // 입력 시 살짝 노란 배경
+              color: mux5GText ? '#92400e' : '#6b7280'
+            }}
+          >
+            <span className="truncate">{mux5GText || '5G MUX'}</span>
           </div>
         </div>
       </div>
@@ -289,11 +314,12 @@ export default function LabelPrinter() {
     }
 
     const firstLine = formatFirstLine(labelData)
-    const secondLine = formatSecondLine({...labelData, mux5GInfo})
+    const secondLine = labelData.equipmentName // 장비명만
     const labelContent: LabelContent = {
       firstLine,
       bayFdf: `${labelData.bay} ${labelData.fdf}`,
-      secondLine
+      secondLine,
+      mux5G: mux5GInfo.trim() || undefined
     }
 
     // Brother 앱으로 출력 시도
@@ -308,11 +334,12 @@ export default function LabelPrinter() {
     }
 
     const firstLine = formatFirstLine(labelData)
-    const secondLine = formatSecondLine({...labelData, mux5GInfo})
+    const secondLine = labelData.equipmentName // 장비명만
     const labelContent: LabelContent = {
       firstLine,
       bayFdf: `${labelData.bay} ${labelData.fdf}`,
-      secondLine
+      secondLine,
+      mux5G: mux5GInfo.trim() || undefined
     }
 
     // 브라우저 출력 확인
@@ -365,7 +392,8 @@ export default function LabelPrinter() {
                       onClick={() => openBrotherApp({
                         firstLine: labelData ? formatFirstLine(labelData) : '테스트용',
                         bayFdf: labelData ? `${labelData.bay} ${labelData.fdf}` : 'B001 FDF-1',
-                        secondLine: labelData ? formatSecondLine({...labelData, mux5GInfo}) : '앱 연결 테스트'
+                        secondLine: labelData ? labelData.equipmentName : '앱 연결 테스트',
+                        mux5G: mux5GInfo.trim() || '5G-MUX-TEST'
                       })}
                       className="flex items-center space-x-2 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-md font-medium transition-colors"
                     >
