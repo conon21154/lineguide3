@@ -61,10 +61,11 @@ const LabelPreview = ({
     return () => window.removeEventListener('resize', handleResize)
   }, [])
   
-  // 반응형 스케일 계산 (모바일에서는 작게, 데스크톱에서는 크게)
+  // 반응형 스케일 계산 (모바일에서는 훨씬 더 작게)
   const isMobile = windowWidth < 768
-  const maxWidth = isMobile ? windowWidth - 80 : 414 // 모바일에서는 좌우 여백 40px씩 고려
-  const scale = Math.min(3, maxWidth / LABEL_TEMPLATE.width) // 최대 3배, 화면에 맞게 조정
+  const containerWidth = isMobile ? windowWidth - 64 : 414 // 모바일: 32px씩 여백
+  const maxLabelWidth = Math.min(containerWidth, isMobile ? 280 : 414) // 모바일에서 최대 280px
+  const scale = Math.max(1, Math.min(3, maxLabelWidth / LABEL_TEMPLATE.width)) // 최소 1배, 최대 3배
   
   // 미리보기용 데이터 생성 - CSV 데이터가 없어도 작업지시 정보로 표시
   let previewData = labelData
@@ -86,7 +87,11 @@ const LabelPreview = ({
   
   const firstLineText = previewData ? formatFirstLine(previewData) : '장비ID (DU명-채널카드-포트)'
   const bayFdfText = previewData ? `${previewData.bay} ${previewData.fdf}` : 'BAY FDF'
-  const secondLineText = previewData ? formatSecondLine({...previewData, mux5GInfo}) : '장비명 + 5G MUX 정보'
+  
+  // mux5GInfo를 항상 최신 상태로 반영
+  const secondLineText = previewData ? 
+    formatSecondLine({...previewData, mux5GInfo: mux5GInfo || previewData.mux5GInfo || ''}) : 
+    '장비명 + 5G MUX 정보'
   
   return (
     <div className="border-2 border-dashed border-gray-300 p-4 bg-gray-50">

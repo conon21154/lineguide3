@@ -128,9 +128,9 @@ export const formatFirstLine = (labelData: LabelPrintData): string => {
 }
 
 // 2열 포맷팅 함수 - "장비명 + 5G MUX 정보"  
-export const formatSecondLine = (labelData: LabelPrintData): string => {
+export const formatSecondLine = (labelData: LabelPrintData & { mux5GInfo?: string }): string => {
   const parts = [labelData.equipmentName]
-  if (labelData.mux5GInfo) {
+  if (labelData.mux5GInfo && labelData.mux5GInfo.trim()) {
     parts.push(labelData.mux5GInfo)
   }
   return parts.join(' + ')
