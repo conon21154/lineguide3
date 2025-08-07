@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Printer, Search, BarChart3, Upload, Bluetooth, Smartphone } from 'lucide-react'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
-import { WorkOrder, DuMappingData, LabelPrintData } from '@/types'
+import { useAuth } from '@/contexts/AuthContext'
+import { WorkOrder, DuMappingData, LabelPrintData, WorkOrderFilter } from '@/types'
 import { parseDuMappingCSV, createLabelPrintData, formatFirstLine } from '@/utils/duMapping'
 import { 
   createPrintableHTML, 
@@ -181,7 +182,18 @@ const LabelPreview = ({
 }
 
 export default function LabelPrinter() {
-  const { workOrders } = useWorkOrders()
+  const { user, isAdmin } = useAuth()
+  
+  // 현장팀 사용자는 자신의 팀 작업만 볼 수 있도록 필터 적용
+  const filter: WorkOrderFilter = useMemo(() => {
+    const f: WorkOrderFilter = {}
+    if (!isAdmin && user?.team) {
+      f.operationTeam = user.team
+    }
+    return f
+  }, [isAdmin, user?.team])
+  
+  const { workOrders } = useWorkOrders(filter)
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [printQuantity, setPrintQuantity] = useState(1)
@@ -195,6 +207,21 @@ export default function LabelPrinter() {
   useEffect(() => {
     loadDuMappingData()
   }, [])
+  
+  // 디버깅: 작업지시 로드 상태 확인
+  useEffect(() => {
+    console.log('🏷️ LabelPrinter 디버깅:', {
+      totalWorkOrders: workOrders.length,
+      filter,
+      user: user?.team,
+      isAdmin,
+      workOrdersSample: workOrders.slice(0, 3).map(wo => ({
+        id: wo.id,
+        managementNumber: wo.managementNumber,
+        operationTeam: wo.operationTeam
+      }))
+    });
+  }, [workOrders, filter, user, isAdmin])
   
   // 선택된 작업지시 변경 시 라벨 데이터 업데이트
   useEffect(() => {
