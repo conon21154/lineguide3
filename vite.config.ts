@@ -13,6 +13,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: false,
+    // SPA 라우팅을 위한 fallback 설정
+    historyApiFallback: {
+      rewrites: [
+        { from: /^\/lineguide3\/.*$/, to: '/lineguide3/index.html' }
+      ]
+    }
   },
   // GitHub Pages 배포용 설정
   base: '/lineguide3/',

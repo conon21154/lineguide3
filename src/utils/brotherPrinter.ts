@@ -54,31 +54,100 @@ export function createBrotherPrintCommand(content: LabelContent, config: Brother
   return new Uint8Array(commands)
 }
 
-// Brother P-touch Design&Print 2 앱 호출 (모바일용)
+// Brother P-touch Design&Print 2 앱 호출 (개선된 버전)
 export function openBrotherApp(content: LabelContent): void {
   const text = `${content.firstLine}\n${content.bayFdf}\n${content.secondLine}`
   const encodedText = encodeURIComponent(text)
   
-  // Brother P-touch Design&Print 2 앱의 URL 스키마 (가능한 경우)
-  const appUrl = `ptouch://create?text=${encodedText}`
-  
-  // 모바일에서 앱 실행 시도
-  if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-    window.location.href = appUrl
+  // 모바일 환경 감지
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+  const isAndroid = /Android/i.test(navigator.userAgent)
+
+  if (isMobile) {
+    // 사용자에게 안내 메시지 표시
+    const message = `📱 Brother P-touch Design&Print 2 앱을 사용합니다.\n\n` +
+                   `🏷️ 라벨 내용:\n${content.firstLine}\n${content.bayFdf}\n${content.secondLine}\n\n` +
+                   `다음 단계:\n` +
+                   `1. Brother 앱이 실행됩니다\n` +
+                   `2. 라벨 텍스트를 복사해서 사용하세요\n` +
+                   `3. PT-P300BT와 블루투스 연결 후 출력\n\n` +
+                   `계속하시겠습니까?`
     
-    // 3초 후 앱스토어로 리다이렉트 (앱이 설치되지 않은 경우)
+    if (!confirm(message)) {
+      return
+    }
+
+    // 클립보드에 라벨 텍스트 복사 (가능한 경우)
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        console.log('📋 라벨 텍스트가 클립보드에 복사되었습니다')
+      }).catch((err) => {
+        console.warn('클립보드 복사 실패:', err)
+      })
+    }
+
+    // 여러 URL 스키마 시도
+    const urlSchemes = [
+      `ptouch://create?text=${encodedText}`,
+      `com.brother.ptouch.designandprint2://create?text=${encodedText}`,
+      `brotherptouch://create?text=${encodedText}`
+    ]
+
+    let appOpened = false
+    
+    // 첫 번째 URL 스키마 시도
+    try {
+      window.location.href = urlSchemes[0]
+      appOpened = true
+    } catch (error) {
+      console.log('첫 번째 URL 스키마 실패:', error)
+    }
+
+    // 앱 설치 확인 및 스토어 리다이렉트
     setTimeout(() => {
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-      const storeUrl = isIOS 
-        ? 'https://apps.apple.com/app/brother-p-touch-design-print/id1441957713'
-        : 'https://play.google.com/store/apps/details?id=com.brother.ptouch.designandprint2'
-      
-      if (confirm('Brother P-touch 앱이 설치되어 있지 않는 것 같습니다. 앱스토어로 이동하시겠습니까?')) {
-        window.open(storeUrl, '_blank')
+      if (!appOpened || document.hidden === false) {
+        const storeUrl = isIOS 
+          ? 'https://apps.apple.com/app/brother-p-touch-design-print-2/id1468451451'
+          : 'https://play.google.com/store/apps/details?id=com.brother.ptouch.designandprint2'
+        
+        const storeMessage = `📱 Brother P-touch Design&Print 2 앱이 설치되지 않은 것 같습니다.\n\n` +
+                           `✅ 앱을 설치하시겠습니까?\n\n` +
+                           `설치 후 다시 라벨 출력을 시도해주세요.`
+        
+        if (confirm(storeMessage)) {
+          window.open(storeUrl, '_blank')
+        } else {
+          // 수동으로 텍스트 안내
+          alert(`📋 라벨 텍스트를 수동으로 복사하세요:\n\n${text}\n\nBrother 앱에서 이 텍스트를 붙여넣기하여 사용하세요.`)
+        }
       }
-    }, 3000)
+    }, 2500)
+
   } else {
-    alert('모바일 기기에서 Brother P-touch Design&Print 2 앱을 사용하시길 권장합니다.')
+    // PC/데스크톱 환경
+    const desktopMessage = `🖥️ 데스크톱 환경에서는 다음 방법을 권장합니다:\n\n` +
+                          `1. 📱 모바일에서 이 페이지에 접속\n` +
+                          `2. Brother P-touch Design&Print 2 앱 사용\n` +
+                          `3. 또는 아래 텍스트를 복사해서 앱에서 사용:\n\n` +
+                          `${text}\n\n` +
+                          `텍스트를 클립보드에 복사하시겠습니까?`
+    
+    if (confirm(desktopMessage)) {
+      // 클립보드에 복사
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('📋 텍스트가 클립보드에 복사되었습니다!')
+        }).catch((err) => {
+          console.error('클립보드 복사 실패:', err)
+          // 폴백: 텍스트 선택 창 표시
+          prompt('아래 텍스트를 복사하세요:', text)
+        })
+      } else {
+        // 폴백: 텍스트 선택 창 표시
+        prompt('아래 텍스트를 복사하세요:', text)
+      }
+    }
   }
 }
 

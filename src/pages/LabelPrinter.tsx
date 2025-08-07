@@ -261,7 +261,8 @@ export default function LabelPrinter() {
     setConnectedDevice(null)
   }
 
-  const handlePrint = () => {
+  // Brother 앱 우선 출력 핸들러
+  const handlePrintWithBrotherApp = () => {
     if (!labelData) {
       alert('라벨 데이터가 준비되지 않았습니다.')
       return
@@ -275,26 +276,40 @@ export default function LabelPrinter() {
       secondLine
     }
 
-    // 모바일 환경에서는 Brother 앱 실행을 우선 제안
-    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      const choice = confirm(
-        '📱 Brother P-touch Design&Print 2 앱을 사용하시겠습니까?\n\n' +
-        '✅ 예: Brother 앱으로 정확한 출력 (권장)\n' +
-        '❌ 아니오: 브라우저 인쇄 기능 사용'
-      )
-      
-      if (choice) {
-        openBrotherApp(labelContent)
-        return
-      }
+    // Brother 앱으로 출력 시도
+    openBrotherApp(labelContent)
+  }
+
+  // 브라우저 출력 핸들러 (보조 수단)
+  const handleBrowserPrint = () => {
+    if (!labelData) {
+      alert('라벨 데이터가 준비되지 않았습니다.')
+      return
     }
 
-    // 웹 브라우저 인쇄 출력
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      const html = createPrintableHTML(labelContent, printQuantity)
-      printWindow.document.write(html)
-      printWindow.document.close()
+    const firstLine = formatFirstLine(labelData)
+    const secondLine = formatSecondLine({...labelData, mux5GInfo})
+    const labelContent: LabelContent = {
+      firstLine,
+      bayFdf: `${labelData.bay} ${labelData.fdf}`,
+      secondLine
+    }
+
+    // 브라우저 출력 확인
+    const confirmed = confirm(
+      '🖨️ 브라우저로 출력하시겠습니까?\n\n' +
+      '⚠️ Brother 앱을 사용하시면 더 정확한 출력이 가능합니다.\n\n' +
+      '✅ 예: 브라우저 출력 계속\n' +
+      '❌ 아니오: 취소'
+    )
+    
+    if (confirmed) {
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        const html = createPrintableHTML(labelContent, printQuantity)
+        printWindow.document.write(html)
+        printWindow.document.close()
+      }
     }
   }
 
@@ -317,60 +332,85 @@ export default function LabelPrinter() {
               <span>PT-P300BT 연결</span>
             </h2>
             <div className="space-y-4">
-              {/* 프린터 상태 */}
-              <div className={`p-3 rounded-lg border-2 ${
-                bluetoothConnected 
-                  ? 'bg-green-50 border-green-200' 
-                  : 'bg-gray-50 border-gray-200'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      bluetoothConnected ? 'bg-green-500' : 'bg-gray-400'
-                    }`}></div>
-                    <span className="text-sm font-medium">
-                      {bluetoothConnected 
-                        ? `연결됨: ${connectedDevice?.name || 'PT-P300BT'}` 
-                        : '연결 안됨'
-                      }
-                    </span>
-                  </div>
-                  {bluetoothConnected && (
+              {/* 권장 연결 방식 안내 */}
+              <div className="bg-orange-50 border-2 border-orange-200 p-3 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <Smartphone className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-bold text-orange-800 mb-1">📱 권장: Brother 앱 사용</h3>
+                    <p className="text-xs text-orange-700 mb-2">
+                      Brother P-touch Design&Print 2 앱이 가장 안정적이고 정확한 출력을 보장합니다
+                    </p>
                     <button
-                      onClick={disconnectBluetooth}
-                      className="text-xs text-red-600 hover:text-red-800 px-2 py-1 hover:bg-red-50 rounded"
+                      onClick={() => openBrotherApp({
+                        firstLine: labelData ? formatFirstLine(labelData) : '테스트용',
+                        bayFdf: labelData ? `${labelData.bay} ${labelData.fdf}` : 'B001 FDF-1',
+                        secondLine: labelData ? formatSecondLine({...labelData, mux5GInfo}) : '앱 연결 테스트'
+                      })}
+                      className="flex items-center space-x-2 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-md font-medium transition-colors"
                     >
-                      연결 해제
+                      <Smartphone className="w-4 h-4" />
+                      <span>Brother 앱으로 출력</span>
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
 
-              {/* 연결 버튼 */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={connectBluetooth}
-                  disabled={bluetoothConnected}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md transition-colors flex-1 justify-center ${
-                    bluetoothConnected 
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
-                      : 'bg-blue-100 hover:bg-blue-200 text-blue-800'
-                  }`}
-                >
-                  <Bluetooth className="w-4 h-4" />
-                  <span className="text-sm">블루투스 연결</span>
-                </button>
-                <button
-                  onClick={() => openBrotherApp({
-                    firstLine: '테스트용',
-                    bayFdf: 'B001 FDF-1',
-                    secondLine: '앱 연결 테스트'
-                  })}
-                  className="flex items-center space-x-2 px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 rounded-md transition-colors"
-                >
-                  <Smartphone className="w-4 h-4" />
-                  <span className="text-sm">앱 실행</span>
-                </button>
+              {/* 블루투스 직접 연결 (보조 수단) */}
+              <div className="border-t pt-3">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-700">직접 블루투스 연결 (보조 수단)</h3>
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">실험적 기능</span>
+                </div>
+                
+                {/* 프린터 상태 */}
+                <div className={`p-3 rounded-lg border-2 mb-3 ${
+                  bluetoothConnected 
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-3 h-3 rounded-full ${
+                        bluetoothConnected ? 'bg-green-500' : 'bg-gray-400'
+                      }`}></div>
+                      <span className="text-sm font-medium">
+                        {bluetoothConnected 
+                          ? `연결됨: ${connectedDevice?.name || 'PT-P300BT'}` 
+                          : '브라우저 직접 연결 안됨'
+                        }
+                      </span>
+                    </div>
+                    {bluetoothConnected && (
+                      <button
+                        onClick={disconnectBluetooth}
+                        className="text-xs text-red-600 hover:text-red-800 px-2 py-1 hover:bg-red-50 rounded"
+                      >
+                        연결 해제
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 연결 버튼 */}
+                <div className="flex space-x-2">
+                  <button
+                    onClick={connectBluetooth}
+                    disabled={bluetoothConnected}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md transition-colors flex-1 justify-center ${
+                      bluetoothConnected 
+                        ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+                        : 'bg-blue-100 hover:bg-blue-200 text-blue-800'
+                    }`}
+                  >
+                    <Bluetooth className="w-4 h-4" />
+                    <span className="text-sm">블루투스 연결 시도</span>
+                  </button>
+                </div>
+                
+                <p className="text-xs text-gray-500 mt-2">
+                  ⚠️ 브라우저 직접 연결은 불안정할 수 있습니다. Brother 앱 사용을 권장합니다.
+                </p>
               </div>
 
               {/* TZe 테이프 정보 */}
@@ -554,33 +594,33 @@ export default function LabelPrinter() {
               </div>
 
               <div className="space-y-2">
+                {/* 주 출력 버튼: Brother 앱 우선 */}
                 <button
-                  onClick={handlePrint}
+                  onClick={handlePrintWithBrotherApp}
                   disabled={!labelData || duMappingData.length === 0}
                   className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-md font-medium ${
                     labelData && duMappingData.length > 0
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      ? 'bg-orange-600 hover:bg-orange-700 text-white'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  <Printer className="w-4 h-4" />
-                  <span>라벨 출력</span>
+                  <Smartphone className="w-4 h-4" />
+                  <span>Brother 앱으로 출력 (권장)</span>
                 </button>
 
-                {/* 모바일 전용 Brother 앱 바로가기 */}
-                {/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && labelData && (
-                  <button
-                    onClick={() => openBrotherApp({
-                      firstLine: formatFirstLine(labelData),
-                      bayFdf: `${labelData.bay} ${labelData.fdf}`,
-                      secondLine: formatSecondLine({...labelData, mux5GInfo})
-                    })}
-                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md font-medium"
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    <span>Brother 앱으로 출력</span>
-                  </button>
-                )}
+                {/* 보조 출력 버튼: 브라우저 출력 */}
+                <button
+                  onClick={handleBrowserPrint}
+                  disabled={!labelData || duMappingData.length === 0}
+                  className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-md font-medium border ${
+                    labelData && duMappingData.length > 0
+                      ? 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                  }`}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>브라우저 출력 (보조)</span>
+                </button>
               </div>
               
               {(!labelData || duMappingData.length === 0) && (
