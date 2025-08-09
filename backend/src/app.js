@@ -28,7 +28,8 @@ const allowedOriginsList = [
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5175',
   'http://127.0.0.1:5176',
-  'http://127.0.0.1:5177'
+  'http://127.0.0.1:5177',
+  'https://conon21154.github.io'  // GitHub Pages 도메인
 ]
 
 const isAllowedOrigin = (origin) => {
@@ -43,7 +44,7 @@ const isAllowedOrigin = (origin) => {
 const io = new Server(server, {
   cors: isDev
     ? { origin: '*', methods: ['GET', 'POST'] } // 개발에서는 전체 허용
-    : { origin: allowedOriginsList, methods: ['GET', 'POST'] }
+    : { origin: allowedOriginsList, methods: ['GET', 'POST'], credentials: true }
 });
 
 // 미들웨어 설정
