@@ -168,7 +168,7 @@ export default function Layout({ children }: LayoutProps) {
                 <div className="text-sm">
                   <div className="font-semibold text-white">{user?.team}</div>
                   <div className="text-blue-100 text-xs">
-                    {user?.userType === 'admin' ? '관리자' : '현장팀'}
+                    {user?.role === 'admin' ? '관리자' : '현장팀'}
                   </div>
                 </div>
               </div>
@@ -265,7 +265,7 @@ export default function Layout({ children }: LayoutProps) {
                   <div className="text-sm">
                     <div className="font-semibold text-slate-800">{user?.team}</div>
                     <div className="text-slate-600">
-                      {user?.userType === 'admin' ? '관리자' : '현장팀'}
+                      {user?.role === 'admin' ? '관리자' : '현장팀'}
                     </div>
                   </div>
                 </div>

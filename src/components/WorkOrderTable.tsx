@@ -1,12 +1,34 @@
-import { useState } from 'react'
-import { Clock, User, CheckCircle, Edit3, Trash2, Eye, X, MessageSquare } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Clock, User, CheckCircle, Edit3, Trash2, Eye, X, MessageSquare, Copy } from 'lucide-react'
 import clsx from 'clsx'
 import { WorkOrder, WorkOrderStatus, ResponseNote } from '@/types'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
+import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
 
 interface WorkOrderTableProps {
   workOrders: WorkOrder[]
 }
+
+// 여러 줄을 한 줄로 압축 (요구 포맷: 항목 간 두 칸 공백 유지)
+const toOneLine = (s: string) =>
+  s.replace(/\s*\n+\s*/g, ' ').replace(/\s{3,}/g, '  ').trim()
+
+// 관리번호 접미사 _(DU측|RU측) 제거
+const getBaseManagementNumber = (managementNumber?: string) =>
+  (managementNumber || '').replace(/_(DU측|RU측)$/g, '')
+
+// 대표 RU명 선택: /( ^|[_\s-])(A|32T_A|_A)\b/i 우선, 없으면 첫 RU
+const getRepresentativeRuName = (ruInfoList?: { ruName?: string }[]) => {
+  if (!ruInfoList || ruInfoList.length === 0) return ''
+  const priority = ruInfoList.find(
+    ru => ru.ruName && /(^|[_\s-])(A|32T_A|_A)\b/i.test(ru.ruName)
+  )
+  return (priority?.ruName || ruInfoList[0]?.ruName || '').trim()
+}
+
+// 팀 비교 유틸 (공백/제로폭 제거 후 비교)
+const normTeam = (t?: string) => (t || '').replace(/\s+/g, '').replace(/\u200B/g, '').trim()
+const isSameTeam = (a?: string, b?: string) => normTeam(a) === normTeam(b)
 
 const StatusBadge = ({ status }: { status: WorkOrderStatus }) => {
   const statusConfig = {
@@ -39,7 +61,8 @@ const StatusBadge = ({ status }: { status: WorkOrderStatus }) => {
 }
 
 const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClose: () => void }) => {
-  const { updateResponseNote } = useWorkOrders()
+  // 회신 메모는 서버 API를 통해 저장 (현장회신 동시 기록 포함)
+  const { updateResponseNote } = useWorkOrdersAPI()
   const [formData, setFormData] = useState({
     // DU측 회신 메모 필드
     concentratorName: workOrder.responseNote?.concentratorName || '',
@@ -56,8 +79,104 @@ const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClo
     // 공통 필드
     specialNotes: workOrder.responseNote?.specialNotes || ''
   })
+  const [summary, setSummary] = useState<string>((workOrder.responseNote as any)?.summary || '')
+  const [isCopied, setIsCopied] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 초기 렌더 시 자동 채움 (workOrder 데이터로부터)
+  useEffect(() => {
+    const workType = workOrder.workType || 'RU측'
+    
+    if (workType === 'DU측') {
+      setFormData(prev => ({
+        ...prev,
+        concentratorName: prev.concentratorName || workOrder.concentratorName5G || '',
+        coSiteCount5G: prev.coSiteCount5G || (workOrder.coSiteCount5G ? `${workOrder.coSiteCount5G}` : ''),
+        mux5GInstallation: prev.mux5GInstallation || '',
+        lteMux: prev.lteMux || workOrder.muxInfo?.lteMux || '',
+        specialNotes: prev.specialNotes || ''
+      }))
+    } else {
+      // RU측 자동 채움: 대표 RU명으로 기본값 설정
+      const representativeRuName = getRepresentativeRuName(workOrder.ruInfoList)
+      setFormData(prev => ({
+        ...prev,
+        localStationName: prev.localStationName || representativeRuName || workOrder.equipmentName || '',
+        duOpticalSignal: prev.duOpticalSignal || '',
+        specialNotes: prev.specialNotes || ''
+      }))
+    }
+  }, [workOrder])
+
+  // 요약문 자동 생성
+  const generateSummary = () => {
+    const workType = workOrder.workType || 'RU측'
+    const baseMgmtNo = getBaseManagementNumber(workOrder.managementNumber)
+    const operationTeam = workOrder.operationTeam || ''
+
+    // Co-site 수량 계산
+    const coSiteCount = workOrder.coSiteCount5G ||
+      (Array.isArray(workOrder.ruInfoList) && workOrder.ruInfoList.length > 0
+        ? `${workOrder.ruInfoList.length}식`
+        : '')
+
+    let summaryText = ''
+
+    if (workType === 'DU측') {
+      // 요구 포맷: 항목 간 두 칸 공백, 줄바꿈 없음, 키 고정
+      const concentratorName = formData.concentratorName || workOrder.concentratorName5G || ''
+      const duOpticalSignal = formData.duOpticalSignal || ''
+      const mux5GLineNumber = formData.mux5GLineNumber || ''
+      const tie5GLineNumber = formData.tie5GLineNumber || ''
+      const specialNotes = formData.specialNotes || ''
+
+      summaryText = `[`+
+        `${operationTeam} DU측] ㅇ 관리번호 : ${baseMgmtNo}  `+
+        `ㅇ 국사 명 : ${concentratorName}  `+
+        `ㅇ RU 광신호 유/무 : ${duOpticalSignal}  `+
+        `ㅇ 5G MUX : ${mux5GLineNumber}  `+
+        `ㅇ 5G TIE 선번 : ${tie5GLineNumber}  `+
+        `ㅇ 특이사항 : ${specialNotes}`
+    } else {
+      // RU측 포맷
+      const localStationName = formData.localStationName || ''
+      const mux5GInstallation = formData.mux5GInstallation || ''
+      const mux5GLineNumber = formData.mux5GLineNumber || ''
+      const tie5GLineNumber = formData.tie5GLineNumber || ''
+      const lteMux = formData.lteMux || ''
+      const specialNotes = formData.specialNotes || ''
+
+      summaryText = `[`+
+        `${operationTeam} RU측] ㅇ 관리번호 : ${baseMgmtNo}  `+
+        `ㅇ 국사명 : ${localStationName}  `+
+        `ㅇ 5G Co-site 수량 : ${coSiteCount || ''}  `+
+        `ㅇ 5G MUX 설치유무 : ${mux5GInstallation}  `+
+        `ㅇ 5G MUX 선번 : ${mux5GLineNumber}  `+
+        `ㅇ 5G TIE 선번 : ${tie5GLineNumber}  `+
+        `ㅇ LTE MUX : ${lteMux}  `+
+        `ㅇ 특이사항 : ${specialNotes}`
+    }
+
+    setSummary(toOneLine(summaryText))
+  }
+
+  // 폼 데이터 변경 시 요약문 자동 업데이트
+  useEffect(() => {
+    generateSummary()
+  }, [formData, workOrder])
+
+  // 클립보드 복사 함수
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(summary)
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 2000)
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     const responseNote: Partial<ResponseNote> = {
@@ -74,11 +193,28 @@ const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClo
       duOpticalSignal: formData.duOpticalSignal.trim() || undefined,
       
       // 공통 필드
-      specialNotes: formData.specialNotes.trim() || undefined
+      specialNotes: formData.specialNotes.trim() || undefined,
+      
+      // 요약문 포함
+      summary: toOneLine(summary) || undefined,
+      
+      // 업데이트 시간
+      updatedAt: new Date().toISOString()
     }
 
-    updateResponseNote(workOrder.id, responseNote)
-    onClose()
+    console.log('📝 회신 메모 저장 요청:', responseNote)
+    try {
+      setIsSaving(true)
+      const result = await updateResponseNote(workOrder.id, responseNote)
+      if (result.success) {
+        onClose()
+      } else {
+        console.error('❌ 회신 메모 저장 실패:', result.error)
+        alert(`회신 메모 저장 중 오류가 발생했습니다.\n사유: ${result.error ?? '알 수 없는 오류'}`)
+      }
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // 작업구분 사용 (새로운 workType 필드)
@@ -123,14 +259,38 @@ const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClo
                       <div key={index} className="text-xs bg-white p-2 rounded border">
                         <div><strong>RU #{index + 1}:</strong> {ru.ruName}</div>
                         <div className="text-gray-600">ID: {ru.ruId}</div>
-                        {ru.channelCard && <div className="text-gray-600">채널카드: {ru.channelCard}</div>}
-                        {ru.port && <div className="text-gray-600">포트: {ru.port}</div>}
+                        {(ru.channelCard !== undefined && ru.channelCard !== '') && (
+                          <div className="text-gray-600">채널카드: {ru.channelCard}</div>
+                        )}
+                        {(ru.port !== undefined && ru.port !== '') && (
+                          <div className="text-gray-600">포트: {ru.port}</div>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
             </div>
+          </div>
+
+          {/* 요약문 미리보기 */}
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-lg font-medium text-blue-900">📋 자동 생성된 요약문</h4>
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className={`btn btn-sm transition-colors ${isCopied ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800 hover:bg-blue-200'}`}
+                title="클립보드에 복사"
+              >
+                <Copy className="w-4 h-4 mr-1" />
+                {isCopied ? '복사됨!' : '복사'}
+              </button>
+            </div>
+            <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded border font-mono">
+{summary}
+            </pre>
+            <p className="text-xs text-blue-600 mt-2">💡 아래 필드를 수정하면 요약문이 자동으로 업데이트됩니다</p>
           </div>
 
           {/* 사용자 입력 필드 */}
@@ -271,9 +431,10 @@ const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClo
             </button>
             <button
               type="submit"
-              className="btn btn-primary"
+              className={`btn btn-primary ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+              disabled={isSaving}
             >
-              저장
+              {isSaving ? '저장 중...' : '저장'}
             </button>
           </div>
         </form>
@@ -368,8 +529,12 @@ const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, on
                               <div className="space-y-1">
                                 <div className="font-medium text-sm">{ru.ruName}</div>
                                 <div className="text-xs text-gray-600">ID: {ru.ruId}</div>
-                                {ru.channelCard && <div className="text-xs text-gray-600">채널카드: {ru.channelCard}</div>}
-                                {ru.port && <div className="text-xs text-gray-600">포트: {ru.port}</div>}
+                                {(ru.channelCard !== undefined && ru.channelCard !== '') && (
+                                  <div className="text-xs text-gray-600">채널카드: {ru.channelCard}</div>
+                                )}
+                                {(ru.port !== undefined && ru.port !== '') && (
+                                  <div className="text-xs text-gray-600">포트: {ru.port}</div>
+                                )}
                                 {muxCH && <div className="text-xs text-blue-600 font-medium">MUX CH: {muxCH}</div>}
                               </div>
                               {isRepresentative ? (
@@ -496,6 +661,12 @@ export default function WorkOrderTable({ workOrders }: WorkOrderTableProps) {
   }
 
   const handleEditSave = async (id: string) => {
+    // 완료로 변경하려는 경우: 회신 메모 모달 먼저 띄우고, 저장 성공 시 완료 처리
+    if (editingStatus === 'completed') {
+      setEditingId(null)
+      setResponseNoteId(id)
+      return
+    }
     await updateStatus(id, editingStatus, notes)
     handleEditCancel()
   }
@@ -649,9 +820,19 @@ export default function WorkOrderTable({ workOrders }: WorkOrderTableProps) {
                   </div>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    {workOrder.operationTeam}
-                  </span>
+                  <div className="space-x-1">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {workOrder.operationTeam}
+                    </span>
+                    {(() => {
+                      const partner = (workOrder as any).partnerTeam as string | undefined
+                      return partner && !isSameTeam(workOrder.operationTeam, partner) ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700">
+                          파트너: {partner}
+                        </span>
+                      ) : null
+                    })()}
+                  </div>
                 </td>
                 <td className="px-4 py-4 text-sm text-gray-900">
                   <div className="space-y-1">
@@ -671,8 +852,8 @@ export default function WorkOrderTable({ workOrders }: WorkOrderTableProps) {
                   <div className="space-y-1">
                     <div><strong>DU ID:</strong> {workOrder.duId}</div>
                     <div><strong>DU 명:</strong> {workOrder.duName}</div>
-                    <div><strong>채널카드:</strong> {workOrder.channelCard}</div>
-                    <div><strong>포트:</strong> {workOrder.port}</div>
+                    <div><strong>채널카드:</strong> {workOrder.channelCard ?? 'N/A'}</div>
+                    <div><strong>포트:</strong> {workOrder.port ?? 'N/A'}</div>
                   </div>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap">

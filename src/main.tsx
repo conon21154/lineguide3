@@ -6,7 +6,7 @@ import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter basename="/lineguide3">
+    <BrowserRouter basename={import.meta.env.PROD ? "/lineguide3" : ""}>
       <App />
     </BrowserRouter>
   </React.StrictMode>,

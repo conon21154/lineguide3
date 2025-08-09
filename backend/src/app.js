@@ -124,12 +124,23 @@ const startServer = async () => {
     // 데이터베이스 연결 테스트
     await testConnection();
 
-    // 데이터베이스 동기화 활성화 (새로운 모델 구조 적용)
+    // 데이터베이스 동기화 (안전 모드: alter 비활성화)
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ force: false }); // 기존 테이블 유지
-      console.log('✅ 데이터베이스 초기화 완료');
+      await sequelize.sync({ force: false, alter: false });
+      console.log('✅ 데이터베이스 초기화 완료 (dev, alter:false)');
+    } else {
+      await sequelize.sync({ alter: false });
+      console.log('✅ 데이터베이스 동기화 완료 (alter:false)');
     }
-    console.log('⚠️ 데이터베이스 동기화 비활성화됨 (임시)');
+
+    // FieldResponse 테이블은 개별적으로 스키마 동기화 (alter 허용)
+    try {
+      const { FieldResponse } = require('../models');
+      await FieldResponse.sync({ alter: true });
+      console.log('✅ FieldResponse 테이블 동기화 완료 (alter:true)');
+    } catch (frErr) {
+      console.warn('⚠️ FieldResponse 테이블 동기화 실패:', frErr?.message || frErr);
+    }
 
     // 서버 시작
     server.listen(PORT, () => {

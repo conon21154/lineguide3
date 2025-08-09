@@ -3,6 +3,7 @@ const { sequelize } = require('../config/database');
 // 모델 import
 const User = require('./User');
 const WorkOrder = require('./WorkOrder');
+const FieldResponse = require('./FieldResponse');
 
 // 모델 관계 설정
 const setupAssociations = () => {
@@ -34,5 +35,6 @@ setupAssociations();
 module.exports = {
   sequelize,
   User,
-  WorkOrder
+  WorkOrder,
+  FieldResponse
 };

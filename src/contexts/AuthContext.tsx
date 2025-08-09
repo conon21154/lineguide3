@@ -1,23 +1,38 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { OperationTeam } from '@/types'
+import { API_ENDPOINTS, apiPost, apiGet, AuthToken } from '@/config/api'
 
 interface AuthUser {
-  team: OperationTeam
-  userType: 'admin' | 'field'
+  id: number
+  username: string
+  name: string
+  team: string | null
+  role: 'admin' | 'team_leader' | 'worker'
   loginTime: string
+  stats?: {
+    totalWorkOrders: number
+    pendingOrders: number
+    inProgressOrders: number
+    completedOrders: number
+  }
+}
+
+interface LoginCredentials {
+  username: string
+  password: string
 }
 
 interface AuthContextType {
   user: AuthUser | null
-  login: (team: OperationTeam, userType: 'admin' | 'field') => void
-  logout: () => void
+  login: (credentials: LoginCredentials) => Promise<void>
+  logout: () => Promise<void>
+  refreshUser: () => Promise<void>
   isAuthenticated: boolean
   isAdmin: boolean
+  loading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-const AUTH_STORAGE_KEY = 'auth_user'
 
 interface AuthProviderProps {
   children: ReactNode
@@ -25,44 +40,144 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // 로컬스토리지에서 인증 정보 복원
-  useEffect(() => {
+  // 토큰으로 사용자 정보 복원
+  const initializeAuth = async () => {
     try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY)
-      if (stored) {
-        const authUser = JSON.parse(stored) as AuthUser
-        setUser(authUser)
+      const token = AuthToken.get()
+      console.log('🔑 토큰 확인:', token)
+      
+      if (!token) {
+        console.log('❌ 토큰이 없음')
+        setLoading(false)
+        return
       }
-    } catch (error) {
-      console.error('인증 정보 복원 실패:', error)
-      localStorage.removeItem(AUTH_STORAGE_KEY)
-    }
-  }, [])
 
-  const login = (team: OperationTeam, userType: 'admin' | 'field') => {
-    const authUser: AuthUser = {
-      team,
-      userType,
-      loginTime: new Date().toISOString()
+      console.log('📡 /auth/me 요청 시작')
+      const response = await apiGet(API_ENDPOINTS.AUTH.ME)
+      console.log('✅ /auth/me 응답:', response)
+      
+      const userData = response.user
+      
+      const authUser: AuthUser = {
+        id: userData.id,
+        username: userData.username,
+        name: userData.name,
+        team: userData.team,
+        role: userData.role,
+        loginTime: new Date().toISOString(),
+        stats: userData.stats
+      }
+      
+      console.log('👤 사용자 정보 설정:', authUser)
+      setUser(authUser)
+    } catch (error) {
+      console.error('❌ 인증 정보 복원 실패:', error)
+      AuthToken.remove()
+    } finally {
+      setLoading(false)
     }
-    
-    setUser(authUser)
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser))
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem(AUTH_STORAGE_KEY)
+  useEffect(() => {
+    initializeAuth()
+  }, [])
+
+  const login = async (credentials: LoginCredentials): Promise<void> => {
+    try {
+      setLoading(true)
+      
+      console.log('🔐 AuthContext login 함수 호출:', credentials.username)
+      console.log('🌐 로그인 URL:', API_ENDPOINTS.AUTH.LOGIN)
+      
+      const response = await apiPost(API_ENDPOINTS.AUTH.LOGIN, credentials)
+      console.log('✅ 로그인 응답:', response)
+      
+      // JWT 토큰 저장
+      AuthToken.set(response.token)
+      console.log('💾 토큰 저장 완료')
+      
+      // 사용자 정보 설정
+      const userData = response.user
+      const authUser: AuthUser = {
+        id: userData.id,
+        username: userData.username,
+        name: userData.name,
+        team: userData.team,
+        role: userData.role,
+        loginTime: new Date().toISOString()
+      }
+      
+      console.log('👤 로그인 사용자 정보 설정:', authUser)
+      setUser(authUser)
+      
+      // 사용자 통계 정보 추가 로드 (임시 비활성화)
+      // await refreshUser()
+      
+    } catch (error) {
+      console.error('❌ 로그인 실패:', error)
+      AuthToken.remove()
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const logout = async (): Promise<void> => {
+    try {
+      // 서버에 로그아웃 요청 (토큰이 있을 때만)
+      if (AuthToken.get()) {
+        await apiPost(API_ENDPOINTS.AUTH.LOGOUT)
+      }
+    } catch (error) {
+      console.error('로그아웃 요청 실패:', error)
+      // 서버 요청 실패해도 클라이언트에서는 로그아웃 처리
+    } finally {
+      AuthToken.remove()
+      setUser(null)
+    }
+  }
+
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const response = await apiGet(API_ENDPOINTS.AUTH.ME)
+      const userData = response.user
+      
+      setUser(current => {
+        if (!current) return null
+        
+        return {
+          ...current,
+          stats: userData.stats
+        }
+      })
+    } catch (error) {
+      console.error('사용자 정보 갱신 실패:', error)
+      // 토큰이 만료된 경우 로그아웃
+      if (error instanceof Error && error.message.includes('401')) {
+        await logout()
+      }
+    }
   }
 
   const value: AuthContextType = {
     user,
     login,
     logout,
+    refreshUser,
     isAuthenticated: !!user,
-    isAdmin: user?.userType === 'admin'
+    isAdmin: user?.role === 'admin',
+    loading
   }
+
+  // 디버깅용 로그
+  console.log('🔐 Auth 상태:', {
+    user,
+    isAuthenticated: !!user,
+    loading,
+    hasToken: !!AuthToken.get()
+  })
 
   return (
     <AuthContext.Provider value={value}>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { WorkOrder, WorkOrderFilter, ResponseNote } from '@/types'
+import { WorkOrder, WorkOrderFilter, ResponseNote, FieldReport } from '@/types'
 import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiDelete, apiUpload } from '@/config/api'
 
 interface UseWorkOrdersResult {
@@ -22,6 +22,8 @@ interface UseWorkOrdersResult {
   updateResponseNote: (id: string, responseNote: Partial<ResponseNote>) => Promise<{ success: boolean; error?: string }>
   markResponseNoteAsChecked: (id: string) => Promise<{ success: boolean; error?: string }>
   uploadCSV: (file: File) => Promise<{ success: boolean; data?: any; error?: string }>
+  fetchFieldReports: () => Promise<FieldReport[]>
+  toggleFieldReportChecked: (fieldResponseId: string, checked: boolean) => Promise<{ success: boolean; error?: string }>
   refreshData: () => Promise<void>
   setPage: (page: number) => void
   setFilter: (filter: WorkOrderFilter) => void
@@ -30,7 +32,7 @@ interface UseWorkOrdersResult {
 export function useWorkOrders(
   initialFilter?: WorkOrderFilter,
   initialPage: number = 1,
-  initialLimit: number = 20
+  initialLimit: number = 200
 ): UseWorkOrdersResult {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [loading, setLoading] = useState(false)
@@ -41,7 +43,7 @@ export function useWorkOrders(
   const [currentLimit] = useState(initialLimit)
 
   // 백엔드 데이터를 프론트엔드 WorkOrder 타입으로 정규화하는 함수
-  const normalizeWorkOrder = (backendData: any): WorkOrder => {
+  const normalizeWorkOrder = (backendData: any): (WorkOrder & { teamKeys?: string[]; partnerTeam?: string }) => {
     console.log('🔍 백엔드 데이터 정규화:', backendData);
     
     // JSON 필드 파싱
@@ -94,7 +96,8 @@ export function useWorkOrders(
     };
 
     console.log('✅ 정규화 완료:', normalized);
-    return normalized;
+    // teamKeys/partnerTeam는 후처리 단계에서 채움
+    return { ...(normalized as any), teamKeys: [], partnerTeam: undefined } as WorkOrder & { teamKeys?: string[]; partnerTeam?: string };
   }
 
   // 작업지시 목록 조회
@@ -130,9 +133,41 @@ export function useWorkOrders(
       console.log('🔄 변환 전 데이터:', workOrdersData.length, '개')
       
       const mappedWorkOrders = workOrdersData.map(normalizeWorkOrder)
-      console.log('✅ 변환 후 데이터:', mappedWorkOrders.length, '개')
+
+      // === 그룹별 파트너팀 주입 ===
+      const keyTeam = (t?: string) => t ? t.replace(/\s+/g,'').replace(/\u200B/g,'').trim() : ''
+      const baseKey = (mgmt?: string) => (mgmt ?? '').replace(/_(DU측|RU측)$/,'')
+
+      // 1) 그룹 메타 구축
+      const groups = new Map<string, { duTeam?: string; ruTeam?: string }>()
+      for (const w of mappedWorkOrders) {
+        const b = baseKey(w.managementNumber)
+        if (!groups.has(b)) groups.set(b, {})
+        const g = groups.get(b)!
+        if (w.workType === 'DU측' && w.operationTeam && !g.duTeam) g.duTeam = w.operationTeam
+        if (w.workType === 'RU측' && w.operationTeam && !g.ruTeam) g.ruTeam = w.operationTeam
+      }
+
+      // 2) 각 항목에 partnerTeam/teamKeys 주입
+      const enriched = mappedWorkOrders.map((w: WorkOrder & { teamKeys?: string[]; partnerTeam?: string }) => {
+        const b = baseKey(w.managementNumber)
+        const g = groups.get(b) || {}
+        const partner = w.workType === 'DU측' ? g.ruTeam : g.duTeam
+        const keys = [keyTeam(w.operationTeam), keyTeam(partner)].filter(Boolean) as string[]
+        return { ...(w as any), partnerTeam: partner, teamKeys: keys }
+      })
+      // 팀 분포 요약 로그 (진단용)
+      const teamSummary: Record<string, number> = {}
+      for (const w of enriched) {
+        const team = (w.operationTeam || '기타').trim()
+        teamSummary[team] = (teamSummary[team] || 0) + 1
+      }
+      console.log('✅ 변환 후 데이터:', enriched.length, '개', { teamSummary })
+      if (response.pagination) {
+        console.log('📊 페이지네이션:', response.pagination)
+      }
       
-      setWorkOrders(mappedWorkOrders)
+      setWorkOrders(enriched)
       setPagination(response.pagination || null)
 
     } catch (err) {
@@ -223,8 +258,16 @@ export function useWorkOrders(
     try {
       setLoading(true)
       
-      await apiDelete(API_ENDPOINTS.WORK_ORDERS.CLEAR_ALL)
-      await refreshData() // 목록 새로고침
+      // ?all=true 쿼리 파라미터로 삭제 요청
+      const response = await apiDelete(`${API_ENDPOINTS.WORK_ORDERS.LIST}?all=true`)
+      
+      // 성공 시 즉시 상태를 빈 배열로 설정 (자동 재조회 방지)
+      if (response.ok || response.success) {
+        setWorkOrders([])
+        setPagination(null)
+        console.log('✅ 전체 삭제 후 상태 초기화 완료')
+      }
+      
       return { success: true }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '전체 삭제 중 오류가 발생했습니다.'
@@ -239,11 +282,60 @@ export function useWorkOrders(
     try {
       setLoading(true)
       
-      await apiPost(API_ENDPOINTS.WORK_ORDERS.RESPONSE_NOTES(id), responseNote)
-      await refreshData() // 목록 새로고침
+      // 낙관적 업데이트: 먼저 로컬 상태 업데이트
+      setWorkOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === id 
+            ? {
+                ...order, 
+                responseNote: {
+                  ...order.responseNote,
+                  ...responseNote,
+                  updatedAt: new Date().toISOString()
+                }
+              }
+            : order
+        )
+      )
+      
+      // 서버에 저장 (작업게시판) - 서버 측에서 현장회신 테이블 기록도 수행함
+      await apiPut(API_ENDPOINTS.WORK_ORDERS.RESPONSE_NOTE(id), responseNote)
+      console.log('✅ 회신 메모 서버 저장 완료:', id)
+      // 참고: 구형 이중기록(별도 POST)은 제거. 서버에서 처리 실패 시에도 회신 저장은 성공하도록 유지
+      
       return { success: true }
     } catch (err) {
+      // 실패 시 데이터 재조회로 롤백
+      await refreshData()
       const errorMessage = err instanceof Error ? err.message : '회신 메모 작성 중 오류가 발생했습니다.'
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 현장 회신 게시판 데이터 조회
+    const fetchFieldReports = async (): Promise<FieldReport[]> => {
+    try {
+      console.log('📋 현장 회신 게시판 데이터 조회 중...')
+        const response = await apiGet(API_ENDPOINTS.WORK_ORDERS.FIELD_REPORTS)
+      console.log('📊 현장 회신 데이터 조회 완료:', response.length, '건')
+      return response
+    } catch (err) {
+      console.error('현장 회신 조회 오류:', err)
+      return []
+    }
+  }
+
+  // 현장회신 관리자 확인 토글
+  const toggleFieldReportChecked = async (fieldResponseId: string, checked: boolean) => {
+    try {
+      setLoading(true)
+      await apiPut(`${API_ENDPOINTS.WORK_ORDERS.LIST}/field-responses/${fieldResponseId}/admin-check`, { checked })
+      // 목록 재요청 대신 낙관적 갱신은 /board 전용 상태가 없어 refreshData 미호출
+      return { success: true }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '관리자 확인 처리 중 오류가 발생했습니다.'
       return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
@@ -314,7 +406,9 @@ export function useWorkOrders(
     clearAllWorkOrders,
     updateResponseNote,
     markResponseNoteAsChecked,
+    toggleFieldReportChecked,
     uploadCSV,
+    fetchFieldReports,
     refreshData,
     setPage,
     setFilter

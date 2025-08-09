@@ -5,7 +5,7 @@ const fs = require('fs');
 const csv = require('csv-parser');
 const iconv = require('iconv-lite');
 const { Op } = require('sequelize');
-const { WorkOrder } = require('../models');
+const { WorkOrder, FieldResponse } = require('../models');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -28,11 +28,18 @@ const upload = multer({
 
 // 헬퍼 함수들
 const trimValue = (val) => {
-  if (!val || typeof val !== 'string') return undefined;
-  const trimmed = val.trim();
-  if (trimmed === '' || trimmed === '0' || trimmed === 'undefined' || trimmed === '-') return undefined;
-  return trimmed;
+  if (val == null) return undefined; // null/undefined만 제외
+  const s = String(val).trim();
+  if (s === '' || s.toLowerCase() === 'undefined' || s === '-') return undefined;
+  return s; // '0'은 유효값으로 유지
 };
+
+// 팀명 정규화 (공백/제로폭 제거)
+const normalizeTeam = (t) => {
+  const s = trimValue(t);
+  return s ? s.replace(/\s+/g, '').replace(/\u200b/g, '').trim() : undefined;
+};
+
 
 const deSci = (val) => {
   if (!val) return undefined;
@@ -252,10 +259,23 @@ async function processCSVData(data, req, res) {
         const baseMgmt = getBaseMgmtNo(mgmtNo);
         
         if (!groups[baseMgmt]) {
-          groups[baseMgmt] = { rows: [] };
+          groups[baseMgmt] = { rows: [], duTeam: undefined, ruTeam: undefined, _duTeamSeen: new Set(), _ruTeamSeen: new Set() };
         }
         
         groups[baseMgmt].rows.push(raw);
+        // 팀 누적 (최초 유효값 유지 / 불일치 감지)
+        const duT = normalizeTeam(raw['DU운용팀']);
+        const ruT = normalizeTeam(raw['RU운용팀']);
+        if (duT) {
+          groups[baseMgmt]._duTeamSeen.add(duT);
+          if (!groups[baseMgmt].duTeam) groups[baseMgmt].duTeam = duT;
+          if (groups[baseMgmt]._duTeamSeen.size > 1) console.warn('⚠️ DU팀 불일치 감지:', baseMgmt, Array.from(groups[baseMgmt]._duTeamSeen));
+        }
+        if (ruT) {
+          groups[baseMgmt]._ruTeamSeen.add(ruT);
+          if (!groups[baseMgmt].ruTeam) groups[baseMgmt].ruTeam = ruT;
+          if (groups[baseMgmt]._ruTeamSeen.size > 1) console.warn('⚠️ RU팀 불일치 감지:', baseMgmt, Array.from(groups[baseMgmt]._ruTeamSeen));
+        }
         
         const ruInfo = `${raw['RU_명']} (${raw['서비스구분']}) - 채널카드:${raw['채널카드']} 포트:${raw['포트']}`;
         console.log(`📡 RU 정보 수집: ${ruInfo}`);
@@ -268,7 +288,7 @@ async function processCSVData(data, req, res) {
 
     console.log(`📋 수집된 관리번호: ${Object.keys(groups).length}개`);
 
-    // 2단계: 각 그룹을 RU작업 + DU작업 DTO로 변환
+    // 2단계: 각 그룹을 RU작업 + DU작업 DTO로 변환 (항상 2건 생성)
     const dtoList = [];
 
     for (const [baseMgmt, group] of Object.entries(groups)) {
@@ -276,6 +296,7 @@ async function processCSVData(data, req, res) {
         console.log(`🔧 ${baseMgmt} 통합 작업지시 생성: RU ${group.rows.length}개`);
 
         const first = group.rows[0];
+        const firstRow = group.rows?.[0] || group.firstRow || {};
         const ruInfoList = group.rows.map(r => ({
           ruId: trimValue(r['RU_ID']),
           ruName: trimValue(r['RU_명']),
@@ -305,85 +326,115 @@ async function processCSVData(data, req, res) {
           '서비스구분': trimValue(first['서비스구분'])
         };
 
-        // DU측 작업지시 생성
-        if (trimValue(first['DU운용팀'])) {
-          const duDto = {
-            id: `${baseMgmt}_DU측`,
-            managementNumber: `${baseMgmt}_DU측`,
-            requestDate: trimValue(first['요청일']),
-            operationTeam: trimValue(first['DU운용팀']),
-            
-            equipmentType: '5G 장비',
-            equipmentName: makeEquipmentNameDU(first),
-            category: trimValue(first['구분']),
-            serviceType: representative?.serviceType,
-            
-            concentratorName5G: trimValue(first['5G 집중국명']) || 'N/A',
-            coSiteCount5G: trimValue(first['co-SITE 수량']) || String(ruInfoList.length),
-            
-            ruInfoList: ruInfoList,
-            representativeRuId: representative?.ruId,
-            
-            muxInfo: muxInfo,
-            lineNumber: deSci(first['회선번호']),
-            
-            duId: trimValue(first['DUID']),
-            duName: trimValue(first['DU명']),
-            channelCard: representative?.channelCard,
-            port: representative?.port,
-            
-            workType: 'DU측',
-            status: 'pending',
-            
-            createdBy: req.user.userId,
-            customer_name: `${baseMgmt}_DU측`,
-            team: trimValue(first['DU운용팀'])
-          };
+        // 항상 2건(DU/RU) 생성
+        const withSuffix = (base, suffix) => `${base}_${suffix}`;
+        const baseMgmtNo = baseMgmt;
+        const duTeam = groups[baseMgmt].duTeam || trimValue(firstRow['DU운용팀']) || '기타';
+        const ruTeam = groups[baseMgmt].ruTeam || trimValue(firstRow['RU운용팀']) || '기타';
 
-          console.log('🏢 DU측 작업지시 생성:', `${baseMgmt} → ${duDto.operationTeam}`);
-          dtoList.push(duDto);
-        }
+        // DU측 DTO
+        const duDto = {
+          id: withSuffix(baseMgmtNo, 'DU측'),
+          managementNumber: withSuffix(baseMgmtNo, 'DU측'),
+          requestDate: trimValue(first['요청일']),
+          operationTeam: duTeam,
 
-        // RU측 작업지시 생성
-        if (trimValue(first['RU운용팀'])) {
-          const ruDto = {
-            id: `${baseMgmt}_RU측`,
-            managementNumber: `${baseMgmt}_RU측`,
-            requestDate: trimValue(first['요청일']),
-            operationTeam: trimValue(first['RU운용팀']),
-            
-            equipmentType: '5G 장비',
-            equipmentName: makeEquipmentNameRU(first),
-            category: trimValue(first['구분']),
-            serviceLocation: serviceLocation || undefined,
-            serviceType: representative?.serviceType,
-            
-            concentratorName5G: trimValue(first['5G 집중국명']) || 'N/A',
-            coSiteCount5G: trimValue(first['co-SITE 수량']) || String(ruInfoList.length),
-            
-            ruInfoList: ruInfoList,
-            representativeRuId: representative?.ruId,
-            
-            muxInfo: muxInfo,
-            lineNumber: deSci(first['회선번호']),
-            
-            duId: trimValue(first['DUID']),
-            duName: trimValue(first['DU명']),
-            channelCard: representative?.channelCard,
-            port: representative?.port,
-            
-            workType: 'RU측',
-            status: 'pending',
-            
-            createdBy: req.user.userId,
-            customer_name: `${baseMgmt}_RU측`,
-            team: trimValue(first['RU운용팀'])
-          };
+          equipmentType: '5G 장비',
+          equipmentName: makeEquipmentNameDU(first),
+          category: trimValue(first['구분']),
+          serviceType: representative?.serviceType,
 
-          const ruSummary = ruInfoList.map(ru => ru.ruName?.split('_').pop() || 'Unknown').join(', ');
-          console.log(`📡 RU측 작업지시 생성: ${baseMgmt} → ${ruDto.operationTeam} (${ruSummary})`);
-          dtoList.push(ruDto);
-        }
+          concentratorName5G: trimValue(first['5G 집중국명']) || 'N/A',
+          coSiteCount5G: trimValue(first['co-SITE 수량']) || String(ruInfoList.length),
+
+          ruInfoList: ruInfoList,
+          representativeRuId: representative?.ruId,
+
+          muxInfo: muxInfo,
+          lineNumber: deSci(first['회선번호']),
+
+          duId: trimValue(first['DUID']),
+          duName: trimValue(first['DU명']),
+          channelCard: representative?.channelCard,
+          port: representative?.port,
+
+          workType: 'DU측',
+          status: 'pending',
+
+          createdBy: req.user.userId,
+          customer_name: withSuffix(baseMgmtNo, 'DU측'),
+          team: duTeam
+        };
+        console.log('🏢 DU측 작업지시 생성:', `${baseMgmtNo} → ${duDto.operationTeam}`);
+        dtoList.push(duDto);
+
+        // RU측 DTO
+        const ruDto = {
+          id: withSuffix(baseMgmtNo, 'RU측'),
+          managementNumber: withSuffix(baseMgmtNo, 'RU측'),
+          requestDate: trimValue(first['요청일']),
+          operationTeam: ruTeam,
+
+          equipmentType: '5G 장비',
+          equipmentName: makeEquipmentNameRU(first),
+          category: trimValue(first['구분']),
+          serviceLocation: serviceLocation || undefined,
+          serviceType: representative?.serviceType,
+
+          concentratorName5G: trimValue(first['5G 집중국명']) || 'N/A',
+          coSiteCount5G: trimValue(first['co-SITE 수량']) || String(ruInfoList.length),
+
+          ruInfoList: ruInfoList,
+          representativeRuId: representative?.ruId,
+
+          muxInfo: muxInfo,
+          lineNumber: deSci(first['회선번호']),
+
+          duId: trimValue(first['DUID']),
+          duName: trimValue(first['DU명']),
+          channelCard: representative?.channelCard,
+          port: representative?.port,
+
+          workType: 'RU측',
+          status: 'pending',
+
+          createdBy: req.user.userId,
+          customer_name: withSuffix(baseMgmtNo, 'RU측'),
+          team: ruTeam
+        };
+        const ruSummary = ruInfoList.map(ru => ru.ruName?.split('_').pop() || 'Unknown').join(', ');
+        console.log(`📡 RU측 작업지시 생성: ${baseMgmtNo} → ${ruDto.operationTeam} (${ruSummary})`);
+        dtoList.push(ruDto);
+
+        // 팀 분리 여부/표본 출력
+        console.log('🪪 Team split', {
+          baseNo: baseMgmtNo,
+          duTeam,
+          ruTeam,
+          ruCount: (groups[baseMgmt].rows || []).length,
+          sample: {
+            du: { id: duDto.id, team: duDto.operationTeam },
+            ru: { id: ruDto.id, team: ruDto.operationTeam }
+          }
+        });
+
+        // 그룹 단위 집계 로그 (방금 생성된 2건 기준)
+        const out = [duDto, ruDto];
+        const groupTeamSummary = {};
+        out.forEach(o => {
+          const k = o.operationTeam || '기타';
+          groupTeamSummary[k] = (groupTeamSummary[k] || 0) + 1;
+        });
+        const groupDuCount = out.filter(o => o.workType === 'DU측').length;
+        const groupRuCount = out.filter(o => o.workType === 'RU측').length;
+        console.log('🧩 DTO 그룹 집계:', {
+          base: baseMgmtNo,
+          total: out.length,
+          duCount: groupDuCount,
+          ruCount: groupRuCount,
+          teamSummary: groupTeamSummary,
+          samples: out.map(x => ({ id: x.id, mgmt: x.managementNumber, wt: x.workType, team: x.operationTeam }))
+        });
 
       } catch (groupError) {
         errors.push(`그룹 ${baseMgmt} 처리 오류: ${groupError.message}`);
@@ -391,13 +442,29 @@ async function processCSVData(data, req, res) {
       }
     }
 
-    console.log('[DTO sample count]', dtoList.length);
-    if (dtoList.length > 0) {
-      console.log('[DTO sample 1]', JSON.stringify(dtoList[0], null, 2));
-    }
-    if (dtoList.length > 1) {
-      console.log('[DTO sample 2]', JSON.stringify(dtoList[1], null, 2));
-    }
+        console.log('[DTO sample count]', dtoList.length);
+        if (dtoList.length > 0) {
+          console.log('[DTO sample 1]', JSON.stringify(dtoList[0], null, 2));
+        }
+        if (dtoList.length > 1) {
+          console.log('[DTO sample 2]', JSON.stringify(dtoList[1], null, 2));
+        }
+
+        // 집계 로그: 총계/DU/RU 건수 및 팀 요약 및 샘플
+        const duCount = dtoList.filter(o => o.workType === 'DU측').length;
+        const ruCount = dtoList.filter(o => o.workType === 'RU측').length;
+        const teamSummary = {};
+        dtoList.forEach(o => {
+          const k = o.operationTeam || '기타';
+          teamSummary[k] = (teamSummary[k] || 0) + 1;
+        });
+        console.log('🧩 DTO 집계:', {
+          total: dtoList.length,
+          duCount,
+          ruCount,
+          teamSummary,
+          samples: dtoList.slice(0, 4).map(x => ({ id: x.id, mgmt: x.managementNumber, wt: x.workType, team: x.operationTeam }))
+        });
 
     // 데이터베이스에 저장
     const { sequelize } = require('../models');
@@ -533,10 +600,191 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// 현장 회신 게시판 조회
+router.get('/field-reports', authMiddleware, async (req, res) => {
+  try {
+    console.log('📋 현장 회신 게시판 조회 요청');
+    // 현장회신 테이블에서 직접 조회 (신규 스키마)
+    const { FieldResponse } = require('../models');
+    const rows = await FieldResponse.findAll({ order: [['created_at', 'DESC']] });
+    const mapped = rows.map(r => ({
+      id: r.id.toString(),
+      managementNumber: r.managementNumber,
+      workType: r.workType,
+      operationTeam: r.operationTeam,
+      equipmentName: r.equipmentName,
+      representativeRuId: r.representativeRuId,
+      summary: r.summary,
+      createdAt: r.createdAt
+    }));
+    console.log(`📊 현장 회신 ${mapped.length}건 조회됨`);
+    res.json(mapped);
+
+  } catch (error) {
+    console.error('현장 회신 조회 오류:', error);
+    res.status(500).json({
+      error: '현장 회신 조회 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// 회신 메모 저장
+router.put('/:id/response-note', authMiddleware, async (req, res) => {
+  try {
+    const workOrder = await WorkOrder.findByPk(req.params.id);
+    
+    if (!workOrder) {
+      return res.status(404).json({ error: '작업지시를 찾을 수 없습니다' });
+    }
+
+    // 기존 responseNote와 새 데이터 병합
+    let existingNote = {};
+    try {
+      existingNote = typeof workOrder.response_note === 'string' 
+        ? JSON.parse(workOrder.response_note) 
+        : (workOrder.response_note || {});
+    } catch {
+      existingNote = {};
+    }
+
+    const updatedNote = {
+      ...existingNote,
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    };
+
+    await workOrder.update({
+      response_note: JSON.stringify(updatedNote),
+      updatedAt: new Date()
+    });
+
+    console.log('✅ 회신 메모 저장 완료:', req.params.id);
+    // 현장회신 테이블에도 동시 기록 (요약 기반)
+    try {
+      const baseMgmtNo = workOrder.managementNumber?.replace(/_(DU측|RU측)$/,'') || workOrder.managementNumber;
+      const summaryOneLine = (updatedNote && updatedNote.summary) ? String(updatedNote.summary).trim() : '';
+      if (summaryOneLine) {
+        // 중복 방지: managementNumber + workType + summary로 upsert
+        await FieldResponse.upsert({
+          workOrderId: workOrder.id?.toString(),
+          managementNumber: baseMgmtNo,
+          workType: workOrder.workType,
+          operationTeam: workOrder.operationTeam,
+          equipmentName: workOrder.equipmentName,
+          representativeRuId: workOrder.representativeRuId,
+          summary: summaryOneLine,
+          status: 'active',
+          adminChecked: false,
+          createdBy: req.user.userId
+        });
+        console.log('✅ 현장회신 레코드 upsert 완료:', { baseMgmtNo, workType: workOrder.workType });
+      } else {
+        console.log('ℹ️ 요약이 비어 있어 현장회신 레코드 생성 건너뜀:', workOrder.id);
+      }
+    } catch (frErr) {
+      console.error('❌ 현장회신 저장 실패:', frErr);
+    }
+
+    res.json({
+      message: '회신 메모가 저장되었습니다',
+      workOrder: {
+        ...workOrder.toJSON(),
+        response_note: updatedNote
+      }
+    });
+
+  } catch (error) {
+    console.error('회신 메모 저장 오류:', error);
+    res.status(500).json({
+      error: '회신 메모 저장 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// 회신 메모 저장 후(또는 별도로) 현장회신 테이블에 기록
+router.post('/:id/response-note/field-record', authMiddleware, async (req, res) => {
+  try {
+    const workOrder = await WorkOrder.findByPk(req.params.id);
+    if (!workOrder) {
+      return res.status(404).json({ error: '작업지시를 찾을 수 없습니다' });
+    }
+
+    // 관리번호 접미사 제거
+    const baseMgmtNo = workOrder.managementNumber?.replace(/_(DU측|RU측)$/,'') || workOrder.managementNumber;
+
+    const summary = (req.body?.summary || '').toString().trim();
+    const record = await FieldResponse.create({
+      workOrderId: workOrder.id?.toString(),
+      managementNumber: baseMgmtNo,
+      workType: workOrder.workType,
+      operationTeam: workOrder.operationTeam,
+      equipmentName: workOrder.equipmentName,
+      representativeRuId: workOrder.representativeRuId,
+      summary,
+      status: 'active',
+      adminChecked: false,
+      createdBy: req.user.userId
+    });
+
+    res.json({ success: true, fieldResponse: record });
+  } catch (error) {
+    console.error('현장회신 기록 오류:', error);
+    res.status(500).json({ success: false, error: '현장회신 기록 중 오류가 발생했습니다' });
+  }
+});
+
+// 관리자 확인 처리 (체크/해제)
+router.put('/field-responses/:fieldId/admin-check', [authMiddleware, adminMiddleware], async (req, res) => {
+  try {
+    const { checked } = req.body; // boolean
+    const record = await FieldResponse.findByPk(req.params.fieldId);
+    if (!record) return res.status(404).json({ error: '현장회신 레코드를 찾을 수 없습니다' });
+    await record.update({
+      adminChecked: !!checked,
+      adminCheckedAt: !!checked ? new Date() : null
+    });
+    res.json({ success: true, fieldResponse: record });
+  } catch (error) {
+    console.error('관리자 확인 처리 오류:', error);
+    res.status(500).json({ success: false, error: '관리자 확인 처리 중 오류' });
+  }
+});
+
+// 전체 작업지시 삭제 (관리자만) - 쿼리 파라미터 지원
+router.delete('/', [authMiddleware, adminMiddleware], async (req, res) => {
+  try {
+    if (req.query.all === 'true') {
+      console.log('🗑️ 전체 작업지시 삭제 요청 받음 (query all=true)');
+    } else {
+      console.log('🗑️ 전체 작업지시 삭제 요청 받음');
+    }
+    
+    const deletedCount = await WorkOrder.destroy({
+      where: {},
+      truncate: false // truncate 대신 일반 삭제 사용
+    });
+
+    console.log(`✅ 전체 작업지시 삭제 완료: ${deletedCount}개`);
+    res.json({
+      ok: true,
+      success: true,
+      message: `${deletedCount}개의 작업지시가 삭제되었습니다`
+    });
+
+  } catch (error) {
+    console.error('전체 삭제 오류:', error);
+    res.status(500).json({
+      ok: false,
+      success: false,
+      error: '전체 삭제 중 오류가 발생했습니다'
+    });
+  }
+});
+
 // 전체 작업지시 삭제 (관리자만) - 명시적 엔드포인트
 router.delete('/clear-all', [authMiddleware, adminMiddleware], async (req, res) => {
   try {
-    console.log('🗑️ 전체 작업지시 삭제 요청 받음');
+    console.log('🗑️ 전체 작업지시 삭제 요청 받음 (/clear-all)');
     
     const deletedCount = await WorkOrder.destroy({
       where: {},
@@ -553,26 +801,6 @@ router.delete('/clear-all', [authMiddleware, adminMiddleware], async (req, res) 
     console.error('전체 삭제 오류:', error);
     res.status(500).json({
       success: false,
-      error: '전체 삭제 중 오류가 발생했습니다'
-    });
-  }
-});
-
-// 전체 작업지시 삭제 (관리자만) - 백업 엔드포인트
-router.delete('/', [authMiddleware, adminMiddleware], async (req, res) => {
-  try {
-    const deletedCount = await WorkOrder.destroy({
-      where: {},
-      truncate: false
-    });
-
-    res.json({
-      message: `${deletedCount}개의 작업지시가 삭제되었습니다`
-    });
-
-  } catch (error) {
-    console.error('전체 삭제 오류:', error);
-    res.status(500).json({
       error: '전체 삭제 중 오류가 발생했습니다'
     });
   }

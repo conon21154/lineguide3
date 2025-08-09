@@ -1,75 +1,34 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Eye, MessageSquare, Check, Filter, Search, ChevronDown, ChevronRight } from 'lucide-react';
-import { useCompletedResponseNotes, useWorkOrders } from '../hooks/useWorkOrders';
-import { WorkOrder, OperationTeam } from '../types';
-import { useAuth } from '../contexts/AuthContext';
+import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI';
+import { OperationTeam, FieldReport } from '@/types';
+// import { useAuth } from '../contexts/AuthContext';
 
-const ResponseNoteViewModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClose: () => void }) => {
-  const workType = workOrder.managementNumber.includes('_DU측') ? 'DU측' : 'RU측';
-  const baseManagementNumber = workOrder.managementNumber.replace(/_DU측|_RU측/g, '');
-
+const FieldReportViewModal = ({ report, onClose }: { report: FieldReport, onClose: () => void }) => {
+  const workType = report.workType || 'RU측';
+  const baseManagementNumber = report.managementNumber;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">현장 회신 메모</h2>
+          <h2 className="text-xl font-semibold text-gray-900">현장 회신 요약</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <Eye className="h-6 w-6" />
           </button>
         </div>
-
-        <div className="p-6 space-y-6">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">
-              [{workOrder.operationTeam} {workType}]
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="font-medium">ㅇ 관리번호 :</span> {baseManagementNumber}
-              </div>
-              <div>
-                <span className="font-medium">ㅇ 국사 명 :</span> {workOrder.concentratorName5G}
-              </div>
-              {workType === 'RU측' && (
-                <div>
-                  <span className="font-medium">ㅇ 국소 명 :</span> {workOrder.equipmentName}
-                </div>
-              )}
-            </div>
+        <div className="p-6 space-y-4">
+          <div className="text-sm text-gray-700 break-words">{report.summary}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
+            <div><span className="font-medium">관리번호:</span> {baseManagementNumber}</div>
+            <div><span className="font-medium">작업구분:</span> {workType}</div>
+            <div><span className="font-medium">운용팀:</span> {report.operationTeam}</div>
+            {report.representativeRuId && (
+              <div><span className="font-medium">대표 RU ID:</span> {report.representativeRuId}</div>
+            )}
           </div>
-
-          <div className="space-y-4">
-            {workOrder.responseNote?.ruOpticalSignal && (
-              <div>
-                <span className="font-medium">ㅇ RU 광신호 유/무 :</span> {workOrder.responseNote.ruOpticalSignal}
-              </div>
-            )}
-
-            {workType === 'DU측' && workOrder.responseNote?.mux5G && (
-              <div>
-                <span className="font-medium">ㅇ 5G MUX :</span> {workOrder.responseNote.mux5G}
-              </div>
-            )}
-
-            {workType === 'DU측' && workOrder.responseNote?.tie5GLine && (
-              <div>
-                <span className="font-medium">ㅇ 5G TIE 선번 :</span> {workOrder.responseNote.tie5GLine}
-              </div>
-            )}
-
-            <div>
-              <span className="font-medium">ㅇ 특이사항 :</span> {workOrder.responseNote?.specialNotes || '없음'}
-            </div>
-
-            <div className="text-xs text-gray-500 pt-2 border-t">
-              회신 작성일: {workOrder.responseNote?.updatedAt ? new Date(workOrder.responseNote.updatedAt).toLocaleString() : '-'}
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-6 border-t border-gray-200">
-            <button onClick={onClose} className="btn btn-secondary">
-              닫기
-            </button>
+          <div className="text-xs text-gray-500">작성일: {new Date(report.createdAt).toLocaleString()}</div>
+          <div className="flex justify-end pt-4">
+            <button onClick={onClose} className="btn btn-secondary">닫기</button>
           </div>
         </div>
       </div>
@@ -78,9 +37,8 @@ const ResponseNoteViewModal = ({ workOrder, onClose }: { workOrder: WorkOrder, o
 };
 
 export default function Board() {
-  const { isAdmin } = useAuth();
-  const completedResponseNotes = useCompletedResponseNotes();
-  const { markResponseNoteAsChecked } = useWorkOrders();
+  const { fetchFieldReports, toggleFieldReportChecked } = useWorkOrdersAPI();
+  const [reports, setReports] = useState<FieldReport[]>([]);
   
   const [selectedTeam, setSelectedTeam] = useState<OperationTeam | ''>('');
   const [showChecked, setShowChecked] = useState<'all' | 'unchecked' | 'checked'>('all');
@@ -89,33 +47,39 @@ export default function Board() {
   const [viewingDetailId, setViewingDetailId] = useState<string | null>(null);
   const [collapsedTeams, setCollapsedTeams] = useState<Set<OperationTeam>>(new Set());
 
-  // 필터링된 현장 회신 메모
+  useEffect(() => {
+    (async () => {
+      const data = await fetchFieldReports();
+      // createdAt DESC 2차 정렬 보강
+      const sorted = [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setReports(sorted);
+    })();
+  }, []);
+
+  // 필터링된 현장 회신 메모 (FieldReport 기준)
   const filteredNotes = useMemo(() => {
-    return completedResponseNotes.filter(workOrder => {
+    return reports.filter(report => {
       // 팀 필터
-      if (selectedTeam && workOrder.operationTeam !== selectedTeam) {
+      if (selectedTeam && report.operationTeam !== selectedTeam) {
         return false;
       }
       
       // 확인 상태 필터
-      if (showChecked === 'unchecked' && workOrder.responseNote?.adminChecked) {
-        return false;
-      }
-      if (showChecked === 'checked' && !workOrder.responseNote?.adminChecked) {
-        return false;
+      // 서버에서 확인 여부가 오지 않는 스펙이므로 필터는 전체 유지
+      if (showChecked !== 'all') {
+        // no-op: 필요 시 확장
       }
       
       // 검색어 필터
       if (searchTerm.trim()) {
         const search = searchTerm.toLowerCase();
         const searchableFields = [
-          workOrder.managementNumber,
-          workOrder.equipmentName,
-          workOrder.concentratorName5G,
-          workOrder.responseNote?.specialNotes || '',
-          workOrder.responseNote?.ruOpticalSignal || '',
-          workOrder.responseNote?.mux5G || '',
-          workOrder.responseNote?.tie5GLine || ''
+          report.summary,
+          report.managementNumber,
+          report.operationTeam,
+          report.workType,
+          report.equipmentName || '',
+          report.representativeRuId || ''
         ];
         
         if (!searchableFields.some(field => 
@@ -127,33 +91,30 @@ export default function Board() {
       
       return true;
     });
-  }, [completedResponseNotes, selectedTeam, showChecked, searchTerm]);
+  }, [reports, selectedTeam, showChecked, searchTerm]);
 
   // 팀별로 그룹화
   const notesByTeam = useMemo(() => {
-    const grouped: Record<OperationTeam, WorkOrder[]> = {} as Record<OperationTeam, WorkOrder[]>;
+    const grouped: Record<string, FieldReport[]> = {};
     
-    filteredNotes.forEach(workOrder => {
-      if (!grouped[workOrder.operationTeam]) {
-        grouped[workOrder.operationTeam] = [];
+    filteredNotes.forEach(report => {
+      if (!grouped[report.operationTeam]) {
+        grouped[report.operationTeam] = [];
       }
-      grouped[workOrder.operationTeam].push(workOrder);
+      grouped[report.operationTeam].push(report);
     });
     
     // 각 팀별로 최신순 정렬
     Object.keys(grouped).forEach(team => {
-      grouped[team as OperationTeam].sort((a, b) => 
-        new Date(b.responseNote?.updatedAt || b.completedAt || b.updatedAt).getTime() - 
-        new Date(a.responseNote?.updatedAt || a.completedAt || a.updatedAt).getTime()
+      grouped[team].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     });
     
     return grouped;
   }, [filteredNotes]);
 
-  const handleMarkAsChecked = async (workOrderId: string) => {
-    await markResponseNoteAsChecked(workOrderId);
-  };
+  // 확인완료 기능은 서버 스펙 정립 후 처리 예정
 
   const toggleTeamCollapse = (team: OperationTeam) => {
     const newCollapsed = new Set(collapsedTeams);
@@ -274,16 +235,7 @@ export default function Board() {
             총 {filteredNotes.length}건의 현장 회신 메모
             {activeFiltersCount > 0 && ' (필터링됨)'}
           </div>
-          <div className="flex gap-4 text-sm">
-            <span className="flex items-center">
-              <div className="w-3 h-3 bg-red-400 rounded-full mr-1"></div>
-              미확인 {filteredNotes.filter(n => !n.responseNote?.adminChecked).length}
-            </span>
-            <span className="flex items-center">
-              <div className="w-3 h-3 bg-green-400 rounded-full mr-1"></div>
-              확인완료 {filteredNotes.filter(n => n.responseNote?.adminChecked).length}
-            </span>
-          </div>
+          <div className="flex gap-4 text-sm" />
         </div>
 
         {/* 메모 리스트 */}
@@ -305,7 +257,7 @@ export default function Board() {
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([team, teamNotes]) => {
                 const isCollapsed = collapsedTeams.has(team as OperationTeam);
-                const uncheckedCount = teamNotes.filter(n => !n.responseNote?.adminChecked).length;
+                const uncheckedCount = 0;
                 
                 return (
                   <div key={team} className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -338,13 +290,13 @@ export default function Board() {
                     {!isCollapsed && (
                       <div className="border-t border-gray-200">
                         <div className="divide-y divide-gray-100">
-                          {teamNotes.map((workOrder) => {
-                            const workType = workOrder.managementNumber.includes('_DU측') ? 'DU측' : 'RU측';
-                            const baseManagementNumber = workOrder.managementNumber.replace(/_DU측|_RU측/g, '');
-                            const isChecked = workOrder.responseNote?.adminChecked;
+                          {teamNotes.map((report) => {
+                            const workType = report.workType || 'RU측';
+                            const baseManagementNumber = report.managementNumber;
+                            const isChecked = (report as any).adminChecked === true;
                             
                             return (
-                              <div key={workOrder.id} className="p-4">
+                              <div key={report.id} className="p-4">
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2">
@@ -359,7 +311,7 @@ export default function Board() {
                                         {workType}
                                       </span>
                                       <span className="text-sm text-gray-500">
-                                        {workOrder.concentratorName5G}
+                                        {report.equipmentName}
                                       </span>
                                       {isChecked && (
                                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -369,49 +321,43 @@ export default function Board() {
                                       )}
                                     </div>
                                     
-                                    <div className="text-sm text-gray-700 mb-2">
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                        {workOrder.responseNote?.ruOpticalSignal && (
-                                          <div>
-                                            <span className="font-medium">RU 광신호:</span> {workOrder.responseNote.ruOpticalSignal}
-                                          </div>
-                                        )}
-                                        {workOrder.responseNote?.specialNotes && (
-                                          <div>
-                                            <span className="font-medium">특이사항:</span> {workOrder.responseNote.specialNotes}
-                                          </div>
-                                        )}
+                                    {report.representativeRuId && (
+                                      <div className="text-xs text-gray-600 mb-1">
+                                        <span className="font-medium">대표 RU ID:</span> {report.representativeRuId}
                                       </div>
-                                    </div>
+                                    )}
+
+                                    <div className="text-sm text-gray-700 mb-2 line-clamp-3">{report.summary}</div>
                                     
                                     <div className="text-xs text-gray-500">
-                                      작성일: {workOrder.responseNote?.updatedAt ? 
-                                        new Date(workOrder.responseNote.updatedAt).toLocaleString() : '-'}
-                                      {isChecked && workOrder.responseNote?.adminCheckedAt && (
-                                        <span className="ml-4">
-                                          확인일: {new Date(workOrder.responseNote.adminCheckedAt).toLocaleString()}
-                                        </span>
-                                      )}
+                                      작성일: {new Date(report.createdAt).toLocaleString()}
                                     </div>
                                   </div>
                                   
                                   <div className="flex items-center gap-2 ml-4">
                                     <button
-                                      onClick={() => setViewingDetailId(workOrder.id)}
+                                      onClick={() => setViewingDetailId(report.id)}
                                       className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md"
                                       title="상세보기"
                                     >
                                       <Eye className="w-4 h-4" />
                                     </button>
-                                    {isAdmin && !isChecked && (
-                                      <button
-                                        onClick={() => handleMarkAsChecked(workOrder.id)}
-                                        className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md"
-                                        title="확인완료"
-                                      >
-                                        <Check className="w-4 h-4" />
-                                      </button>
-                                    )}
+                                    <button
+                                      onClick={async () => {
+                                        const ok = await toggleFieldReportChecked(report.id, !isChecked)
+                                        if (ok.success) {
+                                          // 낙관적 UI 업데이트
+                                          report = { ...(report as any), adminChecked: !isChecked } as any
+                                          setViewingDetailId(null)
+                                        } else {
+                                          alert('확인 처리 중 오류: ' + ok.error)
+                                        }
+                                      }}
+                                      className={`p-2 rounded-md ${isChecked ? 'text-green-700 hover:bg-green-50' : 'text-gray-500 hover:bg-gray-50'}`}
+                                      title={isChecked ? '확인 취소' : '확인완료'}
+                                    >
+                                      <Check className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 </div>
                               </div>
@@ -428,8 +374,8 @@ export default function Board() {
       </div>
       
       {viewingDetailId && (
-        <ResponseNoteViewModal
-          workOrder={filteredNotes.find(wo => wo.id === viewingDetailId)!}
+        <FieldReportViewModal
+          report={filteredNotes.find(r => r.id === viewingDetailId)!}
           onClose={() => setViewingDetailId(null)}
         />
       )}

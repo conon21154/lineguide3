@@ -59,54 +59,96 @@ function processMergedHeaders(jsonData: unknown[][]): { [key: string]: number } 
   const headerMapping: { [key: string]: number } = {};
   
   
-  // 15개 필수 필드의 헤더 텍스트 패턴 정의
+  // 헤더 텍스트 패턴 정의 (사용자 요청 기준 영어 필드명)
   const headerPatterns = {
-    '관리번호': [
+    'managementNumber': [
       '관리번호', '관리', '번호'
     ],
-    '작업요청일': [
+    'requestDate': [
       '작업요청일', '요청일', '작업일', '요청', '일정', '날짜', '예정일', '작업 요청일'
     ],
-    'DU측_운용팀': [
+    'duTeam': [
       'DU측 운용팀', 'DU측', 'DU 운용팀', 'DU운용팀'
     ],
-    'RU측_운용팀': [
+    'duOwner': [
+      'DU담당자', 'DU 담당자'
+    ],
+    'ruTeam': [
       'RU측 운용팀', 'RU측', 'RU 운용팀', 'RU운용팀'
     ],
-    '대표_RU_ID': [
+    'ruOwner': [
+      'RU담당자', 'RU 담당자'
+    ],
+    'workCategory': [
+      '구분'
+    ],
+    'ruId': [
       '대표 RU_ID', 'RU_ID', 'RU ID', 'RUID', '대표RU'
     ],
-    '대표_RU_명': [
+    'ruName': [
       '대표 RU_명', 'RU_명', 'RU 명', 'RU명', '대표RU명'
     ],
-    '5G_Co_Site_수량': [
-      '5G CO-SITE 수량', '5G CO-', 'Co-Site', '수량', 'CO-SITE', 'SITE 수량'
+    'coSiteCount5g': [
+      '5G CO-SITE 수량', '5G CO-', 'Co-Site', '수량', 'CO-SITE', 'SITE 수량', 'co-SITE 수량'
     ],
-    '5G_집중국명': [
+    'focus5gName': [
       '5G 집중국명', '집중국명', '집중국', '국명'
     ],
-    '회선번호': [
+    'vendor1': [
+      '협력사'
+    ],
+    'vendor2': [
+      '협력사'
+    ],
+    'lineNumber': [
       '회선번호', '회선', '번호'
     ],
-    '선번장': [
-      '선번장', 'LTE MUX', 'LTE', 'MUX'
+    'lteMuxInfo': [
+      '선번장', 'LTE MUX', 'LTE', 'MUX', '(LTE MUX / 국간,간선망)'
     ],
-    '종류': [
-      'MUX 종류', '종류', '타입', 'Type'
+    'muxTypeMain': [
+      'MUX 종류', '종류', '타입', 'Type', 'MUX종류'
     ],
-    '서비스_구분': [
+    'sido': [
+      '시/도'
+    ],
+    'sigungu': [
+      '시/군/구'
+    ],
+    'eupMyeonDong': [
+      '읍/면/동(리)'
+    ],
+    'beonji': [
+      '번지'
+    ],
+    'buildingName': [
+      '건물명'
+    ],
+    'equipmentLocation': [
+      '장비위치'
+    ],
+    'remark': [
+      '비고'
+    ],
+    'muxBranch': [
+      'MUX분출여부'
+    ],
+    'muxTypeSub': [
+      'MUX종류', 'MUX 종류'
+    ],
+    'serviceType': [
       '서비스 구분', '서비스구분', '서비스', '구분'
     ],
-    'DU_ID': [
+    'duId': [
       'DU ID', 'DUID', 'DU_ID', 'DU-ID'
     ],
-    'DU_명': [
+    'duName': [
       'DU 명', 'DU명', 'DU_명', 'DU-명'
     ],
-    '채널카드': [
+    'channelCard': [
       '채널카드', '채널', '카드', 'CH', 'CARD'
     ],
-    '포트_A': [
+    'port': [
       '포트', 'PORT', '포트A', 'A', 'Port A'
     ]
   };
@@ -175,38 +217,61 @@ function safeStringValue(value: unknown): string {
   return String(value).trim();
 }
 
-// 16개 항목 추출하여 DU측과 RU측 작업을 별도로 생성하는 함수
+// 작업지시 데이터 추출하여 DU측과 RU측 작업을 별도로 생성하는 함수
 function extractWorkOrders(row: unknown[], headerMapping: { [key: string]: number }): ExtractedWorkOrderData[] {
   // 회선번호는 원본 숫자 형태로 보존 (과학적 표기법 방지)
-  const rawLineNumber = row[headerMapping['회선번호']];
+  const rawLineNumber = row[headerMapping['lineNumber']];
   const lineNumberStr = rawLineNumber !== undefined && rawLineNumber !== null ? 
     String(rawLineNumber) : 'N/A';
   
   // 서비스 구분 디버깅
-  const serviceTypeRaw = row[headerMapping['서비스_구분']];
+  const serviceTypeRaw = row[headerMapping['serviceType']];
   const serviceTypeProcessed = safeStringValue(serviceTypeRaw);
-  console.log(`🔍 서비스 구분 파싱 - 원본: "${serviceTypeRaw}", 처리후: "${serviceTypeProcessed}", 컬럼: ${headerMapping['서비스_구분']}`);
+  console.log(`🔍 서비스 구분 파싱 - 원본: "${serviceTypeRaw}", 처리후: "${serviceTypeProcessed}", 컬럼: ${headerMapping['serviceType']}`);
 
   const baseData = {
-    관리번호: safeStringValue(row[headerMapping['관리번호']]),
-    작업요청일: safeStringValue(row[headerMapping['작업요청일']]),
-    대표_RU_ID: safeStringValue(row[headerMapping['대표_RU_ID']]),
-    대표_RU_명: safeStringValue(row[headerMapping['대표_RU_명']]),
-    "5G_Co_Site_수량": safeStringValue(row[headerMapping['5G_Co_Site_수량']]),
-    "5G_집중국명": safeStringValue(row[headerMapping['5G_집중국명']]),
+    관리번호: safeStringValue(row[headerMapping['managementNumber']]),
+    작업요청일: safeStringValue(row[headerMapping['requestDate']]),
+    대표_RU_ID: safeStringValue(row[headerMapping['ruId']]),
+    대표_RU_명: safeStringValue(row[headerMapping['ruName']]),
+    "5G_Co_Site_수량": safeStringValue(row[headerMapping['coSiteCount5g']]),
+    "5G_집중국명": safeStringValue(row[headerMapping['focus5gName']]),
     회선번호: lineNumberStr,
-    선번장: safeStringValue(row[headerMapping['선번장']]),
-    종류: safeStringValue(row[headerMapping['종류']]),
+    선번장: safeStringValue(row[headerMapping['lteMuxInfo']]),
+    종류: safeStringValue(row[headerMapping['muxTypeMain']]),
     서비스_구분: serviceTypeProcessed,
-    DU_ID: safeStringValue(row[headerMapping['DU_ID']]),
-    DU_명: safeStringValue(row[headerMapping['DU_명']]),
-    채널카드: safeStringValue(row[headerMapping['채널카드']]),
-    포트_A: safeStringValue(row[headerMapping['포트_A']])
+    DU_ID: safeStringValue(row[headerMapping['duId']]),
+    DU_명: safeStringValue(row[headerMapping['duName']]),
+    채널카드: safeStringValue(row[headerMapping['channelCard']]),
+    포트_A: safeStringValue(row[headerMapping['port']]),
+    구분: safeStringValue(row[headerMapping['workCategory']]),
+    협력사: safeStringValue(row[headerMapping['vendor1']]),
+    협력사2: safeStringValue(row[headerMapping['vendor2']]),
+    건물명: safeStringValue(row[headerMapping['buildingName']]),
+    장비위치: safeStringValue(row[headerMapping['equipmentLocation']]),
+    비고: safeStringValue(row[headerMapping['remark']]),
+    DU담당자: safeStringValue(row[headerMapping['duOwner']]),
+    RU담당자: safeStringValue(row[headerMapping['ruOwner']]),
+    MUX분출여부: safeStringValue(row[headerMapping['muxBranch']]),
+    MUX종류2: safeStringValue(row[headerMapping['muxTypeSub']]),
+    시도: safeStringValue(row[headerMapping['sido']]),
+    시군구: safeStringValue(row[headerMapping['sigungu']]),
+    읍면동: safeStringValue(row[headerMapping['eupMyeonDong']]),
+    번지: safeStringValue(row[headerMapping['beonji']])
   };
   
-  const duTeam = normalizeOperationTeam(safeStringValue(row[headerMapping['DU측_운용팀']]));
-  const ruTeam = normalizeOperationTeam(safeStringValue(row[headerMapping['RU측_운용팀']]));
+  const duTeam = normalizeOperationTeam(safeStringValue(row[headerMapping['duTeam']]));
+  const ruTeam = normalizeOperationTeam(safeStringValue(row[headerMapping['ruTeam']]));
   
+  // 주소 조합
+  const locationParts = [
+    baseData.시도,
+    baseData.시군구,
+    baseData.읍면동,
+    baseData.번지
+  ].filter(part => part !== 'N/A');
+  const fullAddress = locationParts.join(' ');
+
   const result: ExtractedWorkOrderData[] = [];
   
   // DU측 작업 생성 (항상 생성)
@@ -214,7 +279,8 @@ function extractWorkOrders(row: unknown[], headerMapping: { [key: string]: numbe
     ...baseData,
     작업구분: 'DU측',
     DU측_운용팀: duTeam,
-    RU측_운용팀: ruTeam
+    RU측_운용팀: ruTeam,
+    주소: fullAddress
   });
   
   // RU측 작업 생성 (RU측 운용팀이 유효한 경우 항상 생성)
@@ -223,7 +289,8 @@ function extractWorkOrders(row: unknown[], headerMapping: { [key: string]: numbe
       ...baseData,
       작업구분: 'RU측',
       DU측_운용팀: duTeam,
-      RU측_운용팀: ruTeam
+      RU측_운용팀: ruTeam,
+      주소: fullAddress
     });
   }
   
@@ -389,21 +456,31 @@ export function convertToWorkOrderFormat(extractedData: ExtractedWorkOrderData[]
     return {
       managementNumber: `${firstItem.관리번호}_${firstItem.작업구분}`, // 관리번호에 작업구분 추가
       requestDate: firstItem.작업요청일,
+      workType: firstItem.작업구분 as 'DU측' | 'RU측',  // workType 추가
       operationTeam: firstItem.작업구분 === 'DU측' ? firstItem.DU측_운용팀 : firstItem.RU측_운용팀, // 작업구분에 따라 담당팀 결정
+      ruOperationTeam: firstItem.RU측_운용팀, // ruOperationTeam 추가
       representativeRuId: firstItem.대표_RU_ID,
       coSiteCount5G: firstItem['5G_Co_Site_수량'],
-      concentratorName5G: firstItem['5G_집중국명'],
-      equipmentType: '5G 장비', // 기본값
-      equipmentName: firstItem.대표_RU_명,
-      category: `${firstItem.종류} (${firstItem.작업구분})`, // 종류에 작업구분 추가
-      serviceType: firstItem.서비스_구분,
+      concentratorName5G: firstItem['5G_집중국명'],  // 5G 집중국명
+      equipmentType: firstItem.구분 || '5G 장비',   // 구분
+      equipmentName: firstItem.대표_RU_명,          // RU명을 장비명으로 사용
+      category: firstItem.구분,                     // 구분을 카테고리로 사용
+      serviceType: firstItem.서비스_구분,           // 서비스구분 (CH4, CH5, CH6 등)
       duId: firstItem.DU_ID,
       duName: firstItem.DU_명,
       channelCard: firstItem.채널카드,
       port: firstItem.포트_A,
-      lineNumber: firstItem.선번장,
+      lineNumber: firstItem.회선번호,               // 회선번호 (숫자)
       ruInfoList: ruInfoList, // 여러 RU 정보 배열
-      notes: `작업구분: ${firstItem.작업구분}, 회선번호: ${firstItem.회선번호}, DU측: ${firstItem.DU측_운용팀}, RU측: ${firstItem.RU측_운용팀}, RU 수량: ${group.length}개` // RU 수량 추가
+      serviceLocation: firstItem.주소, // serviceLocation 추가
+      workContent: `${firstItem.작업구분} 작업 - ${firstItem.구분} - ${firstItem.장비위치}`, // workContent 추가
+      notes: `담당자: DU(${firstItem.DU담당자}) / RU(${firstItem.RU담당자}), 협력사: ${firstItem.협력사}/${firstItem.협력사2}, 비고: ${firstItem.비고}`,
+      muxInfo: {
+        lteMux: firstItem.선번장,                   // LTE MUX 정보
+        muxSplitStatus: firstItem.MUX분출여부 || 'N/A',
+        muxType: firstItem.MUX종류2 || firstItem.종류,
+        서비스구분: firstItem.서비스_구분
+      }
     };
   });
 }

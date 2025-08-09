@@ -4,6 +4,8 @@ import { Upload, CheckCircle, AlertCircle, X } from 'lucide-react'
 import { parseExcelFile, convertToWorkOrderFormat } from '@/utils/excelParser'
 import { parseCSVFile, convertCSVToWorkOrderFormat } from '@/utils/csvParser'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
+import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
+import { workOrderStore } from '@/stores/workOrderStore'
 import { ExcelParseResult } from '@/types'
 
 interface ExcelUploaderProps {
@@ -15,6 +17,7 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
   const [uploading, setUploading] = useState(false)
   const [parseResult, setParseResult] = useState<ExcelParseResult | null>(null)
   const { addWorkOrders, loading } = useWorkOrders()
+  const { uploadCSV, addWorkOrders: addWorkOrdersAPI } = useWorkOrdersAPI()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
@@ -64,8 +67,32 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
       let result: ExcelParseResult
       
       if (isCSV) {
-        console.log('📄 CSV 파일 파싱 시작')
-        result = await parseCSVFile(file)
+        console.log('📄 CSV 파일을 백엔드로 직접 업로드')
+        // CSV 파일은 백엔드로 바로 업로드 (인코딩 문제 해결)
+        const uploadResult = await uploadCSV(file)
+        if (uploadResult.success) {
+          // 백엔드 응답에서 개수 정보 추출
+          const count = uploadResult.data?.summary?.created || 0
+          result = {
+            success: true,
+            data: new Array(count).fill({ 관리번호: '', 작업요청일: '', 작업구분: '', DU측_운용팀: '', RU측_운용팀: '', DU_ID: '', '5G_집중국명': '', 회선번호: '', 선번장: '' }), // 개수만큼 더미 데이터 생성
+            errors: [],
+            isUploaded: true // 이미 업로드 완료됨을 표시
+          }
+          console.log('✅ CSV 백엔드 업로드 완료:', uploadResult.data)
+          
+          // 1초 후 작업게시판으로 이동
+          setTimeout(() => {
+            navigate('/workboard')
+          }, 1000)
+          
+        } else {
+          result = {
+            success: false,
+            data: [],
+            errors: [uploadResult.error || 'CSV 업로드 실패']
+          }
+        }
       } else {
         console.log('📊 Excel 파일 파싱 시작')
         result = await parseExcelFile(file)
@@ -85,21 +112,21 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
   }
 
   const handleConfirmUpload = async () => {
+    // CSV 파일인 경우 이미 업로드 완료
+    if (parseResult?.isUploaded) {
+      return
+    }
     
     if (!parseResult?.success || !parseResult.data.length) {
       return
     }
 
     try {
-      // CSV인지 Excel인지에 따라 다른 변환 함수 사용
-      const convertedData = parseResult.data[0]?.서비스_구분 !== undefined 
-        ? convertCSVToWorkOrderFormat(parseResult.data)  // CSV용 변환
-        : convertToWorkOrderFormat(parseResult.data);    // Excel용 변환
-      
-      const result = await addWorkOrders(convertedData)
+      // Excel 파일만 여기서 처리 (CSV는 이미 백엔드로 업로드됨)
+      const convertedData = convertToWorkOrderFormat(parseResult.data)
+      const result = await addWorkOrdersAPI(convertedData)
       
       if (result.success) {
-        
         // 성공 상태로 변경하되 데이터는 유지하여 사용자가 확인할 수 있도록 함
         setParseResult({
           ...parseResult,
@@ -110,11 +137,10 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
         // 업로드 완료 콜백 호출
         onUploadComplete?.(parseResult)
         
-        // 3초 후 작업 게시판으로 자동 이동
+        // 1초 후 작업 게시판으로 자동 이동
         setTimeout(() => {
           navigate('/workboard')
-        }, 3000)
-      } else {
+        }, 1000)
       }
     } catch (error) {
       console.error('💥 업로드 과정에서 오류 발생:', error)
@@ -162,7 +188,7 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
                     : 'text-success-800'
                 }`}>
                   {parseResult.isUploaded 
-                    ? `${parseResult.data.length}개의 작업지시가 성공적으로 등록되었습니다! 3초 후 작업 게시판으로 이동합니다.`
+                    ? `${parseResult.data.length}개의 작업지시가 성공적으로 등록되었습니다! 1초 후 작업 게시판으로 이동합니다.`
                     : `${parseResult.data.length}개의 작업지시가 성공적으로 파싱되었습니다`
                   }
                 </p>
@@ -283,7 +309,7 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
                     새 파일 업로드
                   </button>
                   <button
-                    onClick={() => window.location.href = '/workboard'}
+                    onClick={() => navigate('/workboard')}
                     className="btn btn-primary"
                   >
                     작업게시판으로 이동

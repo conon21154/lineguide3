@@ -23,11 +23,11 @@ export const API_ENDPOINTS = {
     LIST: `${API_BASE_URL}/work-orders`,
     CREATE: `${API_BASE_URL}/work-orders`,
     BULK_UPLOAD: `${API_BASE_URL}/work-orders/bulk-upload`,
-    CLEAR_ALL: `${API_BASE_URL}/work-orders/clear-all`,
     DETAIL: (id: string) => `${API_BASE_URL}/work-orders/${id}`,
     UPDATE_STATUS: (id: string) => `${API_BASE_URL}/work-orders/${id}/status`,
     DELETE: (id: string) => `${API_BASE_URL}/work-orders/${id}`,
-    RESPONSE_NOTES: (id: string) => `${API_BASE_URL}/work-orders/${id}/response-notes`
+    RESPONSE_NOTE: (id: string) => `${API_BASE_URL}/work-orders/${id}/response-note`,
+    FIELD_REPORTS: `${API_BASE_URL}/work-orders/field-reports`
   },
   
   // 팀

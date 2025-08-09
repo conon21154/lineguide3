@@ -1,43 +1,51 @@
 import { useState } from 'react'
-import { Users, Lock, LogIn } from 'lucide-react'
-import { OperationTeam } from '@/types'
+import { Users, LogIn, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+// import { OperationTeam } from '@/types'
+import { useAuth } from '@/contexts/AuthContext'
 
-const OPERATION_TEAMS: OperationTeam[] = [
-  '울산T',
-  '동부산T', 
-  '중부산T',
-  '서부산T',
-  '김해T',
-  '창원T',
-  '진주T',
-  '통영T',
-  '지하철T'
-]
+// 로그인 화면에서는 사용하지 않으므로 제거
 
-interface LoginProps {
-  onLogin: (team: OperationTeam, userType: 'admin' | 'field') => void
-}
+export default function Login() {
+  const [username, setUsername] = useState('admin')
+  const [password, setPassword] = useState('admin123')
+  const [error, setError] = useState('')
+  
+  const { login, loading } = useAuth()
+  const navigate = useNavigate()
 
-export default function Login({ onLogin }: LoginProps) {
-  const [selectedTeam, setSelectedTeam] = useState<OperationTeam>('중부산T')
-  const [userType, setUserType] = useState<'admin' | 'field'>('field')
-  const [password, setPassword] = useState('')
+  console.log('🎬 Login 컴포넌트 렌더링:', { username, password, loading })
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     
-    // 간단한 비밀번호 체크
-    if (userType === 'admin' && password !== 'admin123') {
-      alert('관리자 비밀번호가 올바르지 않습니다.')
+    console.log('🚀 로그인 시도 시작:', { username, password })
+    
+    if (!username.trim()) {
+      setError('사용자명을 입력해주세요.')
       return
     }
     
-    if (userType === 'field' && password !== 'field123') {
-      alert('현장팀 비밀번호가 올바르지 않습니다.')
+    if (!password.trim()) {
+      setError('비밀번호를 입력해주세요.')
       return
     }
     
-    onLogin(selectedTeam, userType)
+    try {
+      await login({
+        username: username.trim(),
+        password: password.trim()
+      })
+      
+      // 로그인 성공 후 리다이렉트
+      console.log('🎉 로그인 성공, 메인 페이지로 이동')
+      navigate('/', { replace: true })
+      
+    } catch (error) {
+      console.error('로그인 실패:', error)
+      setError(error instanceof Error ? error.message : '로그인에 실패했습니다.')
+    }
   }
 
   return (
@@ -50,65 +58,35 @@ export default function Login({ onLogin }: LoginProps) {
               <Users className="w-8 h-8 text-primary-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              5G 작업관리 시스템
+              LineGuide 3 시스템
             </h1>
             <p className="text-gray-600">
-              팀을 선택하고 로그인하세요
+              사용자명과 비밀번호를 입력하여 로그인하세요
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* 사용자 타입 선택 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                사용자 구분
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setUserType('field')}
-                  className={`p-3 border rounded-lg text-sm font-medium transition-colors ${
-                    userType === 'field'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Users className="w-4 h-4 mx-auto mb-1" />
-                  현장팀
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserType('admin')}
-                  className={`p-3 border rounded-lg text-sm font-medium transition-colors ${
-                    userType === 'admin'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Lock className="w-4 h-4 mx-auto mb-1" />
-                  관리자
-                </button>
-              </div>
-            </div>
-
-            {/* 팀 선택 (현장팀만) */}
-            {userType === 'field' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  소속 팀
-                </label>
-                <select
-                  value={selectedTeam}
-                  onChange={(e) => setSelectedTeam(e.target.value as OperationTeam)}
-                  className="input w-full"
-                  required
-                >
-                  {OPERATION_TEAMS.map(team => (
-                    <option key={team} value={team}>{team}</option>
-                  ))}
-                </select>
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
+
+            {/* 사용자명 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                사용자명
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="input w-full"
+                placeholder="사용자명을 입력하세요"
+                autoComplete="username"
+                required
+              />
+            </div>
 
             {/* 비밀번호 */}
             <div>
@@ -120,27 +98,48 @@ export default function Login({ onLogin }: LoginProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input w-full"
-                placeholder={userType === 'admin' ? '관리자 비밀번호' : '현장팀 비밀번호'}
+                placeholder="비밀번호를 입력하세요"
+                autoComplete="current-password"
                 required
               />
             </div>
 
             {/* 로그인 버튼 */}
             <button
-              type="submit"
-              className="w-full btn btn-primary flex items-center justify-center"
+              type="button"
+              disabled={loading}
+              onClick={async (e) => {
+                console.log('🖱️ 로그인 버튼 클릭됨 - 이벤트 핸들러 실행')
+                console.log('📝 현재 상태:', { username, password, loading })
+                e.preventDefault()
+                try {
+                  console.log('🚀 handleLogin 함수 호출 시작')
+                  await handleLogin(e as any)
+                  console.log('✅ handleLogin 함수 완료')
+                } catch (error) {
+                  console.error('❌ 클릭 핸들러에서 오류:', error)
+                }
+              }}
+              className="w-full btn btn-primary flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ pointerEvents: 'auto', zIndex: 10 }}
             >
-              <LogIn className="w-4 h-4 mr-2" />
-              로그인
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <LogIn className="w-4 h-4 mr-2" />
+              )}
+              {loading ? '로그인 중...' : '로그인'}
             </button>
           </form>
 
           {/* 도움말 */}
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600 text-center">
-              <strong>현장팀:</strong> 소속팀 작업만 조회/수정<br />
-              <strong>관리자:</strong> 전체 시스템 관리
-            </p>
+            <div className="text-xs text-gray-500 text-center">
+              <p><strong>기본 계정:</strong></p>
+              <p>• 관리자: admin / admin123</p>
+              <p>• A팀 리더: leader_a / leader123</p>
+              <p>• 작업자: worker_a1 / worker123</p>
+            </div>
           </div>
         </div>
       </div>

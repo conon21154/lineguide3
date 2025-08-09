@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Printer, Search, BarChart3, Upload, Bluetooth, Smartphone } from 'lucide-react'
-import { useWorkOrders } from '@/hooks/useWorkOrders'
+import { Printer, Search, BarChart3, Upload, Smartphone, Copy, CheckCircle, AlertCircle, Info } from 'lucide-react'
+import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
 import { useAuth } from '@/contexts/AuthContext'
-import { WorkOrder, DuMappingData, LabelPrintData, WorkOrderFilter } from '@/types'
-import { parseDuMappingCSV, createLabelPrintData, formatFirstLine } from '@/utils/duMapping'
+import { WorkOrder, LabelPrintData, WorkOrderFilter, OperationTeam } from '@/types'
 import { 
   createPrintableHTML, 
   openBrotherApp, 
-  LabelContent 
+  LabelContent,
+  TZE_TAPES
 } from '@/utils/brotherPrinter'
 
 // 새로운 라벨 템플릿 (138mm x 12mm)
@@ -50,16 +50,40 @@ const LABEL_TEMPLATE = {
   }
 }
 
+// 모바일 환경 감지
+const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+// 라벨 데이터 생성 함수 (DU 매핑 없이)
+const createLabelData = (workOrder: WorkOrder, mux5GInfo: string): LabelPrintData => {
+  const equipmentId = workOrder.representativeRuId || workOrder.duId || ''
+  const formattedDuName = `${workOrder.duName}-${workOrder.channelCard}-${workOrder.port}`
+  
+  return {
+    equipmentId: equipmentId.toUpperCase(),
+    duName: formattedDuName,
+    channelCard: workOrder.channelCard,
+    port: workOrder.port,
+    bay: 'BAY', // 기본값
+    fdf: 'FDF', // 기본값
+    equipmentName: workOrder.equipmentName,
+    mux5GInfo
+  }
+}
+
+// 첫 번째 줄 포맷팅 함수
+const formatFirstLine = (labelData: LabelPrintData): string => {
+  return `${labelData.equipmentId} ${labelData.duName}`
+}
+
 const LabelPreview = ({ 
   labelData,
   mux5GInfo,
-  selectedWorkOrder,
-  duMappingData
+  selectedWorkOrder
 }: { 
   labelData: LabelPrintData | null
   mux5GInfo: string
   selectedWorkOrder: WorkOrder | null
-  duMappingData: DuMappingData[]
 }) => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
   
@@ -71,27 +95,15 @@ const LabelPreview = ({
   }, [])
   
   // 반응형 스케일 계산 (모바일에서는 훨씬 더 작게)
-  const isMobile = windowWidth < 768
-  const containerWidth = isMobile ? windowWidth - 64 : 414 // 모바일: 32px씩 여백
-  const maxLabelWidth = Math.min(containerWidth, isMobile ? 280 : 414) // 모바일에서 최대 280px
+  const isMobileView = windowWidth < 768
+  const containerWidth = isMobileView ? windowWidth - 64 : 414 // 모바일: 32px씩 여백
+  const maxLabelWidth = Math.min(containerWidth, isMobileView ? 280 : 414) // 모바일에서 최대 280px
   const scale = Math.max(1, Math.min(3, maxLabelWidth / LABEL_TEMPLATE.width)) // 최소 1배, 최대 3배
   
-  // 미리보기용 데이터 생성 - CSV 데이터가 없어도 작업지시 정보로 표시
+  // 미리보기용 데이터 생성
   let previewData = labelData
   if (!previewData && selectedWorkOrder) {
-    const equipmentId = selectedWorkOrder.representativeRuId || selectedWorkOrder.duId || ''
-    const formattedDuName = `${selectedWorkOrder.duName}-${selectedWorkOrder.channelCard}-${selectedWorkOrder.port}`
-    
-    previewData = {
-      equipmentId: equipmentId.toUpperCase(),
-      duName: formattedDuName,
-      channelCard: selectedWorkOrder.channelCard,
-      port: selectedWorkOrder.port,
-      bay: duMappingData.length > 0 ? '매핑필요' : 'B0XXX',
-      fdf: duMappingData.length > 0 ? '매핑필요' : 'FDF-X',
-      equipmentName: selectedWorkOrder.equipmentName,
-      mux5GInfo
-    }
+    previewData = createLabelData(selectedWorkOrder, mux5GInfo)
   }
   
   const firstLineText = previewData ? formatFirstLine(previewData) : '장비ID (DU명-채널카드-포트)'
@@ -175,7 +187,113 @@ const LabelPreview = ({
       </div>
       <div className="text-xs text-gray-500 mt-2 text-center">
         {LABEL_TEMPLATE.width}mm × {LABEL_TEMPLATE.height}mm
-        {isMobile && <span className="block text-gray-400">모바일 최적화 크기</span>}
+        {isMobileView && <span className="block text-gray-400">모바일 최적화 크기</span>}
+      </div>
+    </div>
+  )
+}
+
+// 모바일 가이드 컴포넌트
+const MobileGuide = () => (
+  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 p-4 rounded-lg">
+    <div className="flex items-start space-x-3">
+      <Smartphone className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
+      <div className="flex-1">
+        <h3 className="text-lg font-bold text-blue-800 mb-2">📱 모바일 사용자 가이드</h3>
+        <div className="space-y-2 text-sm text-blue-700">
+          <div className="flex items-start space-x-2">
+            <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+            <span>Brother P-touch Design&Print 2 앱을 설치하세요</span>
+          </div>
+          <div className="flex items-start space-x-2">
+            <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+            <span>PT-P300BT와 블루투스로 연결하세요</span>
+          </div>
+          <div className="flex items-start space-x-2">
+            <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+            <span>아래 "Brother 앱으로 출력" 버튼을 클릭하세요</span>
+          </div>
+          <div className="flex items-start space-x-2">
+            <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
+            <span>앱에서 라벨 텍스트를 붙여넣기하고 출력하세요</span>
+          </div>
+        </div>
+        
+        <div className="mt-3 flex space-x-2">
+          <a
+            href={isIOS() 
+              ? 'https://apps.apple.com/app/brother-p-touch-design-print-2/id1468451451'
+              : 'https://play.google.com/store/apps/details?id=com.brother.ptouch.designandprint2'
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md font-medium transition-colors"
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>앱 설치하기</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+// 클립보드 복사 컴포넌트
+const ClipboardCopy = ({ text, onCopy }: { text: string, onCopy: () => void }) => {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        onCopy()
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        // 폴백: 텍스트 선택
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        setCopied(true)
+        onCopy()
+        setTimeout(() => setCopied(false), 2000)
+      }
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error)
+      alert('클립보드 복사에 실패했습니다. 텍스트를 수동으로 복사해주세요.')
+    }
+  }
+
+  return (
+    <div className="bg-gray-50 border border-gray-200 p-3 rounded-lg">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-gray-700">라벨 텍스트</span>
+        <button
+          onClick={handleCopy}
+          className={`flex items-center space-x-2 px-2 py-1 rounded text-xs font-medium transition-colors ${
+            copied 
+              ? 'bg-green-100 text-green-800' 
+              : 'bg-blue-100 hover:bg-blue-200 text-blue-800'
+          }`}
+        >
+          {copied ? (
+            <>
+              <CheckCircle className="w-3 h-3" />
+              <span>복사됨</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3" />
+              <span>복사</span>
+            </>
+          )}
+        </button>
+      </div>
+      <div className="bg-white border border-gray-300 p-2 rounded text-xs font-mono whitespace-pre-wrap break-all">
+        {text}
       </div>
     </div>
   )
@@ -188,25 +306,18 @@ export default function LabelPrinter() {
   const filter: WorkOrderFilter = useMemo(() => {
     const f: WorkOrderFilter = {}
     if (!isAdmin && user?.team) {
-      f.operationTeam = user.team
+      f.operationTeam = user.team as OperationTeam
     }
     return f
   }, [isAdmin, user?.team])
   
-  const { workOrders } = useWorkOrders(filter)
+  const { workOrders, loading } = useWorkOrdersAPI(filter)
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [printQuantity, setPrintQuantity] = useState(1)
   const [mux5GInfo, setMux5GInfo] = useState('')
-  const [duMappingData, setDuMappingData] = useState<DuMappingData[]>([])
   const [labelData, setLabelData] = useState<LabelPrintData | null>(null)
-  const [bluetoothConnected, setBluetoothConnected] = useState(false)
-  const [connectedDevice, setConnectedDevice] = useState<any>(null)
-  
-  // CSV 데이터 로드
-  useEffect(() => {
-    loadDuMappingData()
-  }, [])
+  const [copiedText, setCopiedText] = useState('')
   
   // 디버깅: 작업지시 로드 상태 확인
   useEffect(() => {
@@ -225,19 +336,13 @@ export default function LabelPrinter() {
   
   // 선택된 작업지시 변경 시 라벨 데이터 업데이트
   useEffect(() => {
-    if (selectedWorkOrder && duMappingData.length > 0) {
-      const newLabelData = createLabelPrintData(selectedWorkOrder, duMappingData, mux5GInfo)
+    if (selectedWorkOrder) {
+      const newLabelData = createLabelData(selectedWorkOrder, mux5GInfo)
       setLabelData(newLabelData)
     } else {
       setLabelData(null)
     }
-  }, [selectedWorkOrder, duMappingData, mux5GInfo])
-  
-  const loadDuMappingData = async () => {
-    // DU 매핑 데이터는 사용자가 직접 업로드하는 것으로 변경
-    // 기본 파일 로드 시도 제거하여 404 오류 방지
-    console.log('ℹ️ DU 매핑 데이터를 업로드해주세요.')
-  }
+  }, [selectedWorkOrder, mux5GInfo])
   
   // 검색 필터링된 작업지시
   const filteredWorkOrders = workOrders.filter(wo => {
@@ -254,86 +359,7 @@ export default function LabelPrinter() {
     )
   })
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file && file.type === 'text/csv') {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const csvContent = e.target?.result as string
-        console.log('📁 CSV 내용:', csvContent)
-        const mappingData = parseDuMappingCSV(csvContent)
-        console.log('📊 파싱된 매핑 데이터:', mappingData)
-        setDuMappingData(mappingData)
-        alert(`DU 매핑 데이터 ${mappingData.length}개 로드 완료`)
-      }
-      reader.readAsText(file)
-    } else {
-      alert('CSV 파일만 업로드 가능합니다.')
-    }
-  }
-  
-  const connectBluetooth = async () => {
-    try {
-      if ('bluetooth' in navigator) {
-        // Brother PT-P300BT 연결 시도
-        const device = await (navigator as any).bluetooth.requestDevice({
-          filters: [
-            { namePrefix: 'PT-P300BT' },
-            { namePrefix: 'P300BT' },
-            { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, // Brother 프린터 서비스
-            { services: ['0000180f-0000-1000-8000-00805f9b34fb'] }  // 배터리 서비스
-          ],
-          optionalServices: [
-            '000018f0-0000-1000-8000-00805f9b34fb',
-            '0000180f-0000-1000-8000-00805f9b34fb'
-          ]
-        })
-        
-        console.log('📱 연결된 기기:', device.name, device.id)
-        
-        // GATT 서버 연결
-        await device.gatt!.connect()
-        console.log('🔗 GATT 서버 연결 성공')
-        
-        setConnectedDevice(device)
-        setBluetoothConnected(true)
-        
-        // 연결 해제 이벤트 리스너
-        device.addEventListener('gattserverdisconnected', () => {
-          setBluetoothConnected(false)
-          setConnectedDevice(null)
-          alert('📱 PT-P300BT 연결이 끊어졌습니다.')
-        })
-        
-        alert(`✅ PT-P300BT 연결 성공!\n\n기기명: ${device.name || 'PT-P300BT'}\n\n이제 라벨을 출력할 수 있습니다.`)
-      } else {
-        alert('❌ 이 브라우저는 블루투스를 지원하지 않습니다.\n\nChrome, Edge 등의 최신 브라우저를 사용해주세요.')
-      }
-    } catch (error: any) {
-      console.error('블루투스 연결 실패:', error)
-      
-      let errorMessage = '블루투스 연결에 실패했습니다.'
-      if (error.message.includes('User cancelled')) {
-        errorMessage = '사용자가 연결을 취소했습니다.'
-      } else if (error.message.includes('No device selected')) {
-        errorMessage = '기기를 선택하지 않았습니다.\n\n"P300BT****" 형태의 기기를 선택해주세요.'
-      } else if (error.message.includes('Not found')) {
-        errorMessage = 'PT-P300BT를 찾을 수 없습니다.\n\n프린터의 전원을 켜고 블루투스가 활성화되어 있는지 확인해주세요.'
-      }
-      
-      alert(`❌ ${errorMessage}`)
-    }
-  }
-
-  const disconnectBluetooth = () => {
-    if (connectedDevice && connectedDevice.gatt?.connected) {
-      connectedDevice.gatt.disconnect()
-    }
-    setBluetoothConnected(false)
-    setConnectedDevice(null)
-  }
-
-  // Brother 앱 우선 출력 핸들러
+  // Brother 앱 출력 핸들러 (개선된 버전)
   const handlePrintWithBrotherApp = () => {
     if (!labelData) {
       alert('라벨 데이터가 준비되지 않았습니다.')
@@ -387,6 +413,29 @@ export default function LabelPrinter() {
     }
   }
 
+  // 라벨 텍스트 생성
+  const getLabelText = () => {
+    if (!labelData) return ''
+    
+    const firstLine = formatFirstLine(labelData)
+    const secondLine = labelData.equipmentName
+    const bayFdf = `${labelData.bay} ${labelData.fdf}`
+    
+    return mux5GInfo.trim() ? 
+      `${firstLine}\n${bayFdf}\n${secondLine} | ${mux5GInfo.trim()}` :
+      `${firstLine}\n${bayFdf}\n${secondLine}`
+  }
+
+  // 로딩 상태 표시
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600">작업지시를 불러오는 중...</span>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -396,96 +445,38 @@ export default function LabelPrinter() {
         </p>
       </div>
 
+      {/* 모바일 가이드 (모바일에서만 표시) */}
+      {isMobile() && (
+        <MobileGuide />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 왼쪽: 작업지시 선택 */}
         <div className="space-y-4">
-          {/* PT-P300BT 연결 및 설정 */}
+          {/* PT-P300BT 설정 및 안내 */}
           <div className="card">
             <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center space-x-2">
               <Printer className="w-5 h-5" />
-              <span>PT-P300BT 연결</span>
+              <span>PT-P300BT 설정</span>
             </h2>
             <div className="space-y-4">
               {/* 권장 연결 방식 안내 */}
-              <div className="bg-orange-50 border-2 border-orange-200 p-3 rounded-lg">
+              <div className="bg-green-50 border-2 border-green-200 p-4 rounded-lg">
                 <div className="flex items-start space-x-3">
-                  <Smartphone className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <Smartphone className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <h3 className="text-sm font-bold text-orange-800 mb-1">📱 권장: Brother 앱 사용</h3>
-                    <p className="text-xs text-orange-700 mb-2">
+                    <h3 className="text-sm font-bold text-green-800 mb-2">📱 권장: Brother 앱 사용</h3>
+                    <p className="text-xs text-green-700 mb-3">
                       Brother P-touch Design&Print 2 앱이 가장 안정적이고 정확한 출력을 보장합니다
                     </p>
-                    <button
-                      onClick={() => openBrotherApp({
-                        firstLine: labelData ? formatFirstLine(labelData) : '테스트용',
-                        bayFdf: labelData ? `${labelData.bay} ${labelData.fdf}` : 'B001 FDF-1',
-                        secondLine: labelData ? labelData.equipmentName : '앱 연결 테스트',
-                        mux5G: mux5GInfo.trim() || '5G-MUX-TEST'
-                      })}
-                      className="flex items-center space-x-2 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-md font-medium transition-colors"
-                    >
-                      <Smartphone className="w-4 h-4" />
-                      <span>Brother 앱으로 출력</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* 블루투스 직접 연결 (보조 수단) */}
-              <div className="border-t pt-3">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-700">직접 블루투스 연결 (보조 수단)</h3>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">실험적 기능</span>
-                </div>
-                
-                {/* 프린터 상태 */}
-                <div className={`p-3 rounded-lg border-2 mb-3 ${
-                  bluetoothConnected 
-                    ? 'bg-green-50 border-green-200' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${
-                        bluetoothConnected ? 'bg-green-500' : 'bg-gray-400'
-                      }`}></div>
-                      <span className="text-sm font-medium">
-                        {bluetoothConnected 
-                          ? `연결됨: ${connectedDevice?.name || 'PT-P300BT'}` 
-                          : '브라우저 직접 연결 안됨'
-                        }
-                      </span>
+                    <div className="space-y-2 text-xs text-green-700">
+                      <div>✅ 블루투스 연결 자동 관리</div>
+                      <div>✅ 정확한 라벨 크기 및 폰트</div>
+                      <div>✅ 테이프 종류 자동 감지</div>
+                      <div>✅ 배터리 상태 확인</div>
                     </div>
-                    {bluetoothConnected && (
-                      <button
-                        onClick={disconnectBluetooth}
-                        className="text-xs text-red-600 hover:text-red-800 px-2 py-1 hover:bg-red-50 rounded"
-                      >
-                        연결 해제
-                      </button>
-                    )}
                   </div>
                 </div>
-
-                {/* 연결 버튼 */}
-                <div className="flex space-x-2">
-                  <button
-                    onClick={connectBluetooth}
-                    disabled={bluetoothConnected}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-md transition-colors flex-1 justify-center ${
-                      bluetoothConnected 
-                        ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
-                        : 'bg-blue-100 hover:bg-blue-200 text-blue-800'
-                    }`}
-                  >
-                    <Bluetooth className="w-4 h-4" />
-                    <span className="text-sm">블루투스 연결 시도</span>
-                  </button>
-                </div>
-                
-                <p className="text-xs text-gray-500 mt-2">
-                  ⚠️ 브라우저 직접 연결은 불안정할 수 있습니다. Brother 앱 사용을 권장합니다.
-                </p>
               </div>
 
               {/* TZe 테이프 정보 */}
@@ -497,31 +488,17 @@ export default function LabelPrinter() {
                   <div>• 테이프 폭: 12mm 고정</div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* DU 매핑 데이터 업로드 */}
-          <div className="card">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">DU 매핑 데이터</h2>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="csv-upload"
-                />
-                <label
-                  htmlFor="csv-upload"
-                  className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md cursor-pointer transition-colors"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span className="text-sm">CSV 파일 업로드</span>
-                </label>
-                <span className="text-sm text-gray-500">
-                  {duMappingData.length > 0 ? `${duMappingData.length}개 로드됨` : '데이터 없음'}
-                </span>
+              {/* 프린터 연결 상태 */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-800 mb-2">연결 상태</h3>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-700">Brother 앱을 통해 연결 가능</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  앱에서 PT-P300BT와 블루투스 연결 후 라벨 출력이 가능합니다
+                </p>
               </div>
             </div>
           </div>
@@ -545,8 +522,7 @@ export default function LabelPrinter() {
             <div className="max-h-96 overflow-y-auto space-y-2">
               {filteredWorkOrders.length > 0 ? (
                 filteredWorkOrders.map((workOrder) => {
-                  const workType = workOrder.managementNumber.includes('_DU측') ? 'DU측' : 
-                                  workOrder.managementNumber.includes('_RU측') ? 'RU측' : ''
+                  const workType = workOrder.workType || 'RU측'
                   const baseManagementNumber = workOrder.managementNumber.replace(/_DU측|_RU측/g, '')
                   const isSelected = selectedWorkOrder?.id === workOrder.id
                   const equipmentId = workOrder.representativeRuId || workOrder.duId || ''
@@ -602,6 +578,15 @@ export default function LabelPrinter() {
                         <div className="text-xs text-gray-500">
                           채널카드: {workOrder.channelCard} | 포트: {workOrder.port}
                         </div>
+                        <div className="text-xs text-gray-500">
+                          집중국: {workOrder.concentratorName5G}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          작업내용: {workOrder.workContent}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          요청일: {workOrder.requestDate}
+                        </div>
                       </div>
                     </div>
                   )
@@ -645,9 +630,19 @@ export default function LabelPrinter() {
               labelData={labelData} 
               mux5GInfo={mux5GInfo} 
               selectedWorkOrder={selectedWorkOrder}
-              duMappingData={duMappingData}
             />
           </div>
+
+          {/* 라벨 텍스트 복사 */}
+          {labelData && (
+            <div className="card">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">라벨 텍스트</h2>
+              <ClipboardCopy 
+                text={getLabelText()} 
+                onCopy={() => setCopiedText(getLabelText())}
+              />
+            </div>
+          )}
 
           {/* 출력 설정 */}
           <div className="card">
@@ -672,10 +667,10 @@ export default function LabelPrinter() {
                 {/* 주 출력 버튼: Brother 앱 우선 */}
                 <button
                   onClick={handlePrintWithBrotherApp}
-                  disabled={!labelData || duMappingData.length === 0}
+                  disabled={!labelData}
                   className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-md font-medium ${
-                    labelData && duMappingData.length > 0
-                      ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                    labelData
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
@@ -686,9 +681,9 @@ export default function LabelPrinter() {
                 {/* 보조 출력 버튼: 브라우저 출력 */}
                 <button
                   onClick={handleBrowserPrint}
-                  disabled={!labelData || duMappingData.length === 0}
+                  disabled={!labelData}
                   className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-md font-medium border ${
-                    labelData && duMappingData.length > 0
+                    labelData
                       ? 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300'
                       : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                   }`}
@@ -698,10 +693,9 @@ export default function LabelPrinter() {
                 </button>
               </div>
               
-              {(!labelData || duMappingData.length === 0) && (
+              {!labelData && (
                 <div className="text-xs text-red-500 mt-2">
-                  {duMappingData.length === 0 && 'DU 매핑 데이터를 먼저 업로드해주세요.'}
-                  {duMappingData.length > 0 && !labelData && '작업지시를 선택하거나 매핑되지 않는 DU명입니다.'}
+                  작업지시를 선택해주세요.
                 </div>
               )}
             </div>

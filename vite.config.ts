@@ -21,7 +21,7 @@ export default defineConfig({
     }
   },
   // GitHub Pages 배포용 설정
-  base: '/lineguide3/',
+  base: process.env.NODE_ENV === 'production' ? '/lineguide3/' : '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

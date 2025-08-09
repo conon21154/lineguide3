@@ -18,6 +18,7 @@ export interface RuInfo {
   ruName?: string;
   channelCard?: string;
   port?: string;
+  serviceType?: string;
 }
 
 // MUX 정보 인터페이스
@@ -61,17 +62,7 @@ export interface WorkOrder {
   updatedAt: number | string;
   completedAt?: number | string;
   
-  responseNote?: {
-    concentratorName?: string;
-    coSiteCount5G?: string;
-    mux5GInstallation?: string;
-    mux5GLineNumber?: string;
-    tie5GLineNumber?: string;
-    lteMux?: string;
-    localStationName?: string;
-    duOpticalSignal?: string;
-    specialNotes?: string;
-  };
+  responseNote?: ResponseNote;
 }
 
 // 현장 회신 메모 인터페이스
@@ -90,9 +81,22 @@ export interface ResponseNote {
   
   // 공통 필드
   specialNotes?: string;              // 특이사항
+  summary?: string;                   // 자동 생성된 요약문
   updatedAt: string;                  // 회신 메모 작성/수정 시간
   adminChecked?: boolean;             // 관리자 확인 여부
   adminCheckedAt?: string;            // 관리자 확인 시간
+}
+
+// 현장 회신 게시판용 인터페이스
+export interface FieldReport {
+  id: string;                         // `${managementNumber}_${workType}`
+  managementNumber: string;           // 접미사 제거된 베이스 관리번호
+  workType: 'DU측' | 'RU측';
+  operationTeam: string;
+  equipmentName?: string;
+  representativeRuId?: string;
+  summary: string;
+  createdAt: number | string;
 }
 
 // CSV 파일에서 파싱된 작업지시 데이터 인터페이스
