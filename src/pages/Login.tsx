@@ -40,7 +40,9 @@ export default function Login() {
       
       // 로그인 성공 후 리다이렉트
       console.log('🎉 로그인 성공, 메인 페이지로 이동')
-      navigate('/', { replace: true })
+      // GitHub Pages 환경에서 안전한 리다이렉트
+      const basePath = import.meta.env.BASE_URL || '/';
+      navigate(basePath === '/' ? '/' : '/lineguide3/', { replace: true })
       
     } catch (error) {
       console.error('로그인 실패:', error)
