@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Upload, CheckCircle, AlertCircle, X } from 'lucide-react'
 import { parseExcelFile, convertToWorkOrderFormat } from '@/utils/excelParser'
 import { parseCSVFile, convertCSVToWorkOrderFormat } from '@/utils/csvParser'
-import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
-import { workOrderStore } from '@/stores/workOrderStore'
 import { ExcelParseResult } from '@/types'
 
 interface ExcelUploaderProps {
@@ -16,8 +14,7 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [parseResult, setParseResult] = useState<ExcelParseResult | null>(null)
-  const { addWorkOrders, loading } = useWorkOrders()
-  const { uploadCSV, addWorkOrders: addWorkOrdersAPI } = useWorkOrdersAPI()
+  const { uploadCSV } = useWorkOrdersAPI()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 

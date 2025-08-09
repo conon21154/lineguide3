@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { OperationTeam } from '@/types'
 import { API_ENDPOINTS, apiPost, apiGet, AuthToken } from '@/config/api'
 
 interface AuthUser {

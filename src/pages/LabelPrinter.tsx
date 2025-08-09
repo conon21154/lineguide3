@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Printer, Search, BarChart3, Upload, Smartphone, Copy, CheckCircle, AlertCircle, Info } from 'lucide-react'
+import { Printer, Search, BarChart3, Smartphone, Copy, CheckCircle } from 'lucide-react'
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
 import { useAuth } from '@/contexts/AuthContext'
 import { WorkOrder, LabelPrintData, WorkOrderFilter, OperationTeam } from '@/types'
 import { 
   createPrintableHTML, 
   openBrotherApp, 
-  LabelContent,
-  TZE_TAPES
+  LabelContent
 } from '@/utils/brotherPrinter'
 
 // 새로운 라벨 템플릿 (138mm x 12mm)
