@@ -646,6 +646,16 @@ export default function WorkOrderTable({ workOrders }: WorkOrderTableProps) {
   const [notes, setNotes] = useState('')
   const [viewingDetailId, setViewingDetailId] = useState<string | null>(null)
   const [responseNoteId, setResponseNoteId] = useState<string | null>(null)
+
+  console.log('📱 WorkOrderTable 렌더링:', {
+    workOrdersCount: workOrders.length,
+    isMobile: window.innerWidth < 640,
+    workOrdersSample: workOrders.slice(0, 2).map(w => ({
+      id: w.id,
+      managementNumber: w.managementNumber,
+      operationTeam: w.operationTeam
+    }))
+  })
   const { updateStatus, deleteWorkOrder } = useWorkOrders()
 
   const handleEditStart = (workOrder: WorkOrder) => {
@@ -688,9 +698,12 @@ export default function WorkOrderTable({ workOrders }: WorkOrderTableProps) {
         <h3 className="text-lg font-medium text-gray-900 mb-2">
           작업지시가 없습니다
         </h3>
-        <p className="text-gray-600">
+        <p className="text-gray-600 mb-2">
           Excel 파일을 업로드하여 작업지시를 등록하세요
         </p>
+        <div className="text-xs text-gray-400 mt-4 p-2 bg-gray-50 rounded">
+          디버깅: 모바일={window.innerWidth < 640 ? 'YES' : 'NO'}, 화면너비={window.innerWidth}px
+        </div>
       </div>
     )
   }

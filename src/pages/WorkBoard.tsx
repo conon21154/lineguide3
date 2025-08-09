@@ -35,6 +35,13 @@ export default function WorkBoard() {
   const { workOrders, loading, clearAllWorkOrders } = useWorkOrdersAPI(filter)
   const [cleared, setCleared] = useState(false)
 
+  console.log('🏢 WorkBoard 렌더링:', {
+    workOrdersCount: workOrders.length,
+    loading,
+    filter,
+    user: { username: user?.username, team: user?.team, role: user?.role }
+  })
+
   // 단순 필터링 + 안정 정렬: 서버에서 준 배열을 그대로 사용(그룹/uniq 사용 금지)
   const keyTeam = (t?: string) => t ? t.replace(/\s+/g,'').replace(/\u200B/g,'').trim() : ''
   const visible = useMemo(() => {
