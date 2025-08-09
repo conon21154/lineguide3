@@ -1,6 +1,9 @@
 // API 설정 및 유틸리티
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.MODE === 'production' 
+    ? 'https://lineguide3-backend.onrender.com/api' 
+    : 'http://localhost:5000/api');
 
 console.log('🔧 API 설정:', {
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
