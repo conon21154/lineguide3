@@ -154,6 +154,14 @@ const startServer = async () => {
       console.warn('⚠️ FieldResponse 테이블 동기화 실패:', frErr?.message || frErr);
     }
 
+    // 기본 사용자 데이터 초기화
+    try {
+      const { initializeDefaultUsers } = require('../scripts/initData');
+      await initializeDefaultUsers();
+    } catch (initErr) {
+      console.warn('⚠️ 기본 사용자 데이터 초기화 실패:', initErr?.message || initErr);
+    }
+
     // 서버 시작
     server.listen(PORT, () => {
       console.log(`🚀 LineGuide 3 API 서버가 포트 ${PORT}에서 실행 중입니다`);
