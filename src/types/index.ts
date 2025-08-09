@@ -14,57 +14,88 @@ export type OperationTeam =
 
 // RU 정보 인터페이스
 export interface RuInfo {
-  ruId: string;                       // RU_ID
-  ruName: string;                     // RU명 (장비명)
-  channelCard?: string;               // 채널카드
-  port?: string;                      // 포트
+  ruId: string;
+  ruName?: string;
+  channelCard?: string;
+  port?: string;
+}
+
+// MUX 정보 인터페이스
+export interface MuxInfo {
+  lteMux?: string;
+  muxType?: string;
+  서비스구분?: string;
 }
 
 export interface WorkOrder {
   id: string;
-  managementNumber: string;           // 관리번호 (A열: 25_인빌딩_0211)
-  requestDate: string;                // 작업요청일 (C열: 08월06일(수) 내)
-  operationTeam: OperationTeam;       // DU측 운용팀 (D열: 서부산T)
-  ruOperationTeam?: OperationTeam;    // RU측 운용팀 (F열: 서부산T)
-  representativeRuId?: string;        // 대표 RU_ID (I열: NPPS01491S)
-  coSiteCount5G?: string;             // 5G CO-SITE수량 (K열: 1)
-  concentratorName5G: string;         // 5G 집중국명 (L열: 서부산망(안))
-  equipmentType: string;              // 장비구분 (MUX 등)
-  equipmentName: string;              // 장비명 (대표RU명)
-  category: string;                   // MUX 종류 (Q열: 10G_3CH)
-  serviceType: string;                // 서비스구분 ([열: CH4)
-  duId: string;                       // DU ID (\열: NS00260284)
-  duName: string;                     // DU명 (]열: 서부산망(안)-01-02(5G))
-  channelCard: string;                // 채널카드 (^열: 2)
-  port: string;                       // 포트 (_열: 8)
-  lineNumber: string;                 // 선번장 (P열: LTE MUX : B0833-06-17...)
-  // 여러 RU 정보 배열 (CO-SITE 수량만큼)
-  ruInfoList?: RuInfo[];              // RU 정보 목록 (A, B, G 등)
-  // BAY, FDF 정보 (CSV 매핑용)
-  bay?: string;                       // BAY 정보 (CSV에서 매핑)
-  fdf?: string;                       // FDF 정보 (CSV에서 매핑)
+  managementNumber: string;
+  requestDate?: string;
+  operationTeam: string;
+  
+  equipmentType?: string;
+  equipmentName?: string;
+  category?: string;
+  serviceLocation?: string;
+  serviceType?: string;
+  
+  concentratorName5G?: string;
+  coSiteCount5G?: string;
+  
+  ruInfoList?: RuInfo[];
+  representativeRuId?: string;
+  
+  muxInfo?: MuxInfo;
+  lineNumber?: string;
+  
+  duId?: string;
+  duName?: string;
+  channelCard?: string;
+  port?: string;
+  
+  workType?: 'DU측' | 'RU측';
   status: WorkOrderStatus;
-  createdAt: string;
-  updatedAt: string;
-  completedAt?: string;
   notes?: string;
-  photos?: string[];
-  // 현장 회신 메모 관련 필드
-  responseNote?: ResponseNote;
+  
+  createdAt: number | string;
+  updatedAt: number | string;
+  completedAt?: number | string;
+  
+  responseNote?: {
+    concentratorName?: string;
+    coSiteCount5G?: string;
+    mux5GInstallation?: string;
+    mux5GLineNumber?: string;
+    tie5GLineNumber?: string;
+    lteMux?: string;
+    localStationName?: string;
+    duOpticalSignal?: string;
+    specialNotes?: string;
+  };
 }
 
 // 현장 회신 메모 인터페이스
 export interface ResponseNote {
-  ruOpticalSignal?: string;           // RU 광신호 유/무
-  mux5G?: string;                     // 5G MUX
-  tie5GLine?: string;                 // 5G TIE 선번
+  // DU측 회신 메모 필드
+  concentratorName?: string;          // 국사명 (DU측)
+  coSiteCount5G?: string;             // 5G Co-site 수량 (DU측)
+  mux5GInstallation?: string;         // 5G MUX 설치유무 (DU측)
+  mux5GLineNumber?: string;           // 5G MUX 선번 (DU측)
+  tie5GLineNumber?: string;           // 5G TIE 선번 (DU측)
+  lteMux?: string;                    // LTE MUX (DU측)
+  
+  // RU측 회신 메모 필드
+  localStationName?: string;          // 국소명 (RU측)
+  duOpticalSignal?: string;           // DU 광신호 유/무 (RU측)
+  
+  // 공통 필드
   specialNotes?: string;              // 특이사항
   updatedAt: string;                  // 회신 메모 작성/수정 시간
   adminChecked?: boolean;             // 관리자 확인 여부
   adminCheckedAt?: string;            // 관리자 확인 시간
 }
 
-// 16개 필수 항목을 위한 새로운 타입 (회선번호 추가)
+// CSV 파일에서 파싱된 작업지시 데이터 인터페이스
 export interface ExtractedWorkOrderData {
   관리번호: string;
   작업요청일: string;
@@ -83,6 +114,18 @@ export interface ExtractedWorkOrderData {
   DU_명: string;
   채널카드: string;
   포트_A: string;
+  // 추가 필드들
+  구분: string;        // 구분 (RT 2군 / COT 신설 등)
+  협력사: string;      // 협력사
+  협력사2: string;     // 협력사2
+  건물명: string;      // 건물명
+  장비위치: string;    // 장비위치
+  주소: string;        // 조합된 주소 정보
+  비고: string;        // 비고
+  DU담당자: string;    // DU담당자
+  RU담당자: string;    // RU담당자
+  MUX분출여부: string; // MUX분출여부 (칼럼 24번)
+  MUX종류2: string;    // MUX종류2 (칼럼 25번)
 }
 
 export interface ExcelParseResult {

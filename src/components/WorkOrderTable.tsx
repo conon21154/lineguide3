@@ -41,9 +41,19 @@ const StatusBadge = ({ status }: { status: WorkOrderStatus }) => {
 const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClose: () => void }) => {
   const { updateResponseNote } = useWorkOrders()
   const [formData, setFormData] = useState({
-    ruOpticalSignal: workOrder.responseNote?.ruOpticalSignal || '',
-    mux5G: workOrder.responseNote?.mux5G || '',
-    tie5GLine: workOrder.responseNote?.tie5GLine || '',
+    // DU측 회신 메모 필드
+    concentratorName: workOrder.responseNote?.concentratorName || '',
+    coSiteCount5G: workOrder.responseNote?.coSiteCount5G || '',
+    mux5GInstallation: workOrder.responseNote?.mux5GInstallation || '',
+    mux5GLineNumber: workOrder.responseNote?.mux5GLineNumber || '',
+    tie5GLineNumber: workOrder.responseNote?.tie5GLineNumber || '',
+    lteMux: workOrder.responseNote?.lteMux || '',
+    
+    // RU측 회신 메모 필드
+    localStationName: workOrder.responseNote?.localStationName || '',
+    duOpticalSignal: workOrder.responseNote?.duOpticalSignal || '',
+    
+    // 공통 필드
     specialNotes: workOrder.responseNote?.specialNotes || ''
   })
 
@@ -51,9 +61,19 @@ const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClo
     e.preventDefault()
     
     const responseNote: Partial<ResponseNote> = {
-      ruOpticalSignal: formData.ruOpticalSignal.trim() || undefined,
-      mux5G: formData.mux5G.trim() || undefined,  
-      tie5GLine: formData.tie5GLine.trim() || undefined,
+      // DU측 회신 메모 필드
+      concentratorName: formData.concentratorName.trim() || undefined,
+      coSiteCount5G: formData.coSiteCount5G.trim() || undefined,
+      mux5GInstallation: formData.mux5GInstallation.trim() || undefined,
+      mux5GLineNumber: formData.mux5GLineNumber.trim() || undefined,
+      tie5GLineNumber: formData.tie5GLineNumber.trim() || undefined,
+      lteMux: formData.lteMux.trim() || undefined,
+      
+      // RU측 회신 메모 필드
+      localStationName: formData.localStationName.trim() || undefined,
+      duOpticalSignal: formData.duOpticalSignal.trim() || undefined,
+      
+      // 공통 필드
       specialNotes: formData.specialNotes.trim() || undefined
     }
 
@@ -61,9 +81,9 @@ const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClo
     onClose()
   }
 
-  // 관리번호에서 DU/RU 구분 추출
-  const workType = workOrder.managementNumber.includes('_DU측') ? 'DU측' : 'RU측'
-  const baseManagementNumber = workOrder.managementNumber.replace(/_DU측|_RU측/g, '')
+  // 작업구분 사용 (새로운 workType 필드)
+  const workType = workOrder.workType || 'RU측'
+  const baseManagementNumber = workOrder.managementNumber
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -115,31 +135,57 @@ const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClo
 
           {/* 사용자 입력 필드 */}
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ㅇ RU 광신호 유/무 :
-              </label>
-              <input
-                type="text"
-                value={formData.ruOpticalSignal}
-                onChange={(e) => setFormData({...formData, ruOpticalSignal: e.target.value})}
-                className="input w-full"
-                placeholder="유 또는 무"
-              />
-            </div>
-
             {workType === 'DU측' && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ㅇ 5G MUX :
+                    ㅇ 국사명 :
                   </label>
                   <input
                     type="text"
-                    value={formData.mux5G}
-                    onChange={(e) => setFormData({...formData, mux5G: e.target.value})}
+                    value={formData.concentratorName}
+                    onChange={(e) => setFormData({...formData, concentratorName: e.target.value})}
                     className="input w-full"
-                    placeholder="예: 0107B-14S-08"
+                    placeholder="예: 좌2동_현대아파트108동_32T_A"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ㅇ 5G Co-site 수량 :
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.coSiteCount5G}
+                    onChange={(e) => setFormData({...formData, coSiteCount5G: e.target.value})}
+                    className="input w-full"
+                    placeholder="예: 3식"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ㅇ 5G MUX 설치유무 :
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.mux5GInstallation}
+                    onChange={(e) => setFormData({...formData, mux5GInstallation: e.target.value})}
+                    className="input w-full"
+                    placeholder="예: 유"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ㅇ 5G MUX 선번 :
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.mux5GLineNumber}
+                    onChange={(e) => setFormData({...formData, mux5GLineNumber: e.target.value})}
+                    className="input w-full"
+                    placeholder="예: B0111-16-08"
                   />
                 </div>
 
@@ -149,19 +195,56 @@ const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClo
                   </label>
                   <input
                     type="text"
-                    value={formData.tie5GLine}
-                    onChange={(e) => setFormData({...formData, tie5GLine: e.target.value})}
+                    value={formData.tie5GLineNumber}
+                    onChange={(e) => setFormData({...formData, tie5GLineNumber: e.target.value})}
                     className="input w-full"
-                    placeholder="예: 동래-동래5G SF-5003-280"
+                    placeholder="예: 5G TIE03-180"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ㅇ LTE MUX :
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lteMux}
+                    onChange={(e) => setFormData({...formData, lteMux: e.target.value})}
+                    className="input w-full"
+                    placeholder="예: B0030-01-10"
                   />
                 </div>
               </>
             )}
 
             {workType === 'RU측' && (
-              <div>
-                <span className="font-medium">ㅇ 국소 명 :</span> {workOrder.equipmentName}
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ㅇ 국소명 :
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.localStationName}
+                    onChange={(e) => setFormData({...formData, localStationName: e.target.value})}
+                    className="input w-full"
+                    placeholder="예: 장안읍_장안IC교차로_32T_A"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ㅇ DU 광신호 유/무 :
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.duOpticalSignal}
+                    onChange={(e) => setFormData({...formData, duOpticalSignal: e.target.value})}
+                    className="input w-full"
+                    placeholder="예: 유, 무"
+                  />
+                </div>
+              </>
             )}
 
             <div>
@@ -200,6 +283,16 @@ const ResponseNoteModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClo
 }
 
 const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClose: () => void }) => {
+  // 디버깅: muxInfo 내용 확인
+  console.log('🔍 WorkOrder muxInfo 디버깅:', {
+    workOrderId: workOrder.id,
+    managementNumber: workOrder.managementNumber,
+    muxInfo: workOrder.muxInfo,
+    lineNumber: workOrder.lineNumber,
+    serviceType: workOrder.serviceType,
+    concentratorName5G: workOrder.concentratorName5G
+  });
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -250,30 +343,48 @@ const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, on
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 border-b pb-2">RU 정보</h3>
               <div className="space-y-3">
-                <div><span className="font-medium text-gray-700">대표 RU ID:</span> {workOrder.representativeRuId || 'N/A'}</div>
-                <div><span className="font-medium text-gray-700">5G Co-Site 수량:</span> {workOrder.coSiteCount5G || 'N/A'}</div>
-                <div><span className="font-medium text-gray-700">5G 집중국명:</span> {workOrder.concentratorName5G}</div>
+                {workOrder.representativeRuId && (
+                  <div><span className="font-medium text-gray-700">대표 RU ID:</span> {workOrder.representativeRuId}</div>
+                )}
+                {workOrder.coSiteCount5G && (
+                  <div><span className="font-medium text-gray-700">5G Co-Site 수량:</span> {workOrder.coSiteCount5G}</div>
+                )}
+                {workOrder.concentratorName5G && workOrder.concentratorName5G !== 'N/A' && (
+                  <div><span className="font-medium text-gray-700">5G 집중국명:</span> {workOrder.concentratorName5G}</div>
+                )}
                 
                 {/* 여러 RU 정보 표시 */}
                 {workOrder.ruInfoList && workOrder.ruInfoList.length > 0 && (
                   <div className="mt-4">
                     <span className="font-medium text-gray-700">전체 RU 목록:</span>
                     <div className="mt-2 space-y-2">
-                      {workOrder.ruInfoList.map((ru, index) => (
-                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <div className="font-medium text-sm">{ru.ruName}</div>
-                              <div className="text-xs text-gray-600">ID: {ru.ruId}</div>
-                              {ru.channelCard && <div className="text-xs text-gray-600">채널카드: {ru.channelCard}</div>}
-                              {ru.port && <div className="text-xs text-gray-600">포트: {ru.port}</div>}
+                      {workOrder.ruInfoList.map((ru, index) => {
+                        const isRepresentative = ru.ruId === workOrder.representativeRuId;
+                        const muxCH = ru.serviceType || workOrder.muxInfo?.['서비스구분'] || workOrder.serviceType;
+                        
+                        return (
+                          <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-1">
+                                <div className="font-medium text-sm">{ru.ruName}</div>
+                                <div className="text-xs text-gray-600">ID: {ru.ruId}</div>
+                                {ru.channelCard && <div className="text-xs text-gray-600">채널카드: {ru.channelCard}</div>}
+                                {ru.port && <div className="text-xs text-gray-600">포트: {ru.port}</div>}
+                                {muxCH && <div className="text-xs text-blue-600 font-medium">MUX CH: {muxCH}</div>}
+                              </div>
+                              {isRepresentative ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  대표 A
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                  RU #{index + 1}
+                                </span>
+                              )}
                             </div>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              RU #{index + 1}
-                            </span>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -286,7 +397,7 @@ const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, on
                 <div><span className="font-medium text-gray-700">장비 타입:</span> {workOrder.equipmentType}</div>
                 <div><span className="font-medium text-gray-700">장비명:</span> {workOrder.equipmentName}</div>
                 <div><span className="font-medium text-gray-700">종류:</span> {workOrder.category}</div>
-                <div><span className="font-medium text-gray-700">서비스 구분:</span> {workOrder.serviceType}</div>
+                <div><span className="font-medium text-gray-700">서비스 위치:</span> {workOrder.serviceLocation}</div>
               </div>
             </div>
             
@@ -307,15 +418,25 @@ const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, on
               <div>
                 <span className="font-medium text-gray-700">회선번호:</span>
                 <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded mt-1 break-all">
-                  {workOrder.notes?.match(/회선번호: ([^,]+)/)?.[1] || 'N/A'}
+                  {workOrder.lineNumber}
                 </div>
               </div>
-              <div>
-                <span className="font-medium text-gray-700">선번장 상세:</span>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="font-mono text-sm break-all">{workOrder.lineNumber}</div>
+              {workOrder.muxInfo && (
+                <div>
+                  <span className="font-medium text-gray-700">LTE MUX/국간,간선망:</span>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="font-mono text-sm break-all">{workOrder.muxInfo.lteMux}</div>
+                    {workOrder.muxInfo.muxType && (
+                      <div className="text-xs text-gray-600 mt-1">MUX종류: {workOrder.muxInfo.muxType}</div>
+                    )}
+                    {workOrder.muxInfo.서비스구분 && (
+                      <div className="text-xs text-blue-600 mt-1 font-medium">
+                        서비스구분: {workOrder.muxInfo.서비스구분}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
           
