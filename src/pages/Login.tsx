@@ -49,7 +49,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-2 sm:p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-2 sm:p-4 touch-manipulation">
       <div className="max-w-md w-full mx-2">
         <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-8">
           {/* 헤더 */}
@@ -81,9 +81,11 @@ export default function Login() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="input w-full"
+                className="input w-full text-base"
                 placeholder="사용자명을 입력하세요"
                 autoComplete="username"
+                autoCapitalize="none"
+                spellCheck="false"
                 required
               />
             </div>
@@ -97,31 +99,20 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input w-full"
+                className="input w-full text-base"
                 placeholder="비밀번호를 입력하세요"
                 autoComplete="current-password"
+                autoCapitalize="none"
+                spellCheck="false"
                 required
               />
             </div>
 
             {/* 로그인 버튼 */}
             <button
-              type="button"
+              type="submit"
               disabled={loading}
-              onClick={async (e) => {
-                console.log('🖱️ 로그인 버튼 클릭됨 - 이벤트 핸들러 실행')
-                console.log('📝 현재 상태:', { username, password, loading })
-                e.preventDefault()
-                try {
-                  console.log('🚀 handleLogin 함수 호출 시작')
-                  await handleLogin(e as any)
-                  console.log('✅ handleLogin 함수 완료')
-                } catch (error) {
-                  console.error('❌ 클릭 핸들러에서 오류:', error)
-                }
-              }}
-              className="w-full btn btn-primary flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ pointerEvents: 'auto', zIndex: 10 }}
+              className="w-full btn btn-primary flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-12 text-base"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
