@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: lineguide3-backend
+    runtime: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://conon21154.github.io
+    autoDeploy: true
+    repo: https://github.com/conon21154/lineguide3.git
+    branch: main

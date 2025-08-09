@@ -84,6 +84,16 @@ app.get('/', (req, res) => {
   });
 });
 
+// 헬스 체크 엔드포인트 (Render.com용)
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: 'connected'
+  });
+});
+
 // 404 에러 처리
 app.use('*', (req, res) => {
   res.status(404).json({
