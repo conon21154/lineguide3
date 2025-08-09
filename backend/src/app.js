@@ -47,16 +47,17 @@ const io = new Server(server, {
     : { origin: allowedOriginsList, methods: ['GET', 'POST'], credentials: true }
 });
 
-// 미들웨어 설정
+// 미들웨어 설정 (임시로 모든 Origin 허용)
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (isDev || isAllowedOrigin(origin)) {
-        callback(null, true)
-      } else {
-        callback(new Error('CORS: Origin not allowed'))
-      }
-    },
+    origin: true, // 모든 Origin 허용 (긴급 수정)
+    // origin: (origin, callback) => {
+    //   if (isDev || isAllowedOrigin(origin)) {
+    //     callback(null, true)
+    //   } else {
+    //     callback(new Error('CORS: Origin not allowed'))
+    //   }
+    // },
     credentials: true
   })
 );
