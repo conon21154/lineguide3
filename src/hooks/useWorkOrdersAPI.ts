@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { WorkOrder, WorkOrderFilter, ResponseNote, FieldReport } from '@/types'
-import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiDelete, apiUpload } from '@/config/api'
+import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiPatch, apiDelete, apiUpload } from '@/config/api'
 
 interface UseWorkOrdersResult {
   workOrders: WorkOrder[]
@@ -24,15 +24,25 @@ interface UseWorkOrdersResult {
   uploadCSV: (file: File) => Promise<{ success: boolean; data?: any; error?: string }>
   fetchFieldReports: () => Promise<FieldReport[]>
   toggleFieldReportChecked: (fieldResponseId: string, checked: boolean) => Promise<{ success: boolean; error?: string }>
+  // 새로운 회신 메모 시스템 함수들
+  createResponseNote: (data: { workOrderId: string; side: 'DU' | 'RU'; ruId?: string; content: string }) => Promise<{ success: boolean; error?: string }>
+  updateResponseNoteContent: (id: string, content: string) => Promise<{ success: boolean; error?: string }>
+  clearResponseNoteContent: (id: string) => Promise<{ success: boolean; error?: string }>
+  deleteResponseNoteEntry: (id: string) => Promise<{ success: boolean; error?: string }>
+  checkResponseNoteDuplicate: (workOrderId: string, side: 'DU' | 'RU', ruId?: string) => Promise<{ exists: boolean; existing?: any }>
+  fetchMemoTemplate: (workOrderId: string) => Promise<{ template: string; side: 'DU' | 'RU'; managementNumber: string } | null>
   refreshData: () => Promise<void>
   setPage: (page: number) => void
   setFilter: (filter: WorkOrderFilter) => void
 }
 
+type UseWorkOrdersOptions = { autoFetch?: boolean }
+
 export function useWorkOrders(
   initialFilter?: WorkOrderFilter,
   initialPage: number = 1,
-  initialLimit: number = 200
+  initialLimit: number = 200,
+  options?: UseWorkOrdersOptions
 ): UseWorkOrdersResult {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [loading, setLoading] = useState(false)
@@ -63,6 +73,9 @@ export function useWorkOrders(
       managementNumber: backendData.managementNumber || backendData.customer_name || '',
       requestDate: backendData.requestDate || backendData.request_date,
       operationTeam: backendData.operationTeam || backendData.team || '',
+      hasMemo: typeof backendData.hasMemo !== 'undefined' 
+        ? (backendData.hasMemo === true || backendData.hasMemo === 1)
+        : (backendData.has_memo === true || backendData.has_memo === 1),
       
       equipmentType: backendData.equipmentType || backendData.category,
       equipmentName: backendData.equipmentName,
@@ -181,8 +194,9 @@ export function useWorkOrders(
 
   // 초기 데이터 로드 및 필터/페이지 변경 시 재로드
   useEffect(() => {
+    if (options?.autoFetch === false) return
     fetchWorkOrders()
-  }, [fetchWorkOrders])
+  }, [fetchWorkOrders, options?.autoFetch])
 
   // 새로운 작업지시 추가 (단일/다중)
   const addWorkOrders = async (orders: Omit<WorkOrder, 'id' | 'status' | 'createdAt' | 'updatedAt'>[]) => {
@@ -222,14 +236,32 @@ export function useWorkOrders(
     try {
       setLoading(true)
       
+      // 낙관적 업데이트: 먼저 로컬 상태 업데이트
+      setWorkOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === id 
+            ? {
+                ...order, 
+                status,
+                notes,
+                updatedAt: new Date().toISOString()
+              }
+            : order
+        )
+      )
+      
+      // 서버에 저장
       await apiPut(API_ENDPOINTS.WORK_ORDERS.UPDATE_STATUS(id), {
         status,
         notes
       })
       
-      await refreshData() // 목록 새로고침
+      // 성공 시 추가 새로고침 없이 낙관적 업데이트 유지
+      console.log('✅ 상태 변경 완료 (낙관적 업데이트):', id, status)
       return { success: true }
     } catch (err) {
+      // 실패 시 데이터 재조회로 롤백
+      await refreshData()
       const errorMessage = err instanceof Error ? err.message : '상태 변경 중 오류가 발생했습니다.'
       return { success: false, error: errorMessage }
     } finally {
@@ -314,18 +346,16 @@ export function useWorkOrders(
     }
   }
 
-  // 현장 회신 게시판 데이터 조회
-    const fetchFieldReports = async (): Promise<FieldReport[]> => {
+  // 현장 회신 게시판 데이터 조회 (메모이제이션해 의존성 루프 방지)
+  const fetchFieldReports = useCallback(async (): Promise<FieldReport[]> => {
     try {
-      console.log('📋 현장 회신 게시판 데이터 조회 중...')
-        const response = await apiGet(API_ENDPOINTS.WORK_ORDERS.FIELD_REPORTS)
-      console.log('📊 현장 회신 데이터 조회 완료:', response.length, '건')
+      const response = await apiGet(API_ENDPOINTS.WORK_ORDERS.FIELD_REPORTS)
       return response
     } catch (err) {
       console.error('현장 회신 조회 오류:', err)
       return []
     }
-  }
+  }, [])
 
   // 현장회신 관리자 확인 토글
   const toggleFieldReportChecked = async (fieldResponseId: string, checked: boolean) => {
@@ -395,6 +425,111 @@ export function useWorkOrders(
     setCurrentPage(1) // 필터 변경 시 첫 페이지로
   }
 
+  // === 새로운 회신 메모 시스템 함수들 ===
+  
+  // 중복 확인
+  const checkResponseNoteDuplicate = async (workOrderId: string, side: 'DU' | 'RU', ruId?: string) => {
+    try {
+      const params = new URLSearchParams({
+        workOrderId,
+        side,
+        ...(ruId && { ruId })
+      })
+      
+      const response = await apiGet<{
+        exists: boolean;
+        existing?: { id: string; content: string; createdAt: string };
+      }>(`${API_ENDPOINTS.RESPONSE_NOTES.CHECK_DUPLICATE}?${params}`)
+      
+      return response
+    } catch (err) {
+      console.error('중복 확인 오류:', err)
+      return { exists: false }
+    }
+  }
+
+  // 회신 메모 생성
+  const createResponseNote = async (data: {
+    workOrderId: string;
+    side: 'DU' | 'RU';
+    ruId?: string;
+    content: string;
+  }) => {
+    try {
+      setLoading(true)
+      await apiPost(API_ENDPOINTS.RESPONSE_NOTES.CREATE, data)
+      await refreshData() // 목록 새로고침
+      return { success: true }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '회신 메모 등록 중 오류가 발생했습니다.'
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 회신 메모 내용 수정
+  const updateResponseNoteContent = async (id: string, content: string) => {
+    try {
+      setLoading(true)
+      await apiPut(API_ENDPOINTS.RESPONSE_NOTES.UPDATE(id), { content })
+      await refreshData() // 목록 새로고침
+      return { success: true }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '회신 메모 수정 중 오류가 발생했습니다.'
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 회신 메모 내용 비우기
+  const clearResponseNoteContent = async (id: string) => {
+    try {
+      setLoading(true)
+      await apiPatch(API_ENDPOINTS.RESPONSE_NOTES.CLEAR(id))
+      await refreshData() // 목록 새로고침
+      return { success: true }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '회신 메모 비우기 중 오류가 발생했습니다.'
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 회신 메모 삭제
+  const deleteResponseNoteEntry = async (id: string) => {
+    try {
+      setLoading(true)
+      await apiDelete(API_ENDPOINTS.RESPONSE_NOTES.DELETE(id))
+      await refreshData() // 목록 새로고침
+      return { success: true }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '회신 메모 삭제 중 오류가 발생했습니다.'
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 메모 템플릿 조회
+  const fetchMemoTemplate = async (workOrderId: string) => {
+    try {
+      const response = await apiGet<{
+        template: string;
+        workOrderId: string;
+        side: 'DU' | 'RU';
+        managementNumber: string;
+      }>(`${API_ENDPOINTS.WORK_ORDERS.LIST}/${workOrderId}/memo-template`)
+      
+      return response
+    } catch (err) {
+      console.error('메모 템플릿 조회 오류:', err)
+      return null
+    }
+  }
+
   return {
     workOrders,
     loading,
@@ -409,6 +544,13 @@ export function useWorkOrders(
     toggleFieldReportChecked,
     uploadCSV,
     fetchFieldReports,
+    // 새로운 회신 메모 시스템 함수들
+    createResponseNote,
+    updateResponseNoteContent,
+    clearResponseNoteContent,
+    deleteResponseNoteEntry,
+    checkResponseNoteDuplicate,
+    fetchMemoTemplate,
     refreshData,
     setPage,
     setFilter

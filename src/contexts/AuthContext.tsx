@@ -89,6 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       console.log('🔐 AuthContext login 함수 호출:', credentials.username)
       console.log('🌐 로그인 URL:', API_ENDPOINTS.AUTH.LOGIN)
+      console.log('📱 모바일 환경:', navigator.userAgent)
       
       const response = await apiPost(API_ENDPOINTS.AUTH.LOGIN, credentials)
       console.log('✅ 로그인 응답:', response)

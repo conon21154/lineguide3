@@ -1,16 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ExcelUploader from '@/components/ExcelUploader'
 import { ExcelParseResult } from '@/types'
 
 export default function Upload() {
   const [uploadResult, setUploadResult] = useState<ExcelParseResult | null>(null)
+  const [countdown, setCountdown] = useState(0)
   const navigate = useNavigate()
 
   const handleUploadComplete = (result: ExcelParseResult) => {
     setUploadResult(result)
-    // 자동 리다이렉트 제거 - 사용자가 직접 선택하도록 함
+    // 업로드 성공 시 3초 카운트다운 시작
+    if (result.success && result.isUploaded) {
+      setCountdown(3)
+    }
   }
+
+  // 카운트다운 효과
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    } else if (countdown === 0 && uploadResult?.success && uploadResult.isUploaded) {
+      navigate('/workboard')
+    }
+  }, [countdown, uploadResult, navigate])
 
   return (
     <div className="space-y-6">
@@ -37,13 +53,16 @@ export default function Upload() {
               작업지시가 성공적으로 등록되었습니다!
             </h3>
             <p className="text-gray-600 mb-4">
-              작업게시판으로 이동하여 작업을 확인하세요.
+              {countdown > 0 
+                ? `${countdown}초 후 작업게시판으로 자동 이동됩니다.`
+                : '작업게시판으로 이동하여 작업을 확인하세요.'
+              }
             </p>
             <button
               onClick={() => navigate('/workboard')}
               className="btn btn-primary"
             >
-              작업게시판으로 이동
+              {countdown > 0 ? `작업게시판으로 이동 (${countdown})` : '작업게시판으로 이동'}
             </button>
           </div>
         </div>

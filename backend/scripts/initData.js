@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { User } = require('../models');
+const { User, WorkOrder } = require('../models');
 
 // 초기 사용자 데이터 생성
 const initializeDefaultUsers = async () => {

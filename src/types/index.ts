@@ -33,6 +33,7 @@ export interface WorkOrder {
   managementNumber: string;
   requestDate?: string;
   operationTeam: string;
+  hasMemo?: boolean;
   
   equipmentType?: string;
   equipmentName?: string;
@@ -65,7 +66,7 @@ export interface WorkOrder {
   responseNote?: ResponseNote;
 }
 
-// 현장 회신 메모 인터페이스
+// 현장 회신 메모 인터페이스 (기존)
 export interface ResponseNote {
   // DU측 회신 메모 필드
   concentratorName?: string;          // 국사명 (DU측)
@@ -85,6 +86,19 @@ export interface ResponseNote {
   updatedAt: string;                  // 회신 메모 작성/수정 시간
   adminChecked?: boolean;             // 관리자 확인 여부
   adminCheckedAt?: string;            // 관리자 확인 시간
+}
+
+// 새로운 회신 메모 시스템 인터페이스
+export interface ResponseNoteData {
+  id: string;
+  workOrderId: string;
+  side: 'DU' | 'RU';
+  ruId?: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string;
+  createdBy?: number;
 }
 
 // 현장 회신 게시판용 인터페이스

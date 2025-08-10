@@ -17,10 +17,10 @@ const getNavigationItems = (isAdmin: boolean, isMobile: boolean) => {
       // 관리자 모바일 앱: 작업게시판 중심
       return [
         { name: '작업게시판', href: '/', icon: Clipboard },
+        { name: '현장 회신', href: '/board', icon: MessageSquare },
         { name: '대시보드', href: '/dashboard', icon: BarChart3 },
         { name: '작업지시 업로드', href: '/upload', icon: Upload },
         { name: '라벨 프린터', href: '/label-printer', icon: Printer },
-        { name: '현장 회신', href: '/board', icon: MessageSquare },
       ]
     } else {
       // 관리자 웹: 대시보드 중심
@@ -28,16 +28,16 @@ const getNavigationItems = (isAdmin: boolean, isMobile: boolean) => {
         { name: '대시보드', href: '/', icon: BarChart3 },
         { name: '작업지시 업로드', href: '/upload', icon: Upload },
         { name: '작업게시판', href: '/workboard', icon: Clipboard },
-        { name: '라벨 프린터', href: '/label-printer', icon: Printer },
         { name: '현장 회신', href: '/board', icon: MessageSquare },
+        { name: '라벨 프린터', href: '/label-printer', icon: Printer },
       ]
     }
   } else {
     // 현장팀: 환경에 관계없이 동일
     return [
       { name: '작업게시판', href: '/', icon: Clipboard },
-      { name: '라벨 프린터', href: '/label-printer', icon: Printer },
       { name: '현장 회신', href: '/board', icon: MessageSquare },
+      { name: '라벨 프린터', href: '/label-printer', icon: Printer },
     ]
   }
 }

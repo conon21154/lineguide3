@@ -1,6 +1,7 @@
-import { BarChart3, Users, Clock, CheckCircle, ChevronDown, ChevronRight, X } from 'lucide-react'
-import { useWorkOrderStatistics, useWorkOrders } from '@/hooks/useWorkOrders'
-import { OperationTeam } from '@/types'
+import { BarChart3, Users, Clock, CheckCircle, ChevronDown, ChevronRight, X, MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
+import { useDashboardFieldReplies, useToggleFieldReplyConfirm } from '@/hooks/useDashboardFieldReplies'
+import { OperationTeam, FieldReport } from '@/types'
 import { useState, useMemo, useEffect } from 'react'
 
 const CalendarDayDetailModal = ({ 
@@ -132,7 +133,7 @@ const SimpleCalendar = () => {
     workOrders: any[]
   } | null>(null)
 
-  const { workOrders } = useWorkOrders() // 실제 작업지시 데이터 가져오기
+  const { workOrders } = useWorkOrdersAPI() // 실제 작업지시 데이터 가져오기
   
   // 작업지시가 있는 첫 번째 월로 캘린더 초기화
   useEffect(() => {
@@ -161,7 +162,7 @@ const SimpleCalendar = () => {
           
           if (!isNaN(workDate.getTime())) {
             setCurrentDate(new Date(workDate.getFullYear(), workDate.getMonth(), 1))
-            console.log('📅 캘린더를 작업 데이터가 있는 월로 이동:', workDate.toISOString().split('T')[0])
+            // console.log('📅 캘린더를 작업 데이터가 있는 월로 이동:', workDate.toISOString().split('T')[0])
           }
         } catch (error) {
           console.warn('캘린더 초기화 오류:', error)
@@ -239,10 +240,10 @@ const SimpleCalendar = () => {
         const workOrderDateString = workOrderDate.toISOString().split('T')[0]
         const isMatch = workOrderDateString === dateString
         
-        // 매칭된 경우 디버깅 로그
-        if (isMatch) {
-          console.log(`📅 날짜 매칭: ${dateString} = ${workOrderDateString} (원본: ${dateValue})`)
-        }
+        // 매칭된 경우 디버깅 로그 (필요시에만 활성화)
+        // if (isMatch) {
+        //   console.log(`📅 날짜 매칭: ${dateString} = ${workOrderDateString} (원본: ${dateValue})`)
+        // }
         
         return isMatch
       } catch (error) {
@@ -251,11 +252,11 @@ const SimpleCalendar = () => {
       }
     })
     
-    // 디버깅: 특정 날짜 조회시 결과 출력
-    if (day === 1 && matchedOrders.length === 0) {
-      console.log(`🔍 ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')} 검색 결과: ${matchedOrders.length}개`)
-      console.log('📋 전체 작업지시 날짜들:', workOrders.map(wo => wo.requestDate || wo.createdAt))
-    }
+    // 디버깅: 특정 날짜 조회시 결과 출력 (필요시에만 활성화)
+    // if (day === 1 && matchedOrders.length === 0) {
+    //   console.log(`🔍 ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')} 검색 결과: ${matchedOrders.length}개`)
+    //   console.log('📋 전체 작업지시 날짜들:', workOrders.map(wo => wo.requestDate || wo.createdAt))
+    // }
     
     return matchedOrders
   }
@@ -375,20 +376,159 @@ const SimpleCalendar = () => {
 }
 
 export default function Dashboard() {
-  const statistics = useWorkOrderStatistics()
-  const { workOrders } = useWorkOrders()
+  // 대시보드에서는 작업지시 자동 재조회로 인한 불필요 트리거를 방지
+  const { workOrders, fetchFieldReports, toggleFieldReportChecked } = useWorkOrdersAPI(undefined, 1, 200, { autoFetch: true })
   const [expandedTeams, setExpandedTeams] = useState<Set<OperationTeam>>(new Set())
+  
+  // 대시보드 전용 현장 회신 데이터 (실시간 반영)
+  const { data: fieldRepliesData, isLoading: loadingReports, error: fieldRepliesError } = useDashboardFieldReplies()
+  const toggleConfirmMutation = useToggleFieldReplyConfirm()
+  
+  // 기존 fieldReports 호환성을 위한 변환
+  const [fieldReports, setFieldReports] = useState<FieldReport[]>([])
+  
+  useEffect(() => {
+    if (fieldRepliesData?.success && fieldRepliesData.data.recent) {
+      // 새 API 형식을 기존 FieldReport 형식으로 변환
+      const convertedReports: FieldReport[] = fieldRepliesData.data.recent.map(item => ({
+        id: item.id,
+        workOrderId: item.workOrderId,
+        managementNumber: item.workOrderId, // 관리번호는 별도 조회 필요하지만 임시로 workOrderId 사용
+        operationTeam: 'Unknown', // 팀 정보는 별도 조회 필요
+        equipmentName: '',
+        representativeRuId: item.ruId || '',
+        summary: item.content.length > 100 ? item.content.substring(0, 100) + '...' : item.content,
+        status: 'completed',
+        createdAt: item.createdAt,
+        createdBy: item.createdBy,
+        adminChecked: !!item.confirmedAt,
+        adminCheckedAt: item.confirmedAt
+      }))
+      setFieldReports(convertedReports)
+    }
+  }, [fieldRepliesData])
 
-  // 디버깅용 로그
-  console.log('📊 Dashboard Statistics:', statistics)
-  console.log('📋 Work Orders:', workOrders)
-  console.log('📅 First Work Order Date:', workOrders.length > 0 ? workOrders[0].requestDate : 'No data')
+  // 관리자 확인 토글 (새 API 사용)
+  const handleToggleCheck = async (reportId: string, checked: boolean) => {
+    try {
+      await toggleConfirmMutation.mutateAsync({ id: reportId, confirmed: checked })
+      // optimistic update는 React Query가 자동으로 처리
+    } catch (error) {
+      console.error('관리자 확인 처리 실패:', error)
+    }
+  }
+
+  // API 데이터로부터 통계 계산
+  const statistics = useMemo(() => {
+    const total = workOrders.length;
+    const pending = workOrders.filter(o => o.status === 'pending').length;
+    const inProgress = workOrders.filter(o => o.status === 'in_progress').length;
+    const completed = workOrders.filter(o => o.status === 'completed').length;
+
+    const byTeam: Record<OperationTeam, { pending: number; inProgress: number; completed: number }> = {
+      '울산T': { pending: 0, inProgress: 0, completed: 0 },
+      '동부산T': { pending: 0, inProgress: 0, completed: 0 },
+      '중부산T': { pending: 0, inProgress: 0, completed: 0 },
+      '서부산T': { pending: 0, inProgress: 0, completed: 0 },
+      '김해T': { pending: 0, inProgress: 0, completed: 0 },
+      '창원T': { pending: 0, inProgress: 0, completed: 0 },
+      '진주T': { pending: 0, inProgress: 0, completed: 0 },
+      '통영T': { pending: 0, inProgress: 0, completed: 0 },
+      '지하철T': { pending: 0, inProgress: 0, completed: 0 },
+      '기타': { pending: 0, inProgress: 0, completed: 0 }
+    };
+
+    workOrders.forEach(order => {
+      const team = order.operationTeam as OperationTeam;
+      if (byTeam[team]) {
+        const status = order.status === 'in_progress' ? 'inProgress' : order.status;
+        byTeam[team][status]++;
+      }
+    });
+
+    // DU/RU 작업 분리 통계
+    const duRuStats: Record<OperationTeam, { 
+      duWork: { pending: number; inProgress: number; completed: number; total: number };
+      ruWork: { pending: number; inProgress: number; completed: number; total: number };
+    }> = {} as Record<OperationTeam, { 
+      duWork: { pending: number; inProgress: number; completed: number; total: number };
+      ruWork: { pending: number; inProgress: number; completed: number; total: number };
+    }>;
+
+    Object.keys(byTeam).forEach(team => {
+      const operationTeam = team as OperationTeam;
+      duRuStats[operationTeam] = {
+        duWork: { pending: 0, inProgress: 0, completed: 0, total: 0 },
+        ruWork: { pending: 0, inProgress: 0, completed: 0, total: 0 }
+      };
+    });
+
+    workOrders.forEach(order => {
+      const team = order.operationTeam as OperationTeam;
+      if (!duRuStats[team]) return;
+      
+      const isDuWork = order.workType === 'DU측' || order.managementNumber?.includes('_DU측');
+      const isRuWork = order.workType === 'RU측' || order.managementNumber?.includes('_RU측');
+      
+      if (isDuWork) {
+        const statusKey = order.status === 'in_progress' ? 'inProgress' : order.status;
+        duRuStats[team].duWork[statusKey]++;
+        duRuStats[team].duWork.total++;
+      } else if (isRuWork) {
+        const statusKey = order.status === 'in_progress' ? 'inProgress' : order.status;
+        duRuStats[team].ruWork[statusKey]++;
+        duRuStats[team].ruWork.total++;
+      }
+    });
+
+    return {
+      total,
+      pending,
+      inProgress,
+      completed,
+      byTeam,
+      duRuStats
+    };
+  }, [workOrders])
+
+  // 디버깅용 로그 (필요시에만 활성화)
+  // console.log('📊 Dashboard Statistics:', statistics)
+  // console.log('📋 Work Orders:', workOrders)
+  // console.log('📅 First Work Order Date:', workOrders.length > 0 ? workOrders[0].requestDate : 'No data')
 
   // DU/RU 통계가 있는 팀들만 필터링
   const activeDuRuTeams = statistics.duRuStats ? Object.keys(statistics.duRuStats).filter(team => {
     const duRuStat = statistics.duRuStats![team as OperationTeam]
     return duRuStat && (duRuStat.duWork.total > 0 || duRuStat.ruWork.total > 0)
   }) : []
+
+  // 현장회신 통계 계산 (새 API 사용)
+  const fieldReportStats = useMemo(() => {
+    if (fieldRepliesData?.success) {
+      return {
+        total: fieldRepliesData.data.totals.all,
+        unchecked: fieldRepliesData.data.totals.unconfirmed,
+        checked: fieldRepliesData.data.totals.confirmed,
+        recent: fieldRepliesData.data.totals.last24h
+      }
+    }
+    return { total: 0, unchecked: 0, checked: 0, recent: 0 }
+  }, [fieldRepliesData])
+
+  // 중복 현장회신 탐지 (관리번호 + 요약 기준)
+  const duplicateReports = useMemo(() => {
+    const reportMap = new Map<string, FieldReport[]>()
+    
+    fieldReports.forEach(report => {
+      const key = `${report.managementNumber}-${report.summary.trim().slice(0, 50)}`
+      if (!reportMap.has(key)) {
+        reportMap.set(key, [])
+      }
+      reportMap.get(key)!.push(report)
+    })
+    
+    return Array.from(reportMap.values()).filter(reports => reports.length > 1)
+  }, [fieldReports])
 
   const toggleTeamExpand = (team: OperationTeam) => {
     const newExpanded = new Set(expandedTeams)
@@ -610,6 +750,110 @@ export default function Dashboard() {
             })
             )}
           </div>
+        </div>
+      </div>
+
+      {/* 현장회신 현황 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 현장회신 통계 */}
+        <div className="card">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">현장회신 현황</h3>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{fieldReportStats.total}</div>
+              <div className="text-sm text-gray-600">총 회신</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{fieldReportStats.unchecked}</div>
+              <div className="text-sm text-gray-600">미확인</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{fieldReportStats.checked}</div>
+              <div className="text-sm text-gray-600">확인완료</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{fieldReportStats.recent}</div>
+              <div className="text-sm text-gray-600">24시간 내</div>
+            </div>
+          </div>
+
+          {/* 중복 회신 경고 */}
+          {duplicateReports.length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
+                <span className="text-sm font-medium text-yellow-800">
+                  {duplicateReports.length}건의 중복 가능성이 있는 회신
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 최근 현장회신 */}
+        <div className="card">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">최근 현장회신</h3>
+          {loadingReports ? (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+            </div>
+          ) : fieldReports.length === 0 ? (
+            <div className="text-center py-8">
+              <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">현장회신이 없습니다</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {fieldReports.slice(0, 5).map(report => (
+                <div key={report.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="text-xs font-mono bg-white px-2 py-1 rounded">
+                        {report.managementNumber}
+                      </span>
+                      <span className="text-xs text-gray-500">{report.operationTeam}</span>
+                    </div>
+                    <p className="text-sm text-gray-700 line-clamp-2">
+                      {report.summary.slice(0, 80)}...
+                    </p>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {(() => {
+                        const date = new Date(report.createdAt);
+                        if (isNaN(date.getTime())) {
+                          return '날짜 정보 없음';
+                        }
+                        return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                      })()}
+                    </div>
+                  </div>
+                  <div className="ml-3">
+                    <button
+                      onClick={() => handleToggleCheck(report.id, !report.adminChecked)}
+                      className={`p-1 rounded ${
+                        report.adminChecked 
+                          ? 'bg-green-100 text-green-600 hover:bg-green-200' 
+                          : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                      }`}
+                      title={report.adminChecked ? '확인 완료 - 클릭하여 미확인으로 변경' : '미확인 - 클릭하여 확인 완료로 변경'}
+                    >
+                      {report.adminChecked ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <Clock className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {fieldReports.length > 5 && (
+                <div className="text-center pt-2">
+                  <a href="/board" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                    전체 {fieldReports.length}건 보기 →
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

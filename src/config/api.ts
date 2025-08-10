@@ -3,7 +3,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
   (import.meta.env.MODE === 'production' 
     ? 'https://lineguide3-backend.onrender.com/api' 
-    : 'http://localhost:5000/api');
+    : 'http://192.168.1.118:5000/api');
 
 console.log('🔧 API 설정:', {
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
@@ -30,7 +30,9 @@ export const API_ENDPOINTS = {
     UPDATE_STATUS: (id: string) => `${API_BASE_URL}/work-orders/${id}/status`,
     DELETE: (id: string) => `${API_BASE_URL}/work-orders/${id}`,
     RESPONSE_NOTE: (id: string) => `${API_BASE_URL}/work-orders/${id}/response-note`,
-    FIELD_REPORTS: `${API_BASE_URL}/work-orders/field-reports`
+    FIELD_REPORTS: `${API_BASE_URL}/work-orders/field-reports`,
+    MEMO_BASE: (id: string) => `${API_BASE_URL}/work-orders/${id}/memo-base`,
+    LABEL_DATA: (id: string) => `${API_BASE_URL}/work-orders/${id}/label-data`
   },
   
   // 팀
@@ -39,6 +41,23 @@ export const API_ENDPOINTS = {
     STATS: (team: string) => `${API_BASE_URL}/teams/${team}/stats`,
     USERS: (team: string) => `${API_BASE_URL}/teams/${team}/users`,
     ADMIN_OVERVIEW: `${API_BASE_URL}/teams/admin/overview`
+  },
+
+  // 회신 메모
+  RESPONSE_NOTES: {
+    LIST: `${API_BASE_URL}/response-notes`,
+    CREATE: `${API_BASE_URL}/response-notes`,
+    CHECK_DUPLICATE: `${API_BASE_URL}/response-notes/check-duplicate`,
+    LATEST: `${API_BASE_URL}/response-notes/latest`,
+    UPDATE: (id: string) => `${API_BASE_URL}/response-notes/${id}`,
+    CLEAR: (id: string) => `${API_BASE_URL}/response-notes/${id}/clear`,
+    DELETE: (id: string) => `${API_BASE_URL}/response-notes/${id}`
+  },
+
+  // 대시보드
+  DASHBOARD: {
+    FIELD_REPLIES: `${API_BASE_URL}/dashboard/field-replies`,
+    FIELD_REPLY_CONFIRM: (id: string) => `${API_BASE_URL}/dashboard/field-replies/${id}/confirm`
   }
 };
 
@@ -79,18 +98,38 @@ export const apiRequest = async <T = any>(
   const response = await fetch(url, config);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    let errorData = {};
+    
+    try {
+      // Content-Type이 JSON인지 확인
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json();
+      }
+    } catch (jsonError) {
+      console.warn('Failed to parse error response as JSON:', jsonError);
+    }
     
     // 401 에러 시 토큰 제거하고 로그인 페이지로
     if (response.status === 401) {
       AuthToken.remove();
       window.location.href = '/login';
+      return Promise.reject(new Error('인증이 필요합니다'));
     }
     
     throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
   }
 
-  return response.json();
+  // 응답이 JSON인지 확인 후 파싱
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  } else {
+    // JSON이 아닌 응답 (예: HTML)
+    const text = await response.text();
+    console.warn('Non-JSON response received:', text.substring(0, 100));
+    throw new Error('서버에서 예상하지 못한 응답을 받았습니다');
+  }
 };
 
 // GET 요청
@@ -110,6 +149,14 @@ export const apiPost = async <T = any>(url: string, data?: any): Promise<T> => {
 export const apiPut = async <T = any>(url: string, data?: any): Promise<T> => {
   return apiRequest<T>(url, {
     method: 'PUT',
+    body: data ? JSON.stringify(data) : undefined,
+  });
+};
+
+// PATCH 요청
+export const apiPatch = async <T = any>(url: string, data?: any): Promise<T> => {
+  return apiRequest<T>(url, {
+    method: 'PATCH',
     body: data ? JSON.stringify(data) : undefined,
   });
 };

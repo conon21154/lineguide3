@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { Search, Filter, ChevronDown, ChevronRight, Users, Trash2 } from 'lucide-react'
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
 import { useAuth } from '@/contexts/AuthContext'
@@ -10,12 +10,17 @@ import WorkOrderTable from '@/components/WorkOrderTable'
 export default function WorkBoard() {
   const { user, isAdmin } = useAuth()
   const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // URL 쿼리에서 필터 값 읽기 (기본값: 전체)
   const [selectedTeam, setSelectedTeam] = useState<OperationTeam | ''>('')
   const [selectedStatus, setSelectedStatus] = useState<WorkOrderStatus | ''>('')
   const [searchTerm, setSearchTerm] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'teams'>('teams')
   const [collapsedTeams, setCollapsedTeams] = useState<Set<OperationTeam>>(new Set())
+  const [collapsedWorkOrders, setCollapsedWorkOrders] = useState<Set<string>>(new Set())
+  const [hasInitialized, setHasInitialized] = useState(false)
 
   const filter: WorkOrderFilter = useMemo(() => {
     const f: WorkOrderFilter = {}
@@ -32,13 +37,30 @@ export default function WorkBoard() {
     return f
   }, [selectedTeam, selectedStatus, searchTerm, isAdmin, user?.team])
 
-  const { workOrders, loading, clearAllWorkOrders } = useWorkOrdersAPI(filter)
+  const { workOrders, loading, clearAllWorkOrders, refreshData, updateStatus, deleteWorkOrder } = useWorkOrdersAPI(filter)
   const [cleared, setCleared] = useState(false)
+
+  // 필터 업데이트 함수
+  const updateFilter = useCallback((patch: Partial<{ team: OperationTeam | '', status: WorkOrderStatus | '', q: string }>) => {
+    const next = { 
+      team: selectedTeam, 
+      status: selectedStatus, 
+      q: searchTerm, 
+      ...patch 
+    }
+    const sp = new URLSearchParams()
+    Object.entries(next).forEach(([k, v]) => { 
+      if (v != null && v !== '') sp.set(k, String(v))
+    })
+    setSearchParams(sp, { replace: true })
+  }, [selectedTeam, selectedStatus, searchTerm, setSearchParams])
 
   console.log('🏢 WorkBoard 렌더링:', {
     workOrdersCount: workOrders.length,
     loading,
     filter,
+    collapsedWorkOrdersSize: collapsedWorkOrders.size,
+    hasInitialized,
     user: { username: user?.username, team: user?.team, role: user?.role }
   })
 
@@ -137,6 +159,53 @@ export default function WorkBoard() {
     return stats
   }, [workOrdersByTeam])
 
+  // 작업지시가 로드되면 모든 항목을 기본적으로 접힌 상태로 설정 (한 번만 실행)
+  useEffect(() => {
+    if (workOrders.length > 0 && !hasInitialized) {
+      const allWorkOrderIds = new Set<string>()
+      
+      // 모든 작업지시 ID를 수집
+      workOrders.forEach(workOrder => {
+        allWorkOrderIds.add(workOrder.id)
+      })
+      
+      // 팀별 보기에서 관리번호별 RU 그룹 ID도 추가
+      Object.entries(workOrdersByTeam).forEach(([team, managementNumbers]) => {
+        Object.keys(managementNumbers).forEach(managementNumber => {
+          allWorkOrderIds.add(`ru-${managementNumber}`)
+        })
+      })
+      
+      console.log('🔧 접힘 상태 초기화:', {
+        workOrdersCount: workOrders.length,
+        allWorkOrderIds: Array.from(allWorkOrderIds),
+        hasInitialized
+      })
+      
+      setCollapsedWorkOrders(allWorkOrderIds)
+      setHasInitialized(true)
+    }
+  }, [workOrders.length, hasInitialized])
+
+  // URL 쿼리 변경 시 상태 업데이트 (URL에 값이 있을 때만)
+  useEffect(() => {
+    const team = searchParams.get('team')
+    const status = searchParams.get('status')
+    const q = searchParams.get('q')
+    
+    if (team !== null) setSelectedTeam(team as OperationTeam || '')
+    if (status !== null) setSelectedStatus(status as WorkOrderStatus || '')
+    if (q !== null) setSearchTerm(q || '')
+  }, [searchParams])
+
+  // 검색 디바운스 (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateFilter({ q: searchTerm })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchTerm, updateFilter])
+
   // 페이지 접근 시 데이터 새로고침 (업로드 후 이동 시 최신 데이터 보장)
   useEffect(() => {
     console.log('🔄 WorkBoard 페이지 접근, 데이터 새로고침')
@@ -170,9 +239,7 @@ export default function WorkBoard() {
   }
 
   const clearFilters = () => {
-    setSelectedTeam('')
-    setSelectedStatus('')
-    setSearchTerm('')
+    updateFilter({ team: '', status: '', q: '' })
   }
 
   const toggleTeamCollapse = (team: OperationTeam) => {
@@ -183,6 +250,16 @@ export default function WorkBoard() {
       newCollapsed.add(team)
     }
     setCollapsedTeams(newCollapsed)
+  }
+
+  const toggleWorkOrderCollapse = (workOrderId: string) => {
+    const newCollapsed = new Set(collapsedWorkOrders)
+    if (newCollapsed.has(workOrderId)) {
+      newCollapsed.delete(workOrderId)
+    } else {
+      newCollapsed.add(workOrderId)
+    }
+    setCollapsedWorkOrders(newCollapsed)
   }
 
   const handleClearAll = async () => {
@@ -281,7 +358,7 @@ export default function WorkBoard() {
                 </label>
                 <select
                   value={selectedTeam}
-                  onChange={(e) => setSelectedTeam(e.target.value as OperationTeam | '')}
+                  onChange={(e) => updateFilter({ team: e.target.value as OperationTeam | '' })}
                   className="input w-full sm:w-40"
                 >
                   <option value="">전체</option>
@@ -305,7 +382,7 @@ export default function WorkBoard() {
               </label>
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as WorkOrderStatus | '')}
+                onChange={(e) => updateFilter({ status: e.target.value as WorkOrderStatus | '' })}
                 className="input w-full sm:w-32"
               >
                 <option value="">전체</option>
@@ -355,11 +432,16 @@ export default function WorkBoard() {
           <p className="text-gray-600">Excel 파일을 업로드하여 작업지시를 등록하세요</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="space-y-6">
-          <WorkOrderTable workOrders={visible} />
+        <div className="space-y-3 md:space-y-4">
+          <WorkOrderTable 
+            workOrders={visible} 
+            onRefresh={refreshData}
+            onUpdateStatus={updateStatus}
+            onDeleteWorkOrder={deleteWorkOrder}
+          />
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-3 md:space-y-4">
           {Object.entries(workOrdersByTeam).length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
@@ -426,15 +508,30 @@ export default function WorkBoard() {
                     </div>
                     
                     {!isCollapsed && (
-                      <div className="border-t border-gray-200 space-y-6">
+                      <div className="border-t border-gray-200 space-y-3 md:space-y-4">
                         {Object.entries(managementNumbers).map(([managementNumber, workOrderGroup]) => (
-                          <div key={managementNumber} className="p-4 border-b border-gray-100 last:border-b-0">
-                            <div className="flex items-center justify-between mb-4">
+                          <div key={managementNumber} className="p-4 md:p-5 border-b border-gray-100 last:border-b-0">
+                            <div className="flex items-center justify-between mb-4 items-center">
                               <div className="flex items-center space-x-3">
                                 <h3 className="text-lg font-semibold text-gray-900">관리번호: {managementNumber}</h3>
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                  {workOrderGroup.du ? 'DU + ' : ''}{workOrderGroup.ru.length}RU
-                                </span>
+                                {(() => {
+                                  // RU측 Co-site 수 계산
+                                  let ruCount = 0;
+                                  if (workOrderGroup.du?.coSiteCount5G) {
+                                    ruCount = Number(workOrderGroup.du.coSiteCount5G) || 0;
+                                  } else if (workOrderGroup.du?.ruInfoList?.length) {
+                                    ruCount = workOrderGroup.du.ruInfoList.length;
+                                  } else if (workOrderGroup.ru.length > 0) {
+                                    ruCount = workOrderGroup.ru.length;
+                                  }
+                                  
+                                  // RU측 Co-site가 있을 때만 배지 표시
+                                  return ruCount > 0 ? (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                      RU측 {ruCount}개
+                                    </span>
+                                  ) : null;
+                                })()}
                               </div>
                               <div className="flex items-center space-x-2">
                                 {workOrderGroup.du && (
@@ -454,22 +551,50 @@ export default function WorkBoard() {
                               {/* DU측 작업 */}
                               {workOrderGroup.du && (
                                 <div>
-                                  <div className="flex items-center space-x-2 mb-3">
-                                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                    <h4 className="text-sm font-medium text-blue-800">DU측 작업 (집중국)</h4>
+                                  <button
+                                    className="w-full text-left flex items-center justify-between"
+                                    aria-expanded={!collapsedWorkOrders.has(workOrderGroup.du.id)}
+                                    onClick={() => workOrderGroup.du && toggleWorkOrderCollapse(workOrderGroup.du.id)}
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                      <h4 className="text-sm font-medium text-blue-800">DU측 작업 (집중국)</h4>
+                                    </div>
+                                    <ChevronDown className={`w-4 h-4 transition ${collapsedWorkOrders.has(workOrderGroup.du.id) ? '' : 'rotate-180'}`} />
+                                  </button>
+                                  <div className={collapsedWorkOrders.has(workOrderGroup.du.id) ? 'mt-0' : 'mt-3'} style={{ display: collapsedWorkOrders.has(workOrderGroup.du.id) ? 'none' : 'block' }}>
+                                    <WorkOrderTable 
+                                      workOrders={[workOrderGroup.du]} 
+                                      onRefresh={refreshData}
+                                      onUpdateStatus={updateStatus}
+                                      onDeleteWorkOrder={deleteWorkOrder}
+                                    />
                                   </div>
-                                  <WorkOrderTable workOrders={[workOrderGroup.du]} />
                                 </div>
                               )}
                               
                               {/* RU측 작업들 */}
                               {workOrderGroup.ru.length > 0 && (
                                 <div>
-                                  <div className="flex items-center space-x-2 mb-3">
-                                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                    <h4 className="text-sm font-medium text-green-800">RU측 작업 (현장) - {workOrderGroup.ru.length}개</h4>
+                                  <button
+                                    className="w-full text-left flex items-center justify-between"
+                                    aria-expanded={!collapsedWorkOrders.has(`ru-${managementNumber}`)}
+                                    onClick={() => toggleWorkOrderCollapse(`ru-${managementNumber}`)}
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                      <h4 className="text-sm font-medium text-green-800">RU측 작업 (현장) - {workOrderGroup.ru.length}개</h4>
+                                    </div>
+                                    <ChevronDown className={`w-4 h-4 transition ${collapsedWorkOrders.has(`ru-${managementNumber}`) ? '' : 'rotate-180'}`} />
+                                  </button>
+                                  <div className={collapsedWorkOrders.has(`ru-${managementNumber}`) ? 'mt-0' : 'mt-3'} style={{ display: collapsedWorkOrders.has(`ru-${managementNumber}`) ? 'none' : 'block' }}>
+                                    <WorkOrderTable 
+                                      workOrders={workOrderGroup.ru} 
+                                      onRefresh={refreshData}
+                                      onUpdateStatus={updateStatus}
+                                      onDeleteWorkOrder={deleteWorkOrder}
+                                    />
                                   </div>
-                                  <WorkOrderTable workOrders={workOrderGroup.ru} />
                                 </div>
                               )}
                             </div>

@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const csv = require('csv-parser');
 const iconv = require('iconv-lite');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const { WorkOrder, FieldResponse } = require('../models');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
@@ -100,7 +100,23 @@ router.get('/', authMiddleware, async (req, res) => {
       where,
       limit,
       offset,
-      order: [['created_at', req.query.sortOrder || 'DESC']]
+      order: [['created_at', req.query.sortOrder || 'DESC']],
+      attributes: {
+        include: [
+          [
+            Sequelize.literal(`
+              EXISTS (
+                SELECT 1
+                FROM response_notes rn
+                WHERE rn.work_order_id = WorkOrder.id
+                  AND rn.side = CASE WHEN WorkOrder.work_type = 'DU측' THEN 'DU' ELSE 'RU' END
+                  AND rn.deleted_at IS NULL
+              )
+            `),
+            'hasMemo'
+          ]
+        ]
+      }
     });
 
     res.json({
@@ -566,6 +582,9 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
       completedAt: status === 'completed' ? new Date() : null
     });
 
+    // 기존 field_responses 생성 로직은 비활성화 (새로운 response_notes 시스템 사용)
+    // TODO: 기존 로직 제거됨 - 새로운 response_notes API 사용
+
     res.json({
       message: '상태가 변경되었습니다',
       workOrder
@@ -615,7 +634,11 @@ router.get('/field-reports', authMiddleware, async (req, res) => {
       equipmentName: r.equipmentName,
       representativeRuId: r.representativeRuId,
       summary: r.summary,
-      createdAt: r.createdAt
+      createdAt: r.createdAt,
+      adminChecked: !!r.adminChecked,
+      adminCheckedAt: r.adminCheckedAt,
+      // 현장회신은 완료된 작업에서만 생성되므로, 대시보드/보드에서 필터 용도로 'completed'로 고정 반환
+      status: 'completed'
     }));
     console.log(`📊 현장 회신 ${mapped.length}건 조회됨`);
     res.json(mapped);
@@ -627,6 +650,19 @@ router.get('/field-reports', authMiddleware, async (req, res) => {
     });
   }
 });
+
+// 현장 회신 전체 삭제 (관리자)
+router.delete('/field-reports', [authMiddleware, adminMiddleware], async (req, res) => {
+  try {
+    console.log('🗑️ 현장 회신 전체 삭제 요청')
+    const deletedCount = await FieldResponse.destroy({ where: {} })
+    console.log(`✅ 현장 회신 삭제 완료: ${deletedCount}개`)
+    res.json({ success: true, deletedCount })
+  } catch (error) {
+    console.error('현장 회신 전체 삭제 오류:', error)
+    res.status(500).json({ success: false, error: '현장 회신 전체 삭제 중 오류' })
+  }
+})
 
 // 회신 메모 저장
 router.put('/:id/response-note', authMiddleware, async (req, res) => {
@@ -659,31 +695,8 @@ router.put('/:id/response-note', authMiddleware, async (req, res) => {
     });
 
     console.log('✅ 회신 메모 저장 완료:', req.params.id);
-    // 현장회신 테이블에도 동시 기록 (요약 기반)
-    try {
-      const baseMgmtNo = workOrder.managementNumber?.replace(/_(DU측|RU측)$/,'') || workOrder.managementNumber;
-      const summaryOneLine = (updatedNote && updatedNote.summary) ? String(updatedNote.summary).trim() : '';
-      if (summaryOneLine) {
-        // 중복 방지: managementNumber + workType + summary로 upsert
-        await FieldResponse.upsert({
-          workOrderId: workOrder.id?.toString(),
-          managementNumber: baseMgmtNo,
-          workType: workOrder.workType,
-          operationTeam: workOrder.operationTeam,
-          equipmentName: workOrder.equipmentName,
-          representativeRuId: workOrder.representativeRuId,
-          summary: summaryOneLine,
-          status: 'active',
-          adminChecked: false,
-          createdBy: req.user.userId
-        });
-        console.log('✅ 현장회신 레코드 upsert 완료:', { baseMgmtNo, workType: workOrder.workType });
-      } else {
-        console.log('ℹ️ 요약이 비어 있어 현장회신 레코드 생성 건너뜀:', workOrder.id);
-      }
-    } catch (frErr) {
-      console.error('❌ 현장회신 저장 실패:', frErr);
-    }
+    // 기존 field_responses 생성 로직은 비활성화 (새로운 response_notes 시스템 사용)
+    // TODO: 기존 로직 제거됨 - 새로운 response_notes API 사용
 
     res.json({
       message: '회신 메모가 저장되었습니다',
@@ -713,6 +726,37 @@ router.post('/:id/response-note/field-record', authMiddleware, async (req, res) 
     const baseMgmtNo = workOrder.managementNumber?.replace(/_(DU측|RU측)$/,'') || workOrder.managementNumber;
 
     const summary = (req.body?.summary || '').toString().trim();
+    
+    // 중복 체크: 같은 관리번호 + 유사한 요약 (첫 50자)이 있는지 확인
+    const summaryPrefix = summary.slice(0, 50);
+    const existingReport = await FieldResponse.findOne({
+      where: {
+        managementNumber: baseMgmtNo,
+        summary: {
+          [Op.like]: `${summaryPrefix}%`
+        },
+        createdBy: req.user.userId, // 같은 사용자가 작성한 것만 체크
+        createdAt: {
+          [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) // 24시간 내
+        }
+      }
+    });
+
+    if (existingReport) {
+      console.log('🚫 중복 현장회신 감지:', {
+        managementNumber: baseMgmtNo,
+        userId: req.user.userId,
+        existingId: existingReport.id,
+        summaryPrefix
+      });
+      
+      return res.status(409).json({ 
+        success: false, 
+        error: '이미 유사한 현장회신이 24시간 내에 등록되었습니다. 기존 회신을 수정하거나 다른 내용으로 작성해주세요.',
+        duplicateId: existingReport.id
+      });
+    }
+
     const record = await FieldResponse.create({
       workOrderId: workOrder.id?.toString(),
       managementNumber: baseMgmtNo,
@@ -724,6 +768,12 @@ router.post('/:id/response-note/field-record', authMiddleware, async (req, res) 
       status: 'active',
       adminChecked: false,
       createdBy: req.user.userId
+    });
+
+    console.log('✅ 현장회신 등록 완료:', {
+      id: record.id,
+      managementNumber: baseMgmtNo,
+      userId: req.user.userId
     });
 
     res.json({ success: true, fieldResponse: record });
@@ -802,6 +852,86 @@ router.delete('/clear-all', [authMiddleware, adminMiddleware], async (req, res) 
     res.status(500).json({
       success: false,
       error: '전체 삭제 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// 베이스 정보 API - 메모 작성용 기본 정보 조회
+router.get('/:id/memo-base', authMiddleware, async (req, res) => {
+  try {
+    const workOrder = await WorkOrder.findByPk(req.params.id);
+    
+    if (!workOrder) {
+      return res.status(404).json({ error: '작업지시를 찾을 수 없습니다' });
+    }
+
+    // side 결정: workType 기반
+    let side = 'RU측'; // 기본값
+    if (workOrder.workType === 'DU측') {
+      side = 'DU측';
+    }
+
+    const response = {
+      workOrderId: parseInt(workOrder.id),
+      status: workOrder.status || 'pending',
+      side: side,
+      operationTeam: workOrder.operationTeam || workOrder.team || '',
+      managementNumber: workOrder.managementNumber || '',
+      duName: workOrder.duName || null,
+      ruName: workOrder.representativeRuId || workOrder.equipmentName || null,
+      coSiteCount5g: workOrder.coSiteCount5G ? parseInt(workOrder.coSiteCount5G) : null
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error('베이스 정보 조회 오류:', error);
+    res.status(500).json({
+      error: '베이스 정보 조회 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// 라벨 프린터용 데이터 조회 API
+router.get('/:id/label-data', authMiddleware, async (req, res) => {
+  try {
+    const workOrder = await WorkOrder.findByPk(req.params.id);
+    
+    if (!workOrder) {
+      return res.status(404).json({ error: '작업지시를 찾을 수 없습니다' });
+    }
+
+    // 라벨 프린터에 필요한 모든 칼럼 반환
+    const labelData = {
+      // 기본 정보
+      managementNumber: workOrder.managementNumber || '',
+      requestDate: workOrder.requestDate || '',
+      duTeam: workOrder.operationTeam || '', // DU운용팀
+      ruTeam: workOrder.operationTeam || '', // RU운용팀 (동일한 필드 사용)
+      
+      // RU/DU 정보
+      ruId: workOrder.representativeRuId || '',
+      ruName: workOrder.equipmentName || '',
+      focus5gName: workOrder.concentratorName5G || '', // 5G 집중국명
+      lineNumber: workOrder.lineNumber || '', // 회선번호
+      lteMux: workOrder.lteMux || workOrder.muxInfo || '', // (LTE MUX / 국간,간선망)
+      
+      // 장비 정보
+      equipmentLocation: workOrder.equipmentLocation || '',
+      muxType: workOrder.muxType || '', // MUX종류
+      serviceType: workOrder.serviceType || '', // 서비스구분
+      duId: workOrder.duId || '',
+      duName: workOrder.duName || '',
+      channelCard: workOrder.channelCard || '',
+      port: workOrder.port || ''
+    };
+
+    res.json(labelData);
+
+  } catch (error) {
+    console.error('라벨 데이터 조회 오류:', error);
+    res.status(500).json({
+      error: '라벨 데이터 조회 중 오류가 발생했습니다'
     });
   }
 });

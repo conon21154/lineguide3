@@ -71,11 +71,15 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 const authRoutes = require('../routes/auth');
 const workOrderRoutes = require('../routes/workOrders');
 const teamRoutes = require('../routes/teams');
+const responseNoteRoutes = require('../routes/responseNotes');
+const dashboardRoutes = require('../routes/dashboard');
 
 // 라우터 사용
 app.use('/api/auth', authRoutes);
 app.use('/api/work-orders', workOrderRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/response-notes', responseNoteRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 기본 라우터
 app.get('/', (req, res) => {
@@ -152,6 +156,15 @@ const startServer = async () => {
       console.log('✅ FieldResponse 테이블 동기화 완료 (alter:true)');
     } catch (frErr) {
       console.warn('⚠️ FieldResponse 테이블 동기화 실패:', frErr?.message || frErr);
+    }
+
+    // ResponseNote 테이블 동기화 (alter 허용)
+    try {
+      const { ResponseNote } = require('../models');
+      await ResponseNote.sync({ alter: true });
+      console.log('✅ ResponseNote 테이블 동기화 완료 (alter:true)');
+    } catch (rnErr) {
+      console.warn('⚠️ ResponseNote 테이블 동기화 실패:', rnErr?.message || rnErr);
     }
 
     // 기본 사용자 데이터 초기화

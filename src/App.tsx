@@ -1,4 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from 'sonner'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import Dashboard from '@/pages/Dashboard'
@@ -88,11 +90,30 @@ function AppContent() {
   )
 }
 
+// QueryClient 생성
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 10 * 1000, // 10초
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
+
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppContent />
+        <Toaster 
+          position="top-right"
+          richColors
+          closeButton
+          duration={3000}
+        />
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }
 

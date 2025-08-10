@@ -4,6 +4,18 @@ const { User } = require('../models');
 // JWT 토큰 검증 미들웨어
 const authMiddleware = async (req, res, next) => {
   try {
+    // 개발 환경에서 인증 우회
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🔓 개발 환경 인증 우회 - 기본 사용자 사용');
+      req.user = {
+        userId: 1,
+        username: 'admin',
+        role: 'admin',
+        team: 'admin'
+      };
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
