@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
+import { useDebounce } from 'use-debounce'
 import { Search, Filter, ChevronDown, ChevronRight, Users, Trash2 } from 'lucide-react'
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
 import { useAuth } from '@/contexts/AuthContext'
@@ -12,16 +13,26 @@ export default function WorkBoard() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   
-  // URL 쿼리에서 필터 값 읽기 (기본값: 전체)
-  const [selectedTeam, setSelectedTeam] = useState<OperationTeam | ''>('')
-  const [selectedStatus, setSelectedStatus] = useState<WorkOrderStatus | ''>('')
-  const [searchTerm, setSearchTerm] = useState('')
+  // URL 초기값
+  const initQ = searchParams.get('q') ?? ''
+  const initTeam = searchParams.get('team') ?? ''
+  const initStatus = searchParams.get('status') ?? ''
+  
+  // 검색 상태 (IME 최적화)
+  const [inputQ, setInputQ] = useState(initQ)
+  const [isComposing, setIsComposing] = useState(false)
+  const [debouncedQ] = useDebounce(inputQ, 300)
+  
+  // 필터 상태
+  const [selectedTeam, setSelectedTeam] = useState<OperationTeam | ''>(initTeam as OperationTeam || '')
+  const [selectedStatus, setSelectedStatus] = useState<WorkOrderStatus | ''>(initStatus as WorkOrderStatus || '')
+  
+  // UI 상태
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'teams'>('teams')
   const [collapsedTeams, setCollapsedTeams] = useState<Set<OperationTeam>>(new Set())
   const [collapsedWorkOrders, setCollapsedWorkOrders] = useState<Set<string>>(new Set())
   const [hasInitialized, setHasInitialized] = useState(false)
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const filter: WorkOrderFilter = useMemo(() => {
     const f: WorkOrderFilter = {}
@@ -34,34 +45,42 @@ export default function WorkBoard() {
     }
     
     if (selectedStatus) f.status = selectedStatus
-    if (searchTerm.trim()) f.searchTerm = searchTerm.trim()
+    if (debouncedQ.trim()) f.searchTerm = debouncedQ.trim()
     return f
-  }, [selectedTeam, selectedStatus, searchTerm, isAdmin, user?.team])
+  }, [selectedTeam, selectedStatus, debouncedQ, isAdmin, user?.team])
 
-  const { workOrders, loading, clearAllWorkOrders, refreshData, updateStatus, deleteWorkOrder, setFilter } = useWorkOrdersAPI(filter)
+  const { workOrders, loading, clearAllWorkOrders, refreshData, updateStatus, deleteWorkOrder, setFilter } = useWorkOrdersAPI()
+  
+  // 필터가 변경될 때마다 API 호출
+  useEffect(() => {
+    setFilter(filter)
+  }, [filter, setFilter])
   const [cleared, setCleared] = useState(false)
 
-  // 필터 업데이트 함수 - 상태와 URL만 업데이트 (API 호출은 useEffect가 처리)
-  const updateFilter = useCallback((patch: Partial<{ team: OperationTeam | '', status: WorkOrderStatus | '', q: string }>) => {
-    const next = { 
-      team: selectedTeam, 
-      status: selectedStatus, 
-      q: searchTerm, 
-      ...patch 
-    }
+  // URL 동기화: 디바운스된 검색어와 필터를 URL에 반영 (조합 중엔 동기화 금지)
+  useEffect(() => {
+    if (isComposing) return
     
-    // 상태 업데이트
+    const next = new URLSearchParams()
+    if (selectedTeam) next.set('team', selectedTeam)
+    if (selectedStatus) next.set('status', selectedStatus)
+    if (debouncedQ.trim()) next.set('q', debouncedQ.trim())
+    
+    setSearchParams(next, { replace: true })
+  }, [debouncedQ, selectedTeam, selectedStatus, isComposing, setSearchParams])
+  
+  // 필터 업데이트 함수 - 상태만 업데이트 (URL은 useEffect가 처리)
+  const updateFilter = useCallback((patch: Partial<{ team: OperationTeam | '', status: WorkOrderStatus | '', q: string }>) => {
     if ('team' in patch) setSelectedTeam(patch.team as OperationTeam || '')
     if ('status' in patch) setSelectedStatus(patch.status as WorkOrderStatus || '')
-    if ('q' in patch) setSearchTerm(patch.q || '')
-    
-    // URL 업데이트
-    const sp = new URLSearchParams()
-    Object.entries(next).forEach(([k, v]) => { 
-      if (v != null && v !== '') sp.set(k, String(v))
-    })
-    setSearchParams(sp, { replace: true })
-  }, [selectedTeam, selectedStatus, searchTerm, setSearchParams])
+    if ('q' in patch) {
+      setInputQ(patch.q || '')
+      // 즉시 검색이 필요한 경우 (필터 초기화 등)
+      if (!patch.q) {
+        setIsComposing(false)
+      }
+    }
+  }, [])
 
   console.log('🏢 WorkBoard 렌더링:', {
     workOrdersCount: workOrders.length,
@@ -187,28 +206,7 @@ export default function WorkBoard() {
     if (q !== null) setSearchTerm(q || '')
   }, [searchParams])
   
-  // 필터 상태가 변경되면 API 호출
-  useEffect(() => {
-    const apiFilter: WorkOrderFilter = {}
-    if (!isAdmin && user?.team) {
-      apiFilter.operationTeam = (user.team as unknown as OperationTeam)
-    } else if (selectedTeam) {
-      apiFilter.operationTeam = selectedTeam
-    }
-    if (selectedStatus) apiFilter.status = selectedStatus
-    if (searchTerm?.trim()) apiFilter.searchTerm = searchTerm.trim()
-    
-    setFilter(apiFilter)
-  }, [selectedTeam, selectedStatus, searchTerm, isAdmin, user?.team, setFilter])
 
-  // 컴포넌트 언마운트 시 검색 타이머 정리
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current)
-      }
-    }
-  }, [])
 
   // 페이지 접근 시 데이터 새로고침 (업로드 후 이동 시 최신 데이터 보장)
   useEffect(() => {
@@ -243,10 +241,6 @@ export default function WorkBoard() {
   }
 
   const clearFilters = () => {
-    // 검색 디바운스 취소
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current)
-    }
     updateFilter({ team: '', status: '', q: '' })
   }
 
@@ -296,10 +290,10 @@ export default function WorkBoard() {
   }
 
   // 필터 활성 개수 계산
-  const activeFiltersCount = [selectedTeam, selectedStatus, searchTerm].filter(Boolean).length
+  const activeFiltersCount = [selectedTeam, selectedStatus, debouncedQ].filter(Boolean).length
 
   return (
-    <div className="max-w-screen-sm mx-auto w-full px-3 sm:px-4 py-4 space-y-4 overflow-x-hidden">
+    <div className="w-full mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 max-w-screen-sm md:max-w-2xl lg:max-w-5xl xl:max-w-7xl 2xl:max-w-[1400px] space-y-4 overflow-x-hidden">
       <div className="flex flex-col gap-4 overflow-x-hidden">
         <div className="min-w-0">
           <h1 className="text-sm sm:text-2xl font-bold text-gray-900 truncate">작업게시판</h1>
@@ -334,19 +328,18 @@ export default function WorkBoard() {
               <input
                 type="text"
                 placeholder="관리번호, 장비명 등으로 검색..."
-                value={searchTerm}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setSearchTerm(value)
-                  // 디바운스 적용 (300ms)
-                  if (searchTimeoutRef.current) {
-                    clearTimeout(searchTimeoutRef.current)
-                  }
-                  searchTimeoutRef.current = setTimeout(() => {
-                    updateFilter({ q: value })
-                  }, 300)
+                value={inputQ}
+                onChange={(e) => setInputQ(e.target.value)}
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={(e) => {
+                  setIsComposing(false)
+                  // 조합 완료 시 최종 문자열로 동기화
+                  setInputQ(e.currentTarget.value)
                 }}
-                className="w-full h-11 pl-10 rounded-lg border-slate-300 focus:ring-2 focus:ring-sky-500/30 bg-white/90 backdrop-blur text-[13px] sm:text-sm"
+                autoComplete="off"
+                inputMode="search"
+                enterKeyHint="search"
+                className="w-full h-11 pl-10 rounded-lg border-slate-300 focus:ring-2 focus:ring-sky-500/30 bg-white/90 backdrop-blur text-[13px] sm:text-sm placeholder:text-slate-400"
               />
             </div>
             
@@ -376,13 +369,13 @@ export default function WorkBoard() {
             {/* 관리자만 팀 필터 표시 */}
             {isAdmin && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-slate-600 mb-1 tracking-wide">
                   운용팀
                 </label>
                 <select
                   value={selectedTeam}
                   onChange={(e) => updateFilter({ team: e.target.value as OperationTeam | '' })}
-                  className="w-full h-11 rounded-lg border-slate-300 focus:ring-2 focus:ring-sky-500/30 bg-white text-[13px] sm:text-sm"
+                  className="w-full h-11 rounded-md border border-slate-300 bg-slate-50 px-2 py-1.5 text-[13px] sm:text-sm transition-colors duration-200 focus:border-blue-500 focus:outline-none focus:ring-0"
                 >
                   <option value="">전체</option>
                   <option value="울산T">울산T</option>
@@ -400,13 +393,13 @@ export default function WorkBoard() {
             )}
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-slate-600 mb-1 tracking-wide">
                 상태
               </label>
               <select
                 value={selectedStatus}
                 onChange={(e) => updateFilter({ status: e.target.value as WorkOrderStatus | '' })}
-                className="w-full h-11 rounded-lg border-slate-300 focus:ring-2 focus:ring-sky-500/30 bg-white text-[13px] sm:text-sm"
+                className="w-full h-11 rounded-md border border-slate-300 bg-slate-50 px-2 py-1.5 text-[13px] sm:text-sm transition-colors duration-200 focus:border-blue-500 focus:outline-none focus:ring-0"
               >
                 <option value="">전체</option>
                 <option value="pending">대기</option>
@@ -432,6 +425,11 @@ export default function WorkBoard() {
         <div className="text-[13px] sm:text-sm text-gray-600 min-w-0">
           총 {cleared ? 0 : workOrders.length}개의 작업지시
           {activeFiltersCount > 0 && ' (필터링됨)'}
+          {debouncedQ && (
+            <span className="ml-2 text-blue-600 font-medium">
+              검색: "{debouncedQ}"
+            </span>
+          )}
         </div>
         
         {(cleared ? 0 : workOrders.length) > 0 && (
