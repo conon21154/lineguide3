@@ -296,7 +296,142 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto">
+      {/* 모바일 카드 뷰 */}
+      <div className="block lg:hidden space-y-3 overflow-x-hidden">
+        {workOrders.map((workOrder) => (
+          <div key={workOrder.id} className="rounded-xl border border-slate-200 bg-white shadow-sm p-3 space-y-2">
+            {/* 상단: 관리번호 + 상태 배지 */}
+            <div className="flex min-w-0 items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-slate-900 min-w-0">
+                  <span className="block truncate" title={getBaseManagementNumber(workOrder.managementNumber)}>
+                    {getBaseManagementNumber(workOrder.managementNumber)}
+                  </span>
+                </div>
+                {workOrder.workType && (
+                  <div className="mt-1">
+                    <span className={`inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium ${
+                      workOrder.workType === 'DU측' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {workOrder.workType}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex-shrink-0">
+                {editingId === workOrder.id ? (
+                  <div className="space-y-2">
+                    <select
+                      value={editingStatus}
+                      onChange={(e) => setEditingStatus(e.target.value as WorkOrderStatus)}
+                      className="text-xs border rounded p-1"
+                    >
+                      <option value="pending">대기</option>
+                      <option value="in_progress">진행중</option>
+                      <option value="completed">완료</option>
+                    </select>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="메모 (선택사항)"
+                      className="w-full text-xs border rounded p-2"
+                      rows={2}
+                    />
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleEditSave(workOrder.id)}
+                        className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+                      >
+                        저장
+                      </button>
+                      <button
+                        onClick={handleEditCancel}
+                        className="text-xs bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <StatusBadge status={workOrder.status} />
+                )}
+              </div>
+            </div>
+            
+            {/* 본문: 팀, 장비명, 대표 RU */}
+            <div className="grid grid-cols-1 gap-1 text-[13px] text-slate-700">
+              <div className="min-w-0">
+                <span className="font-medium">팀: </span>
+                <span className="truncate" title={workOrder.operationTeam}>{workOrder.operationTeam}</span>
+              </div>
+              <div className="min-w-0">
+                <span className="font-medium">장비명: </span>
+                <span className="block truncate" title={workOrder.equipmentName}>{workOrder.equipmentName}</span>
+              </div>
+              <div className="min-w-0">
+                <span className="font-medium">대표 RU: </span>
+                <span className="block truncate" title={getRepresentativeRuName(workOrder.ruInfoList) || workOrder.representativeRuId || '-'}>
+                  {getRepresentativeRuName(workOrder.ruInfoList) || workOrder.representativeRuId || '-'}
+                </span>
+              </div>
+            </div>
+            
+            {/* 회신 메모 버튼 */}
+            <div>
+              <button
+                onClick={() => setResponseNoteId(workOrder.id)}
+                disabled={!isCompleted(workOrder.status)}
+                className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-xs rounded-md transition-colors border ${
+                  !isCompleted(workOrder.status)
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
+                    : workOrder.hasMemo
+                      ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200'
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200'
+                }`}
+              >
+                {workOrder.hasMemo ? (
+                  <CheckCircle2 className="w-4 h-4" />
+                ) : (
+                  <MessageSquare className="w-4 h-4" />
+                )}
+                <span>{!isCompleted(workOrder.status) ? '작성 불가' : (workOrder.hasMemo ? '메모 완료' : '메모 작성')}</span>
+              </button>
+            </div>
+            
+            {/* 액션 버튼들 */}
+            {editingId !== workOrder.id && (
+              <div className="flex justify-end gap-1 pt-1">
+                <button
+                  onClick={() => setViewingDetailId(workOrder.id)}
+                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-500/30 flex items-center justify-center text-primary-600"
+                  title="상세보기"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleEditStart(workOrder)}
+                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-500/30 flex items-center justify-center text-primary-600"
+                  title="상태 변경"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(workOrder.id)}
+                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-500/30 flex items-center justify-center text-danger-600"
+                  title="삭제"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      
+      {/* 데스크톱 테이블 뷰 */}
+      <div className="hidden lg:block overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

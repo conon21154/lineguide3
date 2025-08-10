@@ -290,11 +290,11 @@ export default function WorkBoard() {
   const activeFiltersCount = [selectedTeam, selectedStatus, searchTerm].filter(Boolean).length
 
   return (
-    <div className="space-y-4 px-2 sm:px-0">
-      <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">작업게시판</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+    <div className="max-w-screen-sm mx-auto w-full px-3 sm:px-4 py-4 space-y-4 overflow-x-hidden">
+      <div className="flex flex-col gap-4 overflow-x-hidden">
+        <div className="min-w-0">
+          <h1 className="text-sm sm:text-2xl font-bold text-gray-900 truncate">작업게시판</h1>
+          <p className="mt-1 sm:mt-2 text-[13px] sm:text-base text-gray-600">
             {isAdmin 
               ? '운용팀별 작업지시를 확인하고 상태를 관리하세요'
               : `${user?.team} 작업지시를 확인하고 상태를 관리하세요`
@@ -302,8 +302,8 @@ export default function WorkBoard() {
           </p>
         </div>
         
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-3 overflow-x-hidden">
+          <div className="flex flex-wrap gap-2 min-w-0">
             <button
               onClick={() => setViewMode('teams')}
               className={`btn text-sm ${viewMode === 'teams' ? 'btn-primary' : 'btn-secondary'}`}
@@ -319,21 +319,25 @@ export default function WorkBoard() {
             </button>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row gap-2 overflow-x-hidden">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 placeholder="관리번호, 장비명 등으로 검색..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input pl-10 w-full text-sm"
+                className="w-full h-11 pl-10 rounded-lg border-slate-300 focus:ring-2 focus:ring-sky-500/30 bg-white/90 backdrop-blur text-[13px] sm:text-sm"
               />
             </div>
             
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`btn text-sm ${activeFiltersCount > 0 ? 'btn-primary' : 'btn-secondary'} relative`}
+              className={`h-10 flex-shrink-0 px-4 rounded-lg text-[13px] sm:text-sm font-medium transition-colors relative ${
+                activeFiltersCount > 0
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+              }`}
             >
               <Filter className="w-4 h-4 mr-1" />
               필터
@@ -348,8 +352,8 @@ export default function WorkBoard() {
       </div>
 
       {showFilters && (
-        <div className="card">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur rounded-xl border border-slate-200 shadow-sm p-3">
+          <div className="flex flex-col gap-3 overflow-x-hidden">
             {/* 관리자만 팀 필터 표시 */}
             {isAdmin && (
               <div>
@@ -359,7 +363,7 @@ export default function WorkBoard() {
                 <select
                   value={selectedTeam}
                   onChange={(e) => updateFilter({ team: e.target.value as OperationTeam | '' })}
-                  className="input w-full sm:w-40"
+                  className="w-full h-11 rounded-lg border-slate-300 focus:ring-2 focus:ring-sky-500/30 bg-white text-[13px] sm:text-sm"
                 >
                   <option value="">전체</option>
                   <option value="울산T">울산T</option>
@@ -383,7 +387,7 @@ export default function WorkBoard() {
               <select
                 value={selectedStatus}
                 onChange={(e) => updateFilter({ status: e.target.value as WorkOrderStatus | '' })}
-                className="input w-full sm:w-32"
+                className="w-full h-11 rounded-lg border-slate-300 focus:ring-2 focus:ring-sky-500/30 bg-white text-[13px] sm:text-sm"
               >
                 <option value="">전체</option>
                 <option value="pending">대기</option>
@@ -392,10 +396,10 @@ export default function WorkBoard() {
               </select>
             </div>
             
-            <div className="flex items-end">
+            <div className="flex gap-2">
               <button
                 onClick={clearFilters}
-                className="btn btn-secondary"
+                className="h-10 flex-1 rounded-lg bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-[13px] sm:text-sm font-medium"
                 disabled={activeFiltersCount === 0}
               >
                 초기화
@@ -405,8 +409,8 @@ export default function WorkBoard() {
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
+      <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+        <div className="text-[13px] sm:text-sm text-gray-600 min-w-0">
           총 {cleared ? 0 : workOrders.length}개의 작업지시
           {activeFiltersCount > 0 && ' (필터링됨)'}
         </div>
@@ -414,11 +418,12 @@ export default function WorkBoard() {
         {(cleared ? 0 : workOrders.length) > 0 && (
           <button
             onClick={handleClearAll}
-            className="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-[13px] sm:text-sm font-medium flex-shrink-0"
             title="모든 작업지시 삭제"
           >
             <Trash2 className="h-4 w-4" />
-            <span>전체 삭제</span>
+            <span className="hidden sm:inline">전체 삭제</span>
+            <span className="sm:hidden">삭제</span>
           </button>
         )}
       </div>
@@ -432,7 +437,7 @@ export default function WorkBoard() {
           <p className="text-gray-600">Excel 파일을 업로드하여 작업지시를 등록하세요</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-3 md:space-y-4 overflow-x-hidden">
           <WorkOrderTable 
             workOrders={visible} 
             onRefresh={refreshData}
@@ -441,7 +446,7 @@ export default function WorkBoard() {
           />
         </div>
       ) : (
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-3 md:space-y-4 overflow-x-hidden">
           {Object.entries(workOrdersByTeam).length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
@@ -462,45 +467,45 @@ export default function WorkBoard() {
                 const isCollapsed = collapsedTeams.has(team as OperationTeam)
                 
                 return (
-                  <div key={team} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div key={team} className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-hidden">
                     <div 
-                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+                      className="flex min-w-0 items-center justify-between p-3 cursor-pointer hover:bg-gray-50"
                       onClick={() => toggleTeamCollapse(team as OperationTeam)}
                     >
-                      <div className="flex items-center space-x-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         {isCollapsed ? (
-                          <ChevronRight className="h-5 w-5 text-gray-400" />
+                          <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
                         ) : (
-                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                          <ChevronDown className="h-5 w-5 text-gray-400 flex-shrink-0" />
                         )}
-                        <div className="flex items-center space-x-3">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                            {team}
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <span className="inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium bg-blue-100 text-blue-800">
+                            <span className="truncate" title={team}>{team}</span>
                           </span>
-                          <span className="text-lg font-semibold text-gray-900">
+                          <span className="text-sm sm:text-lg font-semibold text-gray-900 shrink-0">
                             총 {stats.total}건
                           </span>
-                          <div className="flex items-center space-x-2">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className="inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium bg-blue-100 text-blue-800">
                               DU: {stats.du}
                             </span>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <span className="inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium bg-green-100 text-green-800">
                               RU: {stats.ru}
                             </span>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex space-x-4 text-sm">
-                        <div className="flex items-center space-x-1">
+                      <div className="flex flex-wrap items-center gap-3 text-[13px] sm:text-sm">
+                        <div className="inline-flex items-center gap-1">
                           <div className="w-3 h-3 bg-amber-400 rounded-full"></div>
                           <span className="text-gray-600">대기 {stats.pending}</span>
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div className="inline-flex items-center gap-1">
                           <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                           <span className="text-gray-600">진행중 {stats.inProgress}</span>
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div className="inline-flex items-center gap-1">
                           <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
                           <span className="text-gray-600">완료 {stats.completed}</span>
                         </div>
@@ -508,12 +513,14 @@ export default function WorkBoard() {
                     </div>
                     
                     {!isCollapsed && (
-                      <div className="border-t border-gray-200 space-y-3 md:space-y-4">
+                      <div className="border-t border-gray-200 space-y-3 md:space-y-4 overflow-x-hidden">
                         {Object.entries(managementNumbers).map(([managementNumber, workOrderGroup]) => (
-                          <div key={managementNumber} className="p-4 md:p-5 border-b border-gray-100 last:border-b-0">
-                            <div className="flex items-center justify-between mb-4 items-center">
-                              <div className="flex items-center space-x-3">
-                                <h3 className="text-lg font-semibold text-gray-900">관리번호: {managementNumber}</h3>
+                          <div key={managementNumber} className="p-3 border-b border-gray-100 last:border-b-0 overflow-x-hidden">
+                            <div className="flex min-w-0 items-start justify-between mb-4 gap-2">
+                              <div className="flex min-w-0 items-center gap-3">
+                                <h3 className="text-sm sm:text-lg font-semibold text-gray-900 min-w-0">
+                                  <span className="block truncate" title={`관리번호: ${managementNumber}`}>관리번호: {managementNumber}</span>
+                                </h3>
                                 {(() => {
                                   // RU측 Co-site 수 계산
                                   let ruCount = 0;
@@ -527,27 +534,27 @@ export default function WorkBoard() {
                                   
                                   // RU측 Co-site가 있을 때만 배지 표시
                                   return ruCount > 0 ? (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    <span className="inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium bg-gray-100 text-gray-800">
                                       RU측 {ruCount}개
                                     </span>
                                   ) : null;
                                 })()}
                               </div>
-                              <div className="flex items-center space-x-2">
+                              <div className="flex flex-wrap gap-1">
                                 {workOrderGroup.du && (
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  <span className="inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium bg-blue-100 text-blue-800">
                                     DU측
                                   </span>
                                 )}
                                 {workOrderGroup.ru.length > 0 && (
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  <span className="inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium bg-green-100 text-green-800">
                                     RU측 {workOrderGroup.ru.length}개
                                   </span>
                                 )}
                               </div>
                             </div>
                             
-                            <div className="space-y-4">
+                            <div className="space-y-4 overflow-x-hidden">
                               {/* DU측 작업 */}
                               {workOrderGroup.du && (
                                 <div>
