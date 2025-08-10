@@ -41,7 +41,7 @@ export default function WorkBoard() {
   const { workOrders, loading, clearAllWorkOrders, refreshData, updateStatus, deleteWorkOrder, setFilter } = useWorkOrdersAPI(filter)
   const [cleared, setCleared] = useState(false)
 
-  // 필터 업데이트 함수 - 상태와 API 호출을 동시에 처리
+  // 필터 업데이트 함수 - 상태와 URL만 업데이트 (API 호출은 useEffect가 처리)
   const updateFilter = useCallback((patch: Partial<{ team: OperationTeam | '', status: WorkOrderStatus | '', q: string }>) => {
     const next = { 
       team: selectedTeam, 
@@ -50,7 +50,7 @@ export default function WorkBoard() {
       ...patch 
     }
     
-    // 상태 즉시 업데이트
+    // 상태 업데이트
     if ('team' in patch) setSelectedTeam(patch.team as OperationTeam || '')
     if ('status' in patch) setSelectedStatus(patch.status as WorkOrderStatus || '')
     if ('q' in patch) setSearchTerm(patch.q || '')
@@ -61,19 +61,7 @@ export default function WorkBoard() {
       if (v != null && v !== '') sp.set(k, String(v))
     })
     setSearchParams(sp, { replace: true })
-    
-    // API 필터 즉시 적용
-    const apiFilter: WorkOrderFilter = {}
-    if (!isAdmin && user?.team) {
-      apiFilter.operationTeam = (user.team as unknown as OperationTeam)
-    } else if (next.team) {
-      apiFilter.operationTeam = next.team as OperationTeam
-    }
-    if (next.status) apiFilter.status = next.status as WorkOrderStatus
-    if (next.q?.trim()) apiFilter.searchTerm = next.q.trim()
-    
-    setFilter(apiFilter)
-  }, [selectedTeam, selectedStatus, searchTerm, setSearchParams, setFilter, isAdmin, user?.team])
+  }, [selectedTeam, selectedStatus, searchTerm, setSearchParams])
 
   console.log('🏢 WorkBoard 렌더링:', {
     workOrdersCount: workOrders.length,
@@ -187,29 +175,31 @@ export default function WorkBoard() {
     }
   }, [workOrders.length, hasInitialized])
 
-  // URL 쿼리 변경 시 상태 업데이트 및 필터 적용
+  // URL 쿼리 변경 시 상태 업데이트만 수행 (필터는 별도 useEffect에서)
   useEffect(() => {
     const team = searchParams.get('team')
     const status = searchParams.get('status')
     const q = searchParams.get('q')
     
-    // 상태 업데이트
+    // 상태 업데이트만
     if (team !== null) setSelectedTeam(team as OperationTeam || '')
     if (status !== null) setSelectedStatus(status as WorkOrderStatus || '')
     if (q !== null) setSearchTerm(q || '')
-    
-    // API 필터 업데이트
+  }, [searchParams])
+  
+  // 필터 상태가 변경되면 API 호출
+  useEffect(() => {
     const apiFilter: WorkOrderFilter = {}
     if (!isAdmin && user?.team) {
       apiFilter.operationTeam = (user.team as unknown as OperationTeam)
-    } else if (team) {
-      apiFilter.operationTeam = team as OperationTeam
+    } else if (selectedTeam) {
+      apiFilter.operationTeam = selectedTeam
     }
-    if (status) apiFilter.status = status as WorkOrderStatus
-    if (q?.trim()) apiFilter.searchTerm = q.trim()
+    if (selectedStatus) apiFilter.status = selectedStatus
+    if (searchTerm?.trim()) apiFilter.searchTerm = searchTerm.trim()
     
     setFilter(apiFilter)
-  }, [searchParams, setFilter, isAdmin, user?.team])
+  }, [selectedTeam, selectedStatus, searchTerm, isAdmin, user?.team, setFilter])
 
   // 컴포넌트 언마운트 시 검색 타이머 정리
   useEffect(() => {
