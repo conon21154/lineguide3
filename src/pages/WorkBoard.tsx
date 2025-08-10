@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { Search, Filter, ChevronDown, ChevronRight, Users, Trash2 } from 'lucide-react'
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
@@ -21,6 +21,7 @@ export default function WorkBoard() {
   const [collapsedTeams, setCollapsedTeams] = useState<Set<OperationTeam>>(new Set())
   const [collapsedWorkOrders, setCollapsedWorkOrders] = useState<Set<string>>(new Set())
   const [hasInitialized, setHasInitialized] = useState(false)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const filter: WorkOrderFilter = useMemo(() => {
     const f: WorkOrderFilter = {}
@@ -37,10 +38,10 @@ export default function WorkBoard() {
     return f
   }, [selectedTeam, selectedStatus, searchTerm, isAdmin, user?.team])
 
-  const { workOrders, loading, clearAllWorkOrders, refreshData, updateStatus, deleteWorkOrder } = useWorkOrdersAPI(filter)
+  const { workOrders, loading, clearAllWorkOrders, refreshData, updateStatus, deleteWorkOrder, setFilter } = useWorkOrdersAPI(filter)
   const [cleared, setCleared] = useState(false)
 
-  // 필터 업데이트 함수
+  // 필터 업데이트 함수 - 상태와 API 호출을 동시에 처리
   const updateFilter = useCallback((patch: Partial<{ team: OperationTeam | '', status: WorkOrderStatus | '', q: string }>) => {
     const next = { 
       team: selectedTeam, 
@@ -48,12 +49,31 @@ export default function WorkBoard() {
       q: searchTerm, 
       ...patch 
     }
+    
+    // 상태 즉시 업데이트
+    if ('team' in patch) setSelectedTeam(patch.team as OperationTeam || '')
+    if ('status' in patch) setSelectedStatus(patch.status as WorkOrderStatus || '')
+    if ('q' in patch) setSearchTerm(patch.q || '')
+    
+    // URL 업데이트
     const sp = new URLSearchParams()
     Object.entries(next).forEach(([k, v]) => { 
       if (v != null && v !== '') sp.set(k, String(v))
     })
     setSearchParams(sp, { replace: true })
-  }, [selectedTeam, selectedStatus, searchTerm, setSearchParams])
+    
+    // API 필터 즉시 적용
+    const apiFilter: WorkOrderFilter = {}
+    if (!isAdmin && user?.team) {
+      apiFilter.operationTeam = (user.team as unknown as OperationTeam)
+    } else if (next.team) {
+      apiFilter.operationTeam = next.team as OperationTeam
+    }
+    if (next.status) apiFilter.status = next.status as WorkOrderStatus
+    if (next.q?.trim()) apiFilter.searchTerm = next.q.trim()
+    
+    setFilter(apiFilter)
+  }, [selectedTeam, selectedStatus, searchTerm, setSearchParams, setFilter, isAdmin, user?.team])
 
   console.log('🏢 WorkBoard 렌더링:', {
     workOrdersCount: workOrders.length,
@@ -64,30 +84,10 @@ export default function WorkBoard() {
     user: { username: user?.username, team: user?.team, role: user?.role }
   })
 
-  // 단순 필터링 + 안정 정렬: 서버에서 준 배열을 그대로 사용(그룹/uniq 사용 금지)
-  const keyTeam = (t?: string) => t ? t.replace(/\s+/g,'').replace(/\u200B/g,'').trim() : ''
+  // 서버에서 이미 필터링된 데이터를 사용하므로 클라이언트 필터링 제거
+  // 정렬만 클라이언트에서 수행
   const visible = useMemo(() => {
-    let arr = workOrders
-    if (selectedTeam) {
-      const selKey = keyTeam(selectedTeam)
-      arr = arr.filter(w => {
-        const keys = (w as any).teamKeys as string[] | undefined
-        return keys ? keys.includes(selKey) : keyTeam(w.operationTeam) === selKey
-      })
-    }
-    if (selectedStatus) {
-      arr = arr.filter(w => w.status === selectedStatus)
-    }
-    if (searchTerm.trim()) {
-      const s = searchTerm.trim().toLowerCase()
-      arr = arr.filter(w => [
-        w.managementNumber || '',
-        w.operationTeam || '',
-        w.equipmentName || '',
-        w.serviceType || ''
-      ].some(f => f.toLowerCase().includes(s)))
-    }
-    return [...arr].sort((a, b) => {
+    return [...workOrders].sort((a, b) => {
       const am = a.managementNumber || ''
       const bm = b.managementNumber || ''
       const ab = am.replace(/_(DU측|RU측)$/,'')
@@ -98,9 +98,9 @@ export default function WorkBoard() {
       }
       return ab.localeCompare(bb)
     })
-  }, [workOrders, selectedTeam, selectedStatus, searchTerm])
+  }, [workOrders])
 
-  // 운용팀별로 관리번호 그룹화
+  // 운용팀별로 관리번호 그룹화 - 필터링된 workOrders 기반
   const workOrdersByTeam = useMemo(() => {
     const grouped: Record<string, Record<string, { du: WorkOrder | null, ru: WorkOrder[] }>> = {}
     // 팀 보기를 위해 기존 그룹 계산 유지(리스트 표시에는 사용하지 않음)
@@ -187,24 +187,38 @@ export default function WorkBoard() {
     }
   }, [workOrders.length, hasInitialized])
 
-  // URL 쿼리 변경 시 상태 업데이트 (URL에 값이 있을 때만)
+  // URL 쿼리 변경 시 상태 업데이트 및 필터 적용
   useEffect(() => {
     const team = searchParams.get('team')
     const status = searchParams.get('status')
     const q = searchParams.get('q')
     
+    // 상태 업데이트
     if (team !== null) setSelectedTeam(team as OperationTeam || '')
     if (status !== null) setSelectedStatus(status as WorkOrderStatus || '')
     if (q !== null) setSearchTerm(q || '')
-  }, [searchParams])
+    
+    // API 필터 업데이트
+    const apiFilter: WorkOrderFilter = {}
+    if (!isAdmin && user?.team) {
+      apiFilter.operationTeam = (user.team as unknown as OperationTeam)
+    } else if (team) {
+      apiFilter.operationTeam = team as OperationTeam
+    }
+    if (status) apiFilter.status = status as WorkOrderStatus
+    if (q?.trim()) apiFilter.searchTerm = q.trim()
+    
+    setFilter(apiFilter)
+  }, [searchParams, setFilter, isAdmin, user?.team])
 
-  // 검색 디바운스 (300ms)
+  // 컴포넌트 언마운트 시 검색 타이머 정리
   useEffect(() => {
-    const timer = setTimeout(() => {
-      updateFilter({ q: searchTerm })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchTerm, updateFilter])
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // 페이지 접근 시 데이터 새로고침 (업로드 후 이동 시 최신 데이터 보장)
   useEffect(() => {
@@ -239,6 +253,10 @@ export default function WorkBoard() {
   }
 
   const clearFilters = () => {
+    // 검색 디바운스 취소
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
     updateFilter({ team: '', status: '', q: '' })
   }
 
@@ -287,6 +305,7 @@ export default function WorkBoard() {
     }
   }
 
+  // 필터 활성 개수 계산
   const activeFiltersCount = [selectedTeam, selectedStatus, searchTerm].filter(Boolean).length
 
   return (
@@ -326,7 +345,17 @@ export default function WorkBoard() {
                 type="text"
                 placeholder="관리번호, 장비명 등으로 검색..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setSearchTerm(value)
+                  // 디바운스 적용 (300ms)
+                  if (searchTimeoutRef.current) {
+                    clearTimeout(searchTimeoutRef.current)
+                  }
+                  searchTimeoutRef.current = setTimeout(() => {
+                    updateFilter({ q: value })
+                  }, 300)
+                }}
                 className="w-full h-11 pl-10 rounded-lg border-slate-300 focus:ring-2 focus:ring-sky-500/30 bg-white/90 backdrop-blur text-[13px] sm:text-sm"
               />
             </div>
