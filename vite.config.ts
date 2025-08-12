@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   plugins: [react()],
   resolve: {
     alias: {
@@ -20,10 +20,28 @@ export default defineConfig({
       ]
     }
   },
-  // GitHub Pages 배포용 설정
-  base: process.env.NODE_ENV === 'production' ? '/lineguide3/' : '/',
+  // 배포 환경별 base 설정
+  base: mode === 'production' && process.env.GITHUB_PAGES === 'true' 
+    ? '/lineguide3/' 
+    : '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    // GitHub Pages용 최적화
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js'
+      }
+    }
+  },
+  // 개발 서버에서도 base 경로 처리
+  define: {
+    __BASE_URL__: JSON.stringify(
+      mode === 'production' && process.env.GITHUB_PAGES === 'true' 
+        ? '/lineguide3/' 
+        : '/'
+    )
   }
-})
+}))

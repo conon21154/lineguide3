@@ -147,8 +147,8 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* 브랜드 */}
-            <Link to="/" aria-label="LineGuide 홈">
-              <Brand className="text-white" />
+            <Link to="/" aria-label="LineGuide 홈" className="flex items-center h-full py-2">
+              <Brand className="text-white" showTagline={true} />
             </Link>
 
             {/* 사용자 정보 및 모바일 메뉴 */}
