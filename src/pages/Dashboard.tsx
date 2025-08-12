@@ -5,6 +5,7 @@ import { OperationTeam, FieldReport } from '@/types'
 import { useState, useMemo, useEffect } from 'react'
 import { Card } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { formatKSTDate } from '@/utils/dateUtils'
 
 const CalendarDayDetailModal = ({ 
   day, 
@@ -16,13 +17,13 @@ const CalendarDayDetailModal = ({
   day: number
   month: number
   year: number
-  workOrders: any[]
+  workOrders: unknown[]
   onClose: () => void 
 }) => {
   // 팀별 작업 그룹화
   const teamGroups = useMemo(() => {
-    const groups: { [key: string]: any[] } = {}
-    workOrders.forEach(wo => {
+    const groups: { [key: string]: unknown[] } = {}
+    workOrders.forEach((wo: any) => {
       const team = wo.operationTeam
       if (!groups[team]) groups[team] = []
       groups[team].push(wo)
@@ -34,9 +35,9 @@ const CalendarDayDetailModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-xl">
-        <div className="flex justify-between items-center p-6 border-b border-slate-200">
-          <h2 className="text-xl font-semibold text-slate-900">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] sm:max-h-[85vh] overflow-hidden shadow-xl mx-2 sm:mx-4">
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-slate-200">
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-900">
             {year}년 {monthNames[month]} {day}일 작업 상세
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -44,9 +45,9 @@ const CalendarDayDetailModal = ({
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="text-lg font-medium text-slate-900">
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-120px)] sm:max-h-[calc(85vh-120px)]">
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+            <div className="text-base sm:text-lg font-medium text-slate-900">
               총 {workOrders.length}건의 작업지시
             </div>
             <div className="text-sm text-slate-500">
@@ -63,17 +64,17 @@ const CalendarDayDetailModal = ({
                 const completedCount = teamWorkOrders.filter(wo => wo.status === 'completed').length
 
                 return (
-                  <div key={team} className="border border-slate-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#1E40AF]/10 text-[#1E40AF]">
+                  <div key={team} className="border border-slate-200 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-[#1E40AF]/10 text-[#1E40AF]">
                           {team}
                         </span>
-                        <span className="text-lg font-medium text-slate-900">
+                        <span className="text-base sm:text-lg font-medium text-slate-900">
                           {teamWorkOrders.length}건
                         </span>
                       </div>
-                      <div className="flex space-x-2 text-xs">
+                      <div className="flex flex-wrap gap-1 sm:gap-2 text-xs">
                         {pendingCount > 0 && (
                           <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
                             대기 {pendingCount}
@@ -94,8 +95,8 @@ const CalendarDayDetailModal = ({
                     
                     <div className="space-y-2">
                       {teamWorkOrders.map(wo => (
-                        <div key={wo.id} className="bg-slate-50 p-3 rounded-lg">
-                          <div className="flex justify-between items-start">
+                        <div key={wo.id} className="bg-slate-50 p-2 sm:p-3 rounded-lg">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
                             <div className="flex-1">
                               <div className="font-mono text-xs bg-white px-2 py-1 rounded inline-block mb-1">
                                 {wo.managementNumber.replace(/_DU측|_RU측/g, '')}
@@ -103,8 +104,7 @@ const CalendarDayDetailModal = ({
                               <div className="text-sm font-medium">{wo.equipmentName}</div>
                               <div className="text-xs text-slate-600">{wo.concentratorName5G}</div>
                             </div>
-                            <span className={`px-2 py-1 text-xs rounded ${
-                              wo.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            <span className={`px-2 py-1 text-xs rounded self-start ${                              wo.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                               wo.status === 'in_progress' ? 'bg-[#1E40AF]/10 text-[#1E40AF]' :
                               'bg-green-100 text-green-800'
                             }`}>
@@ -132,7 +132,7 @@ const SimpleCalendar = () => {
     day: number
     month: number
     year: number
-    workOrders: any[]
+    workOrders: unknown[]
   } | null>(null)
 
   const { workOrders } = useWorkOrdersAPI() // 실제 작업지시 데이터 가져오기
@@ -281,21 +281,21 @@ const SimpleCalendar = () => {
   return (
     <div>
       {/* 캘린더 헤더 */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-slate-900">작업 캘린더</h3>
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-medium text-slate-900">작업 캘린더</h3>
+        <div className="flex items-center space-x-1 sm:space-x-2">
           <button
             onClick={goToPreviousMonth}
-            className="p-1 hover:bg-slate-100 rounded"
+            className="p-1 sm:p-2 hover:bg-slate-100 rounded"
           >
             <ChevronRight className="h-4 w-4 rotate-180" />
           </button>
-          <span className="font-medium">
+          <span className="font-medium text-sm sm:text-base px-2">
             {currentDate.getFullYear()}년 {monthNames[currentDate.getMonth()]}
           </span>
           <button
             onClick={goToNextMonth}
-            className="p-1 hover:bg-slate-100 rounded"
+            className="p-1 sm:p-2 hover:bg-slate-100 rounded"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -303,17 +303,17 @@ const SimpleCalendar = () => {
       </div>
 
       {/* 캘린더 그리드 */}
-      <div className="grid grid-cols-7 gap-1 text-center">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 text-center">
         {/* 요일 헤더 */}
         {weekDays.map(day => (
-          <div key={day} className="p-2 text-sm font-medium text-slate-500">
+          <div key={day} className="p-1 sm:p-2 text-xs sm:text-sm font-medium text-slate-500">
             {day}
           </div>
         ))}
 
         {/* 빈 셀들 (이전 달의 마지막 날들) */}
         {Array.from({ length: firstDayWeekday }, (_, i) => (
-          <div key={`empty-${i}`} className="p-1 h-16"></div>
+          <div key={`empty-${i}`} className="p-0.5 sm:p-1 h-12 sm:h-16"></div>
         ))}
 
         {/* 현재 달의 날짜들 */}
@@ -335,26 +335,26 @@ const SimpleCalendar = () => {
             <div
               key={day}
               onClick={() => handleDayClick(day)}
-              className={`relative p-1 h-16 text-sm cursor-pointer hover:bg-slate-50 rounded border transition-colors ${
+              className={`relative p-0.5 sm:p-1 h-12 sm:h-16 text-xs sm:text-sm cursor-pointer hover:bg-slate-50 rounded border transition-colors ${
                 isToday ? 'bg-[#1E40AF]/10 border-[#1E40AF]/20 text-[#1E40AF] font-medium' : 'border-slate-100'
               } ${workCount > 0 ? 'hover:shadow-sm' : ''}`}
             >
-              <div className="font-medium mb-1">{day}</div>
+              <div className="font-medium mb-0.5 sm:mb-1">{day}</div>
               
               {/* 작업 수 표시 */}
               {workCount > 0 && (
-                <div className="space-y-1">
-                  {teams.slice(0, 2).map(team => (
+                <div className="space-y-0.5 sm:space-y-1">
+                  {teams.slice(0, window.innerWidth < 640 ? 1 : 2).map(team => (
                     <div
                       key={team}
-                      className={`inline-flex items-center px-1 py-0.5 rounded text-xs font-medium ${getTeamColor(team)}`}
+                      className={`inline-flex items-center px-0.5 sm:px-1 py-0.5 rounded text-xs font-medium ${getTeamColor(team)}`}
                     >
                       {team.replace('T', '')} {teamCounts[team]}
                     </div>
                   ))}
-                  {teams.length > 2 && (
+                  {teams.length > (window.innerWidth < 640 ? 1 : 2) && (
                     <div className="text-xs text-slate-500">
-                      +{teams.length - 2}팀
+                      +{teams.length - (window.innerWidth < 640 ? 1 : 2)}팀
                     </div>
                   )}
                 </div>
@@ -379,11 +379,11 @@ const SimpleCalendar = () => {
 
 export default function Dashboard() {
   // 대시보드에서는 작업지시 자동 재조회로 인한 불필요 트리거를 방지
-  const { workOrders, fetchFieldReports, toggleFieldReportChecked } = useWorkOrdersAPI(undefined, 1, 200, { autoFetch: true })
+  const { workOrders } = useWorkOrdersAPI(undefined, 1, 200, { autoFetch: true })
   const [expandedTeams, setExpandedTeams] = useState<Set<OperationTeam>>(new Set())
   
   // 대시보드 전용 현장 회신 데이터 (실시간 반영)
-  const { data: fieldRepliesData, isLoading: loadingReports, error: fieldRepliesError } = useDashboardFieldReplies()
+  const { data: fieldRepliesData, isLoading: loadingReports } = useDashboardFieldReplies()
   const toggleConfirmMutation = useToggleFieldReplyConfirm()
   
   // 기존 fieldReports 호환성을 위한 변환
@@ -391,21 +391,38 @@ export default function Dashboard() {
   
   useEffect(() => {
     if (fieldRepliesData?.success && fieldRepliesData.data.recent) {
+      console.log('🔄 Dashboard useEffect 트리거 - fieldRepliesData 변경됨');
+      
       // 새 API 형식을 기존 FieldReport 형식으로 변환
-      const convertedReports: FieldReport[] = fieldRepliesData.data.recent.map(item => ({
-        id: item.id,
-        workOrderId: item.workOrderId,
-        managementNumber: item.workOrderId, // 관리번호는 별도 조회 필요하지만 임시로 workOrderId 사용
-        operationTeam: 'Unknown', // 팀 정보는 별도 조회 필요
-        equipmentName: '',
-        representativeRuId: item.ruId || '',
-        summary: item.content.length > 100 ? item.content.substring(0, 100) + '...' : item.content,
-        status: 'completed',
-        createdAt: item.createdAt,
-        createdBy: item.createdBy,
-        adminChecked: !!item.confirmedAt,
-        adminCheckedAt: item.confirmedAt
-      }))
+      const convertedReports: FieldReport[] = fieldRepliesData.data.recent.map(item => {
+        const isChecked = !!item.confirmedAt;
+        
+        // 개발 환경에서 변환 과정 디버깅 (샘플링으로 로그 축소)
+        if (Math.random() < 0.2) { // 20% 확률로만 로그
+          console.log('🔄 Dashboard 데이터 변환 (샘플):', {
+            id: item.id,
+            confirmedAt: item.confirmedAt,
+            adminChecked: isChecked
+          });
+        }
+        
+        return {
+          id: item.id,
+          workOrderId: item.workOrderId,
+          managementNumber: item.workOrderId, // 관리번호는 별도 조회 필요하지만 임시로 workOrderId 사용
+          operationTeam: 'Unknown', // 팀 정보는 별도 조회 필요
+          equipmentName: '',
+          representativeRuId: item.ruId || '',
+          summary: item.content.length > 100 ? item.content.substring(0, 100) + '...' : item.content,
+          status: 'completed',
+          createdAt: item.createdAt || new Date().toISOString(), // 기본값으로 현재 시간 사용
+          createdBy: item.createdBy,
+          adminChecked: isChecked,
+          adminCheckedAt: item.confirmedAt
+        };
+      });
+      
+      console.log('✅ Dashboard 데이터 변환 완료:', convertedReports.length + '개');
       setFieldReports(convertedReports)
     }
   }, [fieldRepliesData])
@@ -413,10 +430,11 @@ export default function Dashboard() {
   // 관리자 확인 토글 (새 API 사용)
   const handleToggleCheck = async (reportId: string, checked: boolean) => {
     try {
-      await toggleConfirmMutation.mutateAsync({ id: reportId, confirmed: checked })
-      // optimistic update는 React Query가 자동으로 처리
+      console.log('🖱️ Dashboard 확인 버튼 클릭:', { reportId, checked });
+      await toggleConfirmMutation.mutateAsync({ id: reportId, confirmed: checked });
+      console.log('✅ Dashboard 확인 상태 변경 완료');
     } catch (error) {
-      console.error('관리자 확인 처리 실패:', error)
+      console.error('❌ Dashboard 관리자 확인 처리 실패:', error);
     }
   }
 
@@ -543,23 +561,23 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 bg-slate-50">
+    <div className="max-w-screen-xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 bg-slate-50">
       <PageHeader
         title="대시보드"
         subtitle="작업지시 현황을 한눈에 확인하세요"
       />
 
       {/* 전체 통계 카드 */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <BarChart3 className="h-6 w-6 text-slate-400" />
             </div>
-            <div className="ml-5 w-0 flex-1">
+            <div className="ml-3 sm:ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-slate-500 truncate">전체 작업</dt>
-                <dd className="text-lg font-medium text-slate-900">{statistics.total.toLocaleString()}</dd>
+                <dt className="text-xs sm:text-sm font-medium text-slate-500 truncate">전체 작업</dt>
+                <dd className="text-base sm:text-lg font-medium text-slate-900">{statistics.total.toLocaleString()}</dd>
               </dl>
             </div>
           </div>
@@ -570,10 +588,10 @@ export default function Dashboard() {
             <div className="flex-shrink-0">
               <Clock className="h-6 w-6 text-yellow-500" />
             </div>
-            <div className="ml-5 w-0 flex-1">
+            <div className="ml-3 sm:ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-slate-500 truncate">대기 중</dt>
-                <dd className="text-lg font-medium text-slate-900">{statistics.pending.toLocaleString()}</dd>
+                <dt className="text-xs sm:text-sm font-medium text-slate-500 truncate">대기 중</dt>
+                <dd className="text-base sm:text-lg font-medium text-slate-900">{statistics.pending.toLocaleString()}</dd>
               </dl>
             </div>
           </div>
@@ -584,10 +602,10 @@ export default function Dashboard() {
             <div className="flex-shrink-0">
               <Users className="h-6 w-6 text-[#1E40AF]" />
             </div>
-            <div className="ml-5 w-0 flex-1">
+            <div className="ml-3 sm:ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-slate-500 truncate">진행 중</dt>
-                <dd className="text-lg font-medium text-slate-900">{statistics.inProgress.toLocaleString()}</dd>
+                <dt className="text-xs sm:text-sm font-medium text-slate-500 truncate">진행 중</dt>
+                <dd className="text-base sm:text-lg font-medium text-slate-900">{statistics.inProgress.toLocaleString()}</dd>
               </dl>
             </div>
           </div>
@@ -598,10 +616,10 @@ export default function Dashboard() {
             <div className="flex-shrink-0">
               <CheckCircle className="h-6 w-6 text-green-500" />
             </div>
-            <div className="ml-5 w-0 flex-1">
+            <div className="ml-3 sm:ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-slate-500 truncate">완료</dt>
-                <dd className="text-lg font-medium text-slate-900">{statistics.completed.toLocaleString()}</dd>
+                <dt className="text-xs sm:text-sm font-medium text-slate-500 truncate">완료</dt>
+                <dd className="text-base sm:text-lg font-medium text-slate-900">{statistics.completed.toLocaleString()}</dd>
               </dl>
             </div>
           </div>
@@ -609,13 +627,13 @@ export default function Dashboard() {
       </div>
 
       {/* 팀별 통계 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card>
-          <h3 className="text-lg font-medium text-slate-900 mb-4">운용팀별 현황</h3>
+          <h3 className="text-base sm:text-lg font-medium text-slate-900 mb-3 sm:mb-4">운용팀별 현황</h3>
           <div className="space-y-4">
             {(() => {
               const teamsWithWork = Object.entries(statistics.byTeam)
-                .filter(([_, stats]) => (stats.pending + stats.inProgress + stats.completed) > 0)
+                .filter(([, stats]) => (stats.pending + stats.inProgress + stats.completed) > 0)
                 .sort(([a], [b]) => a.localeCompare(b));
               
               if (teamsWithWork.length === 0) {
@@ -635,9 +653,9 @@ export default function Dashboard() {
               }
               
               return teamsWithWork.map(([team, stats]) => (
-                <div key={team} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div key={team} className="flex flex-col sm:flex-row sm:items-center justify-between p-2 sm:p-3 bg-slate-50 rounded-lg gap-2 sm:gap-0">
                   <div className="font-medium text-slate-900">{team}</div>
-                  <div className="flex space-x-2 text-sm">
+                  <div className="flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm">
                     <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
                       대기 {stats.pending}
                     </span>
@@ -656,7 +674,7 @@ export default function Dashboard() {
 
         {/* DU/RU 분리 통계 */}
         <Card>
-          <h3 className="text-lg font-medium text-slate-900 mb-4">DU/RU 작업 분리 현황</h3>
+          <h3 className="text-base sm:text-lg font-medium text-slate-900 mb-3 sm:mb-4">DU/RU 작업 분리 현황</h3>
           <div className="space-y-3">
             {activeDuRuTeams.length === 0 ? (
               <div className="text-center py-8">
@@ -754,26 +772,26 @@ export default function Dashboard() {
       </div>
 
       {/* 현장회신 현황 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* 현장회신 통계 */}
         <Card>
-          <h3 className="text-lg font-medium text-slate-900 mb-4">현장회신 현황</h3>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <h3 className="text-base sm:text-lg font-medium text-slate-900 mb-3 sm:mb-4">현장회신 현황</h3>
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-3 sm:mb-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-[#1E40AF]">{fieldReportStats.total}</div>
-              <div className="text-sm text-slate-600">총 회신</div>
+              <div className="text-lg sm:text-2xl font-bold text-[#1E40AF]">{fieldReportStats.total}</div>
+              <div className="text-xs sm:text-sm text-slate-600">총 회신</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{fieldReportStats.unchecked}</div>
-              <div className="text-sm text-slate-600">미확인</div>
+              <div className="text-lg sm:text-2xl font-bold text-orange-600">{fieldReportStats.unchecked}</div>
+              <div className="text-xs sm:text-sm text-slate-600">미확인</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{fieldReportStats.checked}</div>
-              <div className="text-sm text-slate-600">확인완료</div>
+              <div className="text-lg sm:text-2xl font-bold text-green-600">{fieldReportStats.checked}</div>
+              <div className="text-xs sm:text-sm text-slate-600">확인완료</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{fieldReportStats.recent}</div>
-              <div className="text-sm text-slate-600">24시간 내</div>
+              <div className="text-lg sm:text-2xl font-bold text-purple-600">{fieldReportStats.recent}</div>
+              <div className="text-xs sm:text-sm text-slate-600">24시간 내</div>
             </div>
           </div>
 
@@ -792,7 +810,20 @@ export default function Dashboard() {
 
         {/* 최근 현장회신 */}
         <Card>
-          <h3 className="text-lg font-medium text-slate-900 mb-4">최근 현장회신</h3>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 sm:mb-4 gap-2 sm:gap-0">
+            <h3 className="text-base sm:text-lg font-medium text-slate-900">최근 현장회신</h3>
+            <div className="flex items-center gap-2 sm:gap-4 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-orange-100 border border-orange-300 rounded"></div>
+                <span className="text-slate-600">미확인</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                <span className="text-slate-600">확인완료</span>
+              </div>
+            </div>
+          </div>
+          
           {loadingReports ? (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1E40AF] mx-auto"></div>
@@ -804,47 +835,104 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {fieldReports.slice(0, 5).map(report => (
-                <div key={report.id} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-xs font-mono bg-white px-2 py-1 rounded">
-                        {report.managementNumber}
-                      </span>
-                      <span className="text-xs text-slate-500">{report.operationTeam}</span>
-                    </div>
-                    <p className="text-sm text-slate-700 line-clamp-2">
-                      {report.summary.slice(0, 80)}...
-                    </p>
-                    <div className="text-xs text-slate-500 mt-1">
-                      {(() => {
-                        const date = new Date(report.createdAt);
-                        if (isNaN(date.getTime())) {
-                          return '날짜 정보 없음';
-                        }
-                        return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-                      })()}
+              {fieldReports.slice(0, 5).map(report => {
+                const isChecked = (report as {adminChecked?: boolean}).adminChecked;
+                const isProcessing = toggleConfirmMutation.isPending;
+                
+                // 디버깅: 버튼 클릭 시에만 로그 (렌더링마다 로그 방지)
+                if (process.env.NODE_ENV === 'development' && isProcessing) {
+                  console.log(`🖼️ Dashboard 렌더링 중 - Report ${report.id}:`, {
+                    adminChecked: (report as {adminChecked?: boolean}).adminChecked,
+                    isChecked,
+                    isProcessing
+                  });
+                }
+                
+                return (
+                  <div key={report.id} className={`p-2 sm:p-3 rounded-lg border-l-4 transition-all duration-200 ${
+                    isChecked 
+                      ? 'bg-green-50 border-l-green-400' 
+                      : 'bg-orange-50 border-l-orange-400'
+                  }`}>
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-0">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
+                          <span className="text-xs font-mono bg-white px-2 py-1 rounded shadow-sm">
+                            {report.managementNumber}
+                          </span>
+                          <span className="text-xs text-slate-500 hidden sm:inline">{report.operationTeam}</span>
+                          
+                          {/* 상태 배지 */}
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            isChecked
+                              ? 'bg-green-100 text-green-700 border border-green-200'
+                              : 'bg-orange-100 text-orange-700 border border-orange-200'
+                          }`}>
+                            {isChecked ? '✓ 확인완료' : '⏳ 미확인'}
+                          </span>
+                        </div>
+                        
+                        <p className="text-sm text-slate-700 line-clamp-2 mb-2">
+                          {report.summary.slice(0, 80)}...
+                        </p>
+                        
+                        <div className="text-xs text-slate-500">
+                          <span>📝 작성: {
+                            report.createdAt && report.createdAt !== null 
+                              ? formatKSTDate(report.createdAt, true)
+                              : '등록일 확인 중...'
+                          }</span>
+                          {isChecked && (report as {adminCheckedAt?: string}).adminCheckedAt && (
+                            <span className="ml-3">✅ 확인: {formatKSTDate((report as {adminCheckedAt?: string}).adminCheckedAt!, true)}</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="sm:ml-3 flex items-center">
+                        <button
+                          onClick={() => {
+                            console.log('🖱️ 버튼 클릭 - Before:', { 
+                              reportId: report.id, 
+                              currentChecked: isChecked, 
+                              willChangeTo: !isChecked 
+                            });
+                            handleToggleCheck(report.id, !isChecked);
+                          }}
+                          disabled={isProcessing}
+                          className={`relative px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
+                            isChecked
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+                              : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          title={isChecked ? '미확인으로 변경' : '확인 완료로 변경'}
+                        >
+                          {isProcessing ? (
+                            <div className="flex items-center gap-1">
+                              <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
+                              <span>처리중</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              {isChecked ? (
+                                <>
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  <span>확인완료</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-4 w-4" />
+                                  <span>확인하기</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="ml-3">
-                    <button
-                      onClick={() => handleToggleCheck(report.id, !(report as any).adminChecked)}
-                      className={`p-1 rounded ${
-                        (report as any).adminChecked 
-                          ? 'bg-green-100 text-green-600 hover:bg-green-200' 
-                          : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                      }`}
-                      title={(report as any).adminChecked ? '확인 완료 - 클릭하여 미확인으로 변경' : '미확인 - 클릭하여 확인 완료로 변경'}
-                    >
-                      {(report as any).adminChecked ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        <Clock className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+              
               {fieldReports.length > 5 && (
                 <div className="text-center pt-2">
                   <a href="/board" className="text-[#1E40AF] hover:text-[#1E3A8A] text-sm font-medium">

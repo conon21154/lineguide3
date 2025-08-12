@@ -82,7 +82,7 @@ export const AuthToken = {
 };
 
 // 기본 fetch 래퍼
-export const apiRequest = async <T = any>(
+export const apiRequest = async <T = unknown>(
   url: string, 
   options: RequestInit = {}
 ): Promise<T> => {
@@ -98,7 +98,7 @@ export const apiRequest = async <T = any>(
   const response = await fetch(url, config);
 
   if (!response.ok) {
-    let errorData = {};
+    let errorData: { error?: string } = {};
     
     try {
       // Content-Type이 JSON인지 확인
@@ -133,12 +133,12 @@ export const apiRequest = async <T = any>(
 };
 
 // GET 요청
-export const apiGet = async <T = any>(url: string): Promise<T> => {
+export const apiGet = async <T = unknown>(url: string): Promise<T> => {
   return apiRequest<T>(url, { method: 'GET' });
 };
 
 // POST 요청
-export const apiPost = async <T = any>(url: string, data?: any): Promise<T> => {
+export const apiPost = async <T = unknown>(url: string, data?: unknown): Promise<T> => {
   return apiRequest<T>(url, {
     method: 'POST',
     body: data ? JSON.stringify(data) : undefined,
@@ -146,7 +146,7 @@ export const apiPost = async <T = any>(url: string, data?: any): Promise<T> => {
 };
 
 // PUT 요청
-export const apiPut = async <T = any>(url: string, data?: any): Promise<T> => {
+export const apiPut = async <T = unknown>(url: string, data?: unknown): Promise<T> => {
   return apiRequest<T>(url, {
     method: 'PUT',
     body: data ? JSON.stringify(data) : undefined,
@@ -154,7 +154,7 @@ export const apiPut = async <T = any>(url: string, data?: any): Promise<T> => {
 };
 
 // PATCH 요청
-export const apiPatch = async <T = any>(url: string, data?: any): Promise<T> => {
+export const apiPatch = async <T = unknown>(url: string, data?: unknown): Promise<T> => {
   return apiRequest<T>(url, {
     method: 'PATCH',
     body: data ? JSON.stringify(data) : undefined,
@@ -162,12 +162,12 @@ export const apiPatch = async <T = any>(url: string, data?: any): Promise<T> => 
 };
 
 // DELETE 요청
-export const apiDelete = async <T = any>(url: string): Promise<T> => {
+export const apiDelete = async <T = unknown>(url: string): Promise<T> => {
   return apiRequest<T>(url, { method: 'DELETE' });
 };
 
 // 파일 업로드
-export const apiUpload = async <T = any>(url: string, file: File): Promise<T> => {
+export const apiUpload = async <T = unknown>(url: string, file: File): Promise<T> => {
   const formData = new FormData();
   formData.append('file', file); // 백엔드와 필드명 일치시킴
 

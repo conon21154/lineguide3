@@ -12,9 +12,21 @@ router.get('/', authMiddleware, async (req, res) => {
       where: {
         deletedAt: null
       },
-      order: [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']],
+      attributes: [
+        'id',
+        'workOrderId',
+        'side', 
+        'ruId',
+        'content',
+        'createdBy',
+        'confirmedAt',
+        ['created_at', 'createdAt'],  // 명시적으로 created_at을 createdAt으로 매핑
+        ['updated_at', 'updatedAt']   // 명시적으로 updated_at을 updatedAt으로 매핑
+      ]
     });
 
+    console.log('🔍 ResponseNotes API - 첫 번째 레코드:', responseNotes[0]?.dataValues);
     res.json(responseNotes);
   } catch (error) {
     console.error('회신 메모 목록 조회 오류:', error);

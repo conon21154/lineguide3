@@ -55,16 +55,27 @@ router.get('/field-replies', authMiddleware, async (req, res) => {
     const recent = uniqueResponseNotes
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 20)
-      .map(note => ({
-        id: note.id,
-        workOrderId: note.work_order_id,
-        side: note.side,
-        ruId: note.ru_id,
-        content: note.content,
-        confirmedAt: note.confirmed_at ? new Date(note.confirmed_at).toISOString() : null,
-        createdAt: note.created_at ? new Date(note.created_at).toISOString() : null,
-        createdBy: note.created_by
-      }));
+      .map(note => {
+        const mappedNote = {
+          id: note.id,
+          workOrderId: note.work_order_id,
+          side: note.side,
+          ruId: note.ru_id,
+          content: note.content,
+          confirmedAt: note.confirmed_at ? new Date(note.confirmed_at).toISOString() : null,
+          createdAt: note.created_at ? new Date(note.created_at).toISOString() : null,
+          createdBy: note.created_by
+        };
+        
+        // 디버깅: 각 아이템의 confirmed_at 상태 로깅
+        console.log(`📋 대시보드 API - Note ${note.id}:`, {
+          raw_confirmed_at: note.confirmed_at,
+          formatted_confirmedAt: mappedNote.confirmedAt,
+          isConfirmed: !!note.confirmed_at
+        });
+        
+        return mappedNote;
+      });
 
     res.json({
       success: true,
@@ -89,6 +100,8 @@ router.patch('/field-replies/:id/confirm', authMiddleware, async (req, res) => {
     const { id } = req.params;
     const { confirmed } = req.body;
 
+    console.log('🔄 현장회신 확인 상태 토글 API 호출:', { id, confirmed, userId: req.user?.id });
+
     // Cache-Control: no-store 헤더 설정  
     res.set('Cache-Control', 'no-store');
 
@@ -100,28 +113,53 @@ router.patch('/field-replies/:id/confirm', authMiddleware, async (req, res) => {
     });
 
     if (!responseNote) {
+      console.log('❌ 현장 회신 레코드를 찾을 수 없음:', id);
       return res.status(404).json({
         success: false,
         error: '현장 회신을 찾을 수 없습니다'
       });
     }
 
+    console.log('📋 찾은 현장회신:', {
+      id: responseNote.id,
+      workOrderId: responseNote.workOrderId,
+      side: responseNote.side,
+      currentConfirmedAt: responseNote.confirmedAt
+    });
+
     // 확인 상태 업데이트
-    await responseNote.update({
+    const updatedNote = await responseNote.update({
       confirmedAt: confirmed ? new Date() : null
     });
 
-    res.json({
-      success: true,
-      data: {
-        id: responseNote.id,
-        confirmed: !!responseNote.confirmedAt,
-        confirmedAt: responseNote.confirmedAt
+    // 업데이트 후 실제 DB에서 다시 조회하여 확인
+    const verifyNote = await ResponseNote.findByPk(id);
+    console.log('✅ 업데이트 완료:', {
+      id: updatedNote.id,
+      newConfirmedAt: updatedNote.confirmedAt,
+      confirmed: !!updatedNote.confirmedAt,
+      dbVerify: {
+        confirmedAt: verifyNote?.confirmedAt,
+        confirmed: !!verifyNote?.confirmedAt
       }
     });
 
+    // 응답 데이터 구조 개선
+    const responseData = {
+      success: true,
+      data: {
+        id: updatedNote.id,
+        confirmed: !!updatedNote.confirmedAt,
+        confirmedAt: updatedNote.confirmedAt ? updatedNote.confirmedAt.toISOString() : null,
+        updatedAt: new Date().toISOString()
+      }
+    };
+
+    console.log('📤 API 응답:', responseData);
+    res.json(responseData);
+
   } catch (error) {
-    console.error('현장 회신 확인 상태 업데이트 오류:', error);
+    console.error('❌ 현장 회신 확인 상태 업데이트 오류:', error);
     res.status(500).json({
       success: false,
       error: '확인 상태 업데이트 중 오류가 발생했습니다'

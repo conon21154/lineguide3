@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Printer, Search, BarChart3, Smartphone, Copy, CheckCircle } from 'lucide-react'
+import { Printer, Search, BarChart3, Copy } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { toast } from 'sonner'
 import { apiGet, API_ENDPOINTS } from '@/config/api'
@@ -60,7 +60,14 @@ const LABEL_SPECS = {
   margin: { left: 24, right: 24, top: 12, bottom: 12 }
 }
 
-// mm to px 변환 함수
+// mm to px 변환 함수 (표준 96 DPI 기준)
+const MM_TO_PX = 96 / 25.4 // 약 3.7795
+const BASE_W_MM = 138
+const BASE_H_MM = 12
+const BASE_W = BASE_W_MM * MM_TO_PX // ≈ 522px
+const BASE_H = BASE_H_MM * MM_TO_PX // ≈ 45px
+
+// 기존 고해상도 변환 함수 (출력용)
 const mmToPx = (mm: number) => Math.round(mm * LABEL_SPECS.dpi / 25.4)
 
 // 유틸 함수들 (요구사항에 따라 정확히 구현)
@@ -104,7 +111,7 @@ function buildTwoLine({ L1, L2, R1, R2 }: { L1: string; L2: string; R1: string; 
 
 
 // DU 작업지시 매핑 함수
-function mapDU(raw: any): DUBrief {
+function mapDU(raw: Record<string, unknown>): DUBrief {
   // 디버깅을 위한 로그 추가
   console.log('🔍 mapDU 입력 데이터:', raw);
   
@@ -144,7 +151,7 @@ const getLabelMapping = (
   tieSuffix: string,
   lteMuxSuffix: string,
   duidFinal: string,
-  managementNumber: string
+  _managementNumber: string
 ): LabelCells => {
   try {
     if (!userInputs) {
@@ -164,8 +171,22 @@ const getLabelMapping = (
                       withSuf(`5G TIE ${userInputs.tieB ?? ''}`, tieSuffix);
 
      const left2 =
-       type === 'A' ? `${labelData?.ruName ?? labelData?.duName ?? ''}` :
-                      `${labelData?.duTeam ?? ''}`;
+       type === 'A' ? 
+         // RUID + RU명 조합 (둘 다 있으면 조합, 하나만 있으면 그것만)
+         (() => {
+           const ruId = labelData?.ruId?.trim() ?? '';
+           const ruName = labelData?.ruName?.trim() ?? ''; // duName 제거 - 순수 RU명만 사용
+           
+           if (ruId && ruName) {
+             return `${ruId} ${ruName}`;
+           } else if (ruId) {
+             return ruId;
+           } else if (ruName) {
+             return ruName;
+           }
+           return '';
+         })() :
+         `${labelData?.duTeam ?? ''}`;
 
     const right1 =
       type === 'A' ? withSuf(`5G MUX ${userInputs.muxA ?? ''}`, muxSuffix) :
@@ -221,20 +242,19 @@ const LabelTypeSelector = ({
   onTypeChange: (type: LabelType) => void 
 }) => {
   return (
-    <div className="mb-6">
-      <label className="block text-sm font-medium text-slate-700 mb-3">라벨 타입</label>
-      <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+    <div className="mb-4 sm:mb-6">
+      <label className="block text-sm font-medium text-slate-700 mb-2 sm:mb-3">라벨 타입</label>
+      <div className="inline-flex w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50 p-1">
         {(['A', 'B', 'C'] as LabelType[]).map((type) => (
           <button
             key={type}
             onClick={() => onTypeChange(type)}
-            className={`h-9 md:h-10 px-3 md:px-4 rounded-lg text-sm font-medium text-slate-600
-              data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm
+            className={`flex-1 sm:flex-none h-10 sm:h-9 md:h-10 px-3 sm:px-3 md:px-4 rounded-lg text-sm font-medium
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E60012]/30
-              transition ${
+              transition active:scale-95 ${
               selectedType === type
                 ? 'bg-white text-slate-900 shadow-sm'
-                : 'hover:text-slate-700'
+                : 'text-slate-600 hover:text-slate-700'
             }`}
           >
             타입 {type}
@@ -252,8 +272,8 @@ const LabelTypeSelector = ({
 
 // 2x2 셀 입력 컴포넌트 (접미 입력 지원)
 const CellInputs = ({ 
-  cells, 
-  inputRefs,
+  cells: _cells, 
+  inputRefs: _inputRefs,
   type,
   muxA,
   setMuxA,
@@ -408,53 +428,178 @@ function setupCanvas(canvas: HTMLCanvasElement, cssW: number, cssH: number) {
   return ctx;
 }
 
-// Canvas 기반 2행 라벨 미리보기 컴포넌트
+// Canvas 기반 2행 라벨 미리보기 컴포넌트 (자동 스케일링)
 const LabelPreview = ({ 
   cells
 }: { 
   cells: LabelCells
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const printCanvasRef = useRef<HTMLCanvasElement>(null) // 출력용 별도 캔버스
+  const containerRef = useRef<HTMLDivElement>(null)
+  const copyTextRef = useRef<HTMLTextAreaElement>(null) // 복사용 텍스트영역
+  const [scale, setScale] = useState(1)
   const [showLargeText, setShowLargeText] = useState(false)
 
+  // ResizeObserver로 자동 스케일링 감지
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const updateScale = () => {
+      const containerWidth = container.clientWidth - 48 // 패딩 고려
+      const newScale = Math.min(containerWidth / BASE_W, 1) // 확대 금지
+      setScale(newScale)
+    }
+
+    // 초기 스케일 설정
+    updateScale()
+
+    // ResizeObserver로 컨테이너 크기 변화 감지
+    const resizeObserver = new ResizeObserver(() => {
+      updateScale()
+    })
+    
+    resizeObserver.observe(container)
+    
+    return () => resizeObserver.disconnect()
+  }, [])
+
+  // 미리보기 캔버스 렌더링 (화면용 - 기준 크기로 고정)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // 실시간으로 labelText 계산
+    renderLabelCanvas(canvas, cells, showLargeText, false) // 미리보기용
+  }, [cells, showLargeText])
+
+  // 출력용 캔버스 렌더링 (숨김 - 실제 출력 크기)
+  useEffect(() => {
+    const printCanvas = printCanvasRef.current
+    const copyText = copyTextRef.current
+    if (!printCanvas || !copyText) return
+
+    // 출력용 캔버스 렌더링
+    renderLabelCanvas(printCanvas, cells, false, true) // 출력용
+
+    // 복사용 텍스트 업데이트
     const labelText = buildTwoLine({ L1: cells.left1, L2: cells.left2, R1: cells.right1, R2: cells.right2 })
+    copyText.value = labelText
+  }, [cells])
 
-    // CSS 표시 크기 (확대 표시용) - 너비를 늘려서 좌우 텍스트가 모두 보이도록
-    const displayWidth = showLargeText ? 800 : 600
-    const displayHeight = showLargeText ? 120 : 80
-    
-    // 실제 캔버스 크기 (고해상도 렌더링)
-    const canvasWidth = WIDTH // MM2PX(138) = 977
-    const canvasHeight = MM2PX(LABEL_SPECS.height) // MM2PX(12) = 85
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium text-slate-700">
+          라벨 미리보기 ({LABEL_SPECS.width}×{LABEL_SPECS.height}mm)
+        </h3>
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-slate-500">
+            스케일: {Math.round(scale * 100)}%
+          </span>
+          <button
+            onClick={() => setShowLargeText(!showLargeText)}
+            className="flex items-center space-x-1 px-2 py-1 text-xs border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+          >
+            <span>{showLargeText ? '작게 보기' : '크게 보기'}</span>
+          </button>
+        </div>
+      </div>
+      
+      {/* 미리보기 컨테이너 (마스킹 및 오버플로 차단) */}
+      <div 
+        ref={containerRef} 
+        className="rounded-xl border border-slate-200 bg-white p-6 relative overflow-hidden"
+      >
+        {/* 미리보기 영역 - 완전한 마스킹 컨테이너 */}
+        <div 
+          className="relative overflow-hidden mx-auto bg-white border border-slate-300"
+          style={{ 
+            width: '100%', 
+            maxWidth: `${BASE_W}px`,
+            height: `${BASE_H * scale}px`
+          }}
+        >
+          {/* 스케일 래퍼 */}
+          <div
+            className="absolute top-0 left-0"
+            style={{
+              width: `${BASE_W}px`,
+              height: `${BASE_H}px`,
+              transformOrigin: 'top left',
+              transform: `scale(${scale})`,
+              transition: 'transform 0.2s ease-out'
+            }}
+          >
+            <canvas
+              ref={canvasRef}
+              width={BASE_W}
+              height={BASE_H}
+              className="block whitespace-normal break-words"
+              style={{
+                imageRendering: 'crisp-edges',
+                width: `${BASE_W}px`,
+                height: `${BASE_H}px`
+              }}
+            />
+          </div>
+        </div>
+        
+        <div className="text-center mt-2 text-xs text-slate-500">
+          {showLargeText ? '확대 표시' : '미리보기'} (자동 스케일링) - 실제 출력: {LABEL_SPECS.width}×{LABEL_SPECS.height}mm
+        </div>
+      </div>
 
-    // HiDPI 캔버스 설정
+      {/* 출력/복사용 숨김 요소들 - 화면에 보이지 않음 */}
+      <div className="sr-only print:block" aria-hidden="true">
+        <canvas
+          ref={printCanvasRef}
+          width={WIDTH} // 고해상도 출력 크기
+          height={mmToPx(LABEL_SPECS.height)}
+        />
+      </div>
+      
+      <textarea
+        ref={copyTextRef}
+        className="sr-only"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+    </div>
+  )
+}
+
+// 캔버스 렌더링 공통 함수
+const renderLabelCanvas = (
+  canvas: HTMLCanvasElement,
+  cells: LabelCells,
+  showLargeText: boolean,
+  isForPrint: boolean
+) => {
+  const labelText = buildTwoLine({ L1: cells.left1, L2: cells.left2, R1: cells.right1, R2: cells.right2 })
+  
+  if (isForPrint) {
+    // 출력용 - 고해상도 렌더링
+    const displayWidth = WIDTH // MM2PX(138) = 977
+    const displayHeight = mmToPx(LABEL_SPECS.height) // MM2PX(12) = 85
     const ctx = setupCanvas(canvas, displayWidth, displayHeight)
-
-    // 배경 그리기 (흰색)
+    
+    // 기존 고해상도 렌더링 로직 사용
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, displayWidth, displayHeight)
-
-    // 테두리 그리기 (진한 검은색, 두꺼운 선)
     ctx.strokeStyle = '#000000'
     ctx.lineWidth = 2
     ctx.strokeRect(1, 1, displayWidth - 2, displayHeight - 2)
-
-    // 폰트 설정 (더 큰 폰트, 진한 색상)
-    const fontSize = showLargeText ? 18 : 14
+    
+    const fontSize = 14
     ctx.font = `${fontSize}px 'Roboto Mono', monospace`
     ctx.fillStyle = '#000000'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
-
-    // 2행 텍스트 그리기 (여백 조정)
+    
     const lines = labelText.split('\n')
-    const marginTop = showLargeText ? 16 : 12
-    const marginLeft = showLargeText ? 32 : 24
+    const marginTop = 12
+    const marginLeft = 24
     const lineHeight = (displayHeight - (marginTop * 2)) / 2
     
     lines.forEach((line, index) => {
@@ -463,43 +608,53 @@ const LabelPreview = ({
         ctx.fillText(line, marginLeft, y)
       }
     })
-  }, [cells, showLargeText])
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-slate-700">
-          라벨 미리보기 ({LABEL_SPECS.width}×{LABEL_SPECS.height}mm)
-        </h3>
-        <button
-          onClick={() => setShowLargeText(!showLargeText)}
-          className="flex items-center space-x-1 px-2 py-1 text-xs border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-        >
-          <span>{showLargeText ? '작게 보기' : '크게 보기'}</span>
-        </button>
-      </div>
-      <div className="rounded-xl border border-slate-200 bg-white p-3">
-        <canvas
-          ref={canvasRef}
-          className="border border-slate-300 bg-white mx-auto block"
-          style={{
-            maxWidth: '100%',
-            height: 'auto',
-            imageRendering: 'crisp-edges' // 선명한 텍스트 표시
-          }}
-        />
-        <div className="text-center mt-2 text-xs text-slate-500">
-          {showLargeText ? '확대 표시 (가독성 향상)' : '실제 출력 크기'} - {LABEL_SPECS.width}×{LABEL_SPECS.height}mm (2행 좌우정렬)
-                 </div>
-      </div>
-    </div>
-  )
+  } else {
+    // 미리보기용 - 기준 크기 렌더링
+    const displayWidth = BASE_W
+    const displayHeight = BASE_H
+    const ctx = setupCanvas(canvas, displayWidth, displayHeight)
+    
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, displayWidth, displayHeight)
+    ctx.strokeStyle = '#000000'
+    ctx.lineWidth = 2
+    ctx.strokeRect(1, 1, displayWidth - 2, displayHeight - 2)
+    
+    const baseFontSize = showLargeText ? 16 : 14
+    ctx.font = `${baseFontSize}px 'Roboto Mono', monospace`
+    ctx.fillStyle = '#000000'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    
+    const lines = labelText.split('\n')
+    const marginTop = 8
+    const marginLeft = 12
+    const lineHeight = (displayHeight - (marginTop * 2)) / 2
+    
+    lines.forEach((line, index) => {
+      if (index < 2) {
+        const y = marginTop + (index * lineHeight)
+        
+        // 미리보기에서 긴 문자열 안전장치
+        const maxTextWidth = displayWidth * 0.95
+        let currentFontSize = baseFontSize
+        ctx.font = `${currentFontSize}px 'Roboto Mono', monospace`
+        
+        while (ctx.measureText(line).width > maxTextWidth && currentFontSize > 8) {
+          currentFontSize -= 0.5
+          ctx.font = `${currentFontSize}px 'Roboto Mono', monospace`
+        }
+        
+        ctx.fillText(line, marginLeft, y)
+      }
+    })
+  }
 }
 
 
 // 메인 컴포넌트
 export default function LabelPrinter() {
-  const { user } = useAuth()
+  const { user: _user } = useAuth()
   
   // 상태 관리 - 단일 상태 원천
   const [type, setType] = useState<LabelType>('A')
@@ -605,18 +760,59 @@ export default function LabelPrinter() {
 
     const fetchLabelData = async () => {
       try {
-        const data = await apiGet(API_ENDPOINTS.WORK_ORDERS.LABEL_DATA(selectedWorkOrder.id.toString()))
-        console.log('🔍 라벨 데이터 수신:', data)
+        // 라벨 데이터 가져오기
+        const labelData = await apiGet(API_ENDPOINTS.WORK_ORDERS.LABEL_DATA(selectedWorkOrder.id.toString()))
+        console.log('🔍 라벨 데이터 수신:', labelData)
         console.log('🔍 선택된 작업지시:', selectedWorkOrder)
-        setLabelData(data)
+        
+        // selectedWorkOrder에서 ruInfoList 파싱하여 실제 RU명 찾기
+        const representativeRuId = selectedWorkOrder.representativeRuId
+        let actualRuName = ''
+        
+        if (representativeRuId && selectedWorkOrder.ruInfoList) {
+          try {
+            let ruInfoList = []
+            if (typeof selectedWorkOrder.ruInfoList === 'string') {
+              ruInfoList = JSON.parse(selectedWorkOrder.ruInfoList)
+            } else if (Array.isArray(selectedWorkOrder.ruInfoList)) {
+              ruInfoList = selectedWorkOrder.ruInfoList
+            }
+            
+            console.log('🔍 RU 정보 목록:', ruInfoList)
+            
+            const foundRu = ruInfoList.find((ru: any) => 
+              ru.ruId === representativeRuId || ru.id === representativeRuId
+            )
+            
+            if (foundRu) {
+              actualRuName = foundRu.ruName || foundRu.name || foundRu.equipmentName || ''
+              console.log('🔍 매칭된 RU:', { ruId: representativeRuId, ruName: actualRuName })
+            } else {
+              console.warn('🔍 대표 RU를 찾을 수 없음:', representativeRuId)
+              console.warn('🔍 사용 가능한 RU들:', ruInfoList.map((ru: any) => ({ id: ru.ruId || ru.id, name: ru.ruName || ru.name })))
+            }
+          } catch (parseError) {
+            console.error('🔍 RU 정보 파싱 오류:', parseError)
+          }
+        }
+        
+        // 라벨 데이터에 실제 RU명 설정
+        const enrichedLabelData = {
+          ...labelData,
+          ruId: representativeRuId,
+          ruName: actualRuName || labelData?.ruName || ''
+        }
+        
+        console.log('🔍 최종 라벨 데이터:', enrichedLabelData)
+        setLabelData(enrichedLabelData)
         
         // 자동 채움은 "비어 있을 때만" 1회 실행
         // A용 기본 muxA: (있을 때만) 비어 있을 때 채움
-        const guessMux = data?.focus5gName || selectedWorkOrder.concentratorName5G || ''
+        const guessMux = labelData?.focus5gName || selectedWorkOrder.concentratorName5G || ''
         if (!muxA && guessMux) setMuxA(guessMux)
 
         // C용 기본 lteMuxC: DB 칼럼 (LTE MUX / 국간,간선망)
-        const dbLte = data?.lteMux || selectedWorkOrder.muxInfo || ''
+        const dbLte = labelData?.lteMux || selectedWorkOrder.muxInfo || ''
         if (!lteMuxC && dbLte) setLteMuxC(dbLte)
 
         // 절대 setTieB로 managementNumber 등을 넣지 말 것
@@ -629,7 +825,7 @@ export default function LabelPrinter() {
           duTeam: selectedWorkOrder.operationTeam || '',
           ruTeam: selectedWorkOrder.operationTeam || '',
           ruId: selectedWorkOrder.representativeRuId || '',
-          ruName: selectedWorkOrder.equipmentName || '',
+          ruName: selectedWorkOrder.ruName || selectedWorkOrder.representativeRuName || selectedWorkOrder.equipmentName || '',
           focus5gName: selectedWorkOrder.concentratorName5G || '',
           lineNumber: '',
           lteMux: selectedWorkOrder.muxInfo || '',
@@ -690,7 +886,7 @@ export default function LabelPrinter() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [type])
 
-  // 라벨 출력 핸들러
+  // 라벨 출력 핸들러 (숨김 출력용 캔버스 사용)
   const handlePrint = () => {
     const validation = validateLabelCells(cells, type, muxA, tieB, lteMuxC)
     if (!validation.isValid) {
@@ -701,7 +897,7 @@ export default function LabelPrinter() {
       return
     }
 
-    // 브라우저 출력
+    // 브라우저 출력 (실제 출력 크기 138×12mm 유지)
     const labelText = buildTwoLine({ L1: cells.left1, L2: cells.left2, R1: cells.right1, R2: cells.right2 })
     const printWindow = window.open('', '_blank')
     if (printWindow) {
@@ -716,6 +912,7 @@ export default function LabelPrinter() {
               margin: 20px; 
               font-size: 14px; 
               line-height: 1.2;
+              overflow-x: hidden;
             }
             .label { 
               border: 1px solid #000; 
@@ -726,9 +923,11 @@ export default function LabelPrinter() {
               display: flex;
               align-items: center;
               margin-bottom: 5mm;
+              word-break: break-all;
+              overflow: hidden;
             }
             @media print {
-              body { margin: 0; }
+              body { margin: 0; overflow-x: hidden; }
               .label { margin: 0 0 5mm 0; }
             }
           </style>
@@ -743,7 +942,7 @@ export default function LabelPrinter() {
     }
   }
 
-  // 복사 핸들러
+  // 복사 핸들러 (숨김 텍스트영역 사용)
   const handleCopy = () => {
     const validation = validateLabelCells(cells, type, muxA, tieB, lteMuxC)
     if (!validation.isValid) {
@@ -754,7 +953,7 @@ export default function LabelPrinter() {
       return
     }
     
-    // 클립보드에 복사
+    // 클립보드에 복사 (실제 출력 텍스트 사용)
     const labelText = buildTwoLine({ L1: cells.left1, L2: cells.left2, R1: cells.right1, R2: cells.right2 })
     navigator.clipboard.writeText(labelText).then(() => {
       toast.success('라벨 텍스트가 클립보드에 복사되었습니다')
@@ -782,26 +981,26 @@ export default function LabelPrinter() {
         .thin-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
         .thin-scroll::-webkit-scrollbar-track{background:transparent}
       `}</style>
-    <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 bg-slate-50">
+    <div className="max-w-screen-xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 bg-slate-50">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">라벨 프린터 (PT-P300BT)</h1>
-        <p className="mt-1 text-xs md:text-sm text-slate-600">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">라벨 프린터 (PT-P300BT)</h1>
+        <p className="mt-1 text-xs sm:text-sm text-slate-600">
           DU측 라벨 전용 (138×12mm, 2행×2열) - 타입 간 값 연동 지원
         </p>
       </div>
 
-      {/* 단축키 안내 */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 md:p-6 hover:shadow-md transition-shadow">
+      {/* 단축키 안내 - 모바일에서 숨김 */}
+      <div className="hidden sm:block rounded-2xl border border-slate-200 bg-white shadow-sm p-5 md:p-6 hover:shadow-md transition-shadow">
         <div className="text-sm text-slate-700">
           <strong>단축키:</strong> Alt+1(A), Alt+2(B), Alt+3(C), Ctrl+Enter(인쇄), Ctrl+C(복사)
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
                  {/* 왼쪽: 설정 */}
-         <div className="space-y-5 md:space-y-6">
+         <div className="space-y-4 sm:space-y-5 md:space-y-6">
            {/* 라벨 타입 선택 */}
-           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 md:p-6 hover:shadow-md transition-shadow">
+           <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow">
              <LabelTypeSelector
                selectedType={type}
                onTypeChange={handleTypeChange}
@@ -809,8 +1008,8 @@ export default function LabelPrinter() {
            </div>
 
            {/* 2x2 셀 입력 */}
-           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 md:p-6 hover:shadow-md transition-shadow">
-             <h2 className="text-lg font-semibold text-slate-900 mb-4">라벨 정보 입력</h2>
+           <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow">
+             <h2 className="text-base sm:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">라벨 정보 입력</h2>
                            <CellInputs
                 cells={cells}
                 inputRefs={inputRefs}
@@ -831,24 +1030,24 @@ export default function LabelPrinter() {
            </div>
 
            {/* 작업지시 선택 */}
-           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 md:p-6 hover:shadow-md transition-shadow">
-             <div className="flex items-center justify-between mb-4">
-               <h2 className="text-lg font-semibold text-slate-900">작업지시 선택 (선택사항)</h2>
-               <span className="inline-flex items-center h-6 px-2 rounded-md text-xs bg-slate-100 text-slate-700">DU측 전용</span>
+           <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow">
+             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 gap-2">
+               <h2 className="text-base sm:text-lg font-semibold text-slate-900">작업지시 선택 (선택사항)</h2>
+               <span className="inline-flex items-center h-6 px-2 rounded-md text-xs bg-slate-100 text-slate-700 self-start sm:self-auto">DU측 전용</span>
              </div>
             
-                         <div className="relative mb-4">
+                         <div className="relative mb-3 sm:mb-4">
                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                <input
                  type="text"
                  placeholder="관리번호, 장비명, 운용팀으로 검색..."
-                 className="w-full pl-10 pr-4 h-11 rounded-lg border-slate-300 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#E60012]/30 focus-visible:border-[#E60012]"
+                 className="w-full pl-10 pr-4 h-10 sm:h-11 rounded-lg border-slate-300 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#E60012]/30 focus-visible:border-[#E60012] text-sm"
                  value={searchTerm}
                  onChange={(e) => setSearchTerm(e.target.value)}
                />
              </div>
 
-             <div className="max-h-64 overflow-y-auto space-y-2 thin-scroll">
+             <div className="max-h-48 sm:max-h-64 overflow-y-auto space-y-2 thin-scroll">
                {filteredWorkOrders.length > 0 ? (
                                   filteredWorkOrders.slice(0, 10).map((workOrder: any) => {
                     const isSelected = workOrderId === workOrder.id
@@ -893,37 +1092,29 @@ export default function LabelPrinter() {
          </div>
 
                  {/* 오른쪽: 미리보기 및 출력 */}
-         <div className="space-y-5 md:space-y-6">
+         <div className="space-y-4 sm:space-y-5 md:space-y-6">
            {/* 미리보기 */}
-           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 md:p-6 hover:shadow-md transition-shadow">
+           <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow">
              <LabelPreview cells={cells} />
            </div>
 
            {/* 붙여넣기 텍스트 */}
-           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 md:p-6 hover:shadow-md transition-shadow">
+           <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow">
              <div className="space-y-3">
                <div className="flex items-center justify-between">
                  <h3 className="text-sm font-medium text-slate-700">
                    Brother P-touch 붙여넣기 원문
                  </h3>
                  <button
-                   onClick={async () => {
-                     try {
-                       await navigator.clipboard.writeText(buildTwoLine({ L1: cells.left1, L2: cells.left2, R1: cells.right1, R2: cells.right2 }))
-                       toast.success('라벨 텍스트가 클립보드에 복사되었습니다')
-                     } catch (error) {
-                       console.error('클립보드 복사 실패:', error)
-                       toast.error('클립보드 복사에 실패했습니다')
-                     }
-                   }}
-                   className="absolute top-3 right-3 h-10 rounded-lg bg-[#1E40AF] hover:bg-[#1E3A8A] text-white px-3"
+                   onClick={handleCopy}
+                   className="flex items-center space-x-1 px-3 py-2 bg-[#1E40AF] hover:bg-[#1E3A8A] text-white rounded-lg"
                  >
                    <Copy className="w-4 h-4" />
                    <span>복사</span>
                  </button>
                </div>
-               <div className="bg-white border border-slate-300 p-3 md:p-4 rounded-xl">
-                 <pre className="font-mono text-sm md:text-base leading-6 rounded-xl border-slate-300 p-3 md:p-4 focus-visible:ring-2 focus-visible:ring-[#E60012]/30 focus-visible:border-[#E60012]">
+               <div className="bg-white border border-slate-300 p-3 md:p-4 rounded-xl relative overflow-hidden">
+                 <pre className="font-mono text-sm md:text-base leading-6 whitespace-pre-wrap break-words overflow-hidden">
                    {buildTwoLine({ L1: cells.left1, L2: cells.left2, R1: cells.right1, R2: cells.right2 })}
                  </pre>
                </div>
@@ -934,13 +1125,13 @@ export default function LabelPrinter() {
            </div>
 
            {/* 출력 버튼 */}
-           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 md:p-6 hover:shadow-md transition-shadow">
-             <h3 className="text-lg font-semibold text-slate-900 mb-4">출력 및 사용법</h3>
+           <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow">
+             <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">출력 및 사용법</h3>
              <div className="space-y-3">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                  <button
                    onClick={handleCopy}
-                   className="h-11 rounded-lg bg-[#1E40AF] hover:bg-[#1E3A8A] text-white flex items-center justify-center space-x-2 font-medium"
+                   className="h-12 sm:h-11 rounded-lg bg-[#1E40AF] hover:bg-[#1E3A8A] text-white flex items-center justify-center space-x-2 font-medium text-sm sm:text-base active:scale-95 transition-transform"
                  >
                    <Copy className="w-4 h-4" />
                    <span>복사 (Brother 앱용)</span>
@@ -948,7 +1139,7 @@ export default function LabelPrinter() {
                  
                  <button
                    onClick={handlePrint}
-                   className="h-11 rounded-lg bg-[#E60012] hover:bg-[#C50010] text-white flex items-center justify-center space-x-2 font-medium"
+                   className="h-12 sm:h-11 rounded-lg bg-[#E60012] hover:bg-[#C50010] text-white flex items-center justify-center space-x-2 font-medium text-sm sm:text-base active:scale-95 transition-transform"
                  >
                    <Printer className="w-4 h-4" />
                    <span>브라우저 인쇄</span>

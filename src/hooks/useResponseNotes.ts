@@ -35,6 +35,12 @@ export function useResponseNotes(): UseResponseNotesResult {
       setError(null);
       
       const data = await apiGet<ResponseNoteData[]>(API_ENDPOINTS.RESPONSE_NOTES.LIST);
+      
+      // API 응답 상태 확인 (개발 환경에서만)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ ResponseNotes API: ${data?.length || 0}개 데이터 로드`);
+      }
+      
       setResponseNotes(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '회신 메모 조회 중 오류가 발생했습니다.';

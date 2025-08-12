@@ -10,6 +10,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
     dialect: 'sqlite',
     storage: './data/lineguide.db',
     logging: false,
+    timezone: '+09:00', // ✅ KST 고정
     pool: {
       max: 5,
       min: 0,
@@ -21,7 +22,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
       underscored: true
     }
   });
-  console.log('🗄️ SQLite 데이터베이스 모드로 실행 중...');
+  console.log('🗄️ SQLite 데이터베이스 모드로 실행 중 (KST 타임존)...');
 } else {
   // 개발환경: MySQL 사용
   sequelize = new Sequelize(
@@ -32,7 +33,12 @@ if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 3306,
       dialect: 'mysql',
+      timezone: '+09:00', // ✅ KST 고정
       logging: process.env.NODE_ENV === 'development' ? console.log : false,
+      dialectOptions: {
+        dateStrings: true, // DATETIME 문자열로 반환
+        typeCast: true     // 문자열로 반환
+      },
       pool: {
         max: 10,
         min: 0,
@@ -47,7 +53,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
       }
     }
   );
-  console.log('🗄️ MySQL 데이터베이스 모드로 실행 중...');
+  console.log('🗄️ MySQL 데이터베이스 모드로 실행 중 (KST 타임존)...');
 }
 
 // 데이터베이스 연결 테스트
