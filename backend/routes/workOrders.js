@@ -871,14 +871,37 @@ router.get('/:id/memo-base', authMiddleware, async (req, res) => {
       side = 'DU측';
     }
 
+    // 실제 RU명 추출 (ruInfoList에서 대표 RU ID에 해당하는 실제 RU명 찾기)
+    let actualRuName = workOrder.representativeRuId;
+    if (workOrder.ruInfoList && workOrder.representativeRuId) {
+      try {
+        const ruInfoList = typeof workOrder.ruInfoList === 'string' 
+          ? JSON.parse(workOrder.ruInfoList) 
+          : workOrder.ruInfoList;
+        
+        if (Array.isArray(ruInfoList)) {
+          const foundRu = ruInfoList.find(ru => 
+            ru.ruId === workOrder.representativeRuId || 
+            ru.id === workOrder.representativeRuId
+          );
+          if (foundRu) {
+            actualRuName = foundRu.ruName || foundRu.name || foundRu.equipmentName || actualRuName;
+          }
+        }
+      } catch (error) {
+        console.warn('RU 정보 파싱 실패:', error);
+      }
+    }
+
+    // DU측은 집중국사명 (concentratorName5G), RU측은 실제 RU명
     const response = {
       workOrderId: parseInt(workOrder.id),
       status: workOrder.status || 'pending',
       side: side,
       operationTeam: workOrder.operationTeam || workOrder.team || '',
       managementNumber: workOrder.managementNumber || '',
-      duName: workOrder.duName || null,
-      ruName: workOrder.representativeRuId || workOrder.equipmentName || null,
+      duName: workOrder.concentratorName5G || workOrder.duName || null, // DU측: 집중국사명
+      ruName: actualRuName || workOrder.equipmentName || null, // RU측: 실제 RU명
       coSiteCount5g: workOrder.coSiteCount5G ? parseInt(workOrder.coSiteCount5G) : null
     };
 
