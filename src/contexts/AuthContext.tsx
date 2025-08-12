@@ -29,6 +29,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isAdmin: boolean
   loading: boolean
+  isHydrated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -40,6 +41,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isHydrated, setIsHydrated] = useState(false)
 
   // 토큰으로 사용자 정보 복원
   const initializeAuth = async () => {
@@ -76,6 +78,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       AuthToken.remove()
     } finally {
       setLoading(false)
+      // 인증 초기화 완료 후 hydration 상태 설정
+      setTimeout(() => setIsHydrated(true), 0)
     }
   }
 
@@ -112,6 +116,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('👤 로그인 사용자 정보 설정:', authUser)
       setUser(authUser)
       
+      // 로그인 성공 시 hydration 상태도 true로 설정
+      setIsHydrated(true)
+      
       // 사용자 통계 정보 추가 로드 (임시 비활성화)
       // await refreshUser()
       
@@ -136,6 +143,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       AuthToken.remove()
       setUser(null)
+      setIsHydrated(false)
     }
   }
 
@@ -168,7 +176,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshUser,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
-    loading
+    loading,
+    isHydrated
   }
 
   // 디버깅용 로그
@@ -176,6 +185,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     isAuthenticated: !!user,
     loading,
+    isHydrated,
     hasToken: !!AuthToken.get()
   })
 

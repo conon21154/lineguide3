@@ -9,7 +9,7 @@ import WorkOrderTable from '@/components/WorkOrderTable'
 
 
 export default function WorkBoard() {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, isHydrated } = useAuth()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   
@@ -34,20 +34,38 @@ export default function WorkBoard() {
   const [collapsedWorkOrders, setCollapsedWorkOrders] = useState<Set<string>>(new Set())
   const [hasInitialized, setHasInitialized] = useState(false)
 
+  // 효과적인 팀 계산: worker면 JWT 팀 강제, admin은 선택팀
+  const effectiveTeam = useMemo(() => {
+    if (user?.role === 'worker') {
+      return user.team as OperationTeam || ''
+    }
+    return selectedTeam || ''
+  }, [user?.role, user?.team, selectedTeam])
+
+  // 서버로 보낼 상태 값 ('전체'는 제외)
+  const statusParam = useMemo(() => {
+    return selectedStatus && selectedStatus !== '전체' ? selectedStatus : undefined
+  }, [selectedStatus])
+
   const filter: WorkOrderFilter = useMemo(() => {
     const f: WorkOrderFilter = {}
     
-    // 현장팀 사용자는 자신의 팀 작업만 볼 수 있음
-    if (!isAdmin && user?.team) {
-      f.operationTeam = (user.team as unknown as OperationTeam)
-    } else if (selectedTeam) {
-      f.operationTeam = selectedTeam
+    // 팀 강제 적용: worker면 항상 JWT 팀, admin은 선택팀
+    if (effectiveTeam) {
+      f.operationTeam = effectiveTeam as OperationTeam
     }
     
-    if (selectedStatus) f.status = selectedStatus
-    if (debouncedQ.trim()) f.searchTerm = debouncedQ.trim()
+    // '전체' 상태는 서버로 보내지 않음
+    if (statusParam) {
+      f.status = statusParam
+    }
+    
+    if (debouncedQ.trim()) {
+      f.searchTerm = debouncedQ.trim()
+    }
+    
     return f
-  }, [selectedTeam, selectedStatus, debouncedQ, isAdmin, user?.team])
+  }, [effectiveTeam, statusParam, debouncedQ])
 
   const { workOrders, loading, clearAllWorkOrders, refreshData, updateStatus, deleteWorkOrder, setFilter } = useWorkOrdersAPI()
   
@@ -81,15 +99,6 @@ export default function WorkBoard() {
       }
     }
   }, [])
-
-  console.log('🏢 WorkBoard 렌더링:', {
-    workOrdersCount: workOrders.length,
-    loading,
-    filter,
-    collapsedWorkOrdersSize: collapsedWorkOrders.size,
-    hasInitialized,
-    user: { username: user?.username, team: user?.team, role: user?.role }
-  })
 
   // 서버에서 이미 필터링된 데이터를 사용하므로 클라이언트 필터링 제거
   // 정렬만 클라이언트에서 수행
@@ -203,7 +212,7 @@ export default function WorkBoard() {
     // 상태 업데이트만
     if (team !== null) setSelectedTeam(team as OperationTeam || '')
     if (status !== null) setSelectedStatus(status as WorkOrderStatus || '')
-    if (q !== null) setSearchTerm(q || '')
+    if (q !== null) setInputQ(q || '')
   }, [searchParams])
   
 
@@ -230,21 +239,17 @@ export default function WorkBoard() {
     });
   }, [workOrders, filter, user, isAdmin])
 
-  // 데이터 로딩 표시 - 모든 Hook 이후에 조건부 렌더링
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <span className="ml-3 text-gray-600">작업지시를 불러오는 중...</span>
-      </div>
-    )
-  }
+  // 모든 함수들을 Hook 사용 영역에 정의 (조건부 return 이전)
+  const clearFilters = useCallback(() => {
+    // 현장팀 사용자는 팀 필터를 초기화하지 않음 (항상 자신의 팀)
+    if (isAdmin) {
+      updateFilter({ team: '', status: '', q: '' })
+    } else {
+      updateFilter({ status: '', q: '' })
+    }
+  }, [isAdmin, updateFilter])
 
-  const clearFilters = () => {
-    updateFilter({ team: '', status: '', q: '' })
-  }
-
-  const toggleTeamCollapse = (team: OperationTeam) => {
+  const toggleTeamCollapse = useCallback((team: OperationTeam) => {
     const newCollapsed = new Set(collapsedTeams)
     if (newCollapsed.has(team)) {
       newCollapsed.delete(team)
@@ -252,9 +257,9 @@ export default function WorkBoard() {
       newCollapsed.add(team)
     }
     setCollapsedTeams(newCollapsed)
-  }
+  }, [collapsedTeams])
 
-  const toggleWorkOrderCollapse = (workOrderId: string) => {
+  const toggleWorkOrderCollapse = useCallback((workOrderId: string) => {
     const newCollapsed = new Set(collapsedWorkOrders)
     if (newCollapsed.has(workOrderId)) {
       newCollapsed.delete(workOrderId)
@@ -262,9 +267,9 @@ export default function WorkBoard() {
       newCollapsed.add(workOrderId)
     }
     setCollapsedWorkOrders(newCollapsed)
-  }
+  }, [collapsedWorkOrders])
 
-  const handleClearAll = async () => {
+  const handleClearAll = useCallback(async () => {
     const confirmed = window.confirm('⚠️ 정말로 모든 작업지시를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')
     
     if (confirmed) {
@@ -287,10 +292,40 @@ export default function WorkBoard() {
         }
       }
     }
+  }, [clearAllWorkOrders, setCleared])
+
+  // 필터 활성 개수 계산 (현장팀은 팀 선택 불가하므로 제외)
+  const activeFiltersCount = useMemo(() => {
+    const filters = []
+    if (isAdmin && selectedTeam) filters.push(selectedTeam) // 관리자만 팀 필터 카운트
+    if (selectedStatus && selectedStatus !== '전체') filters.push(selectedStatus)
+    if (debouncedQ.trim()) filters.push(debouncedQ)
+    return filters.length
+  }, [isAdmin, selectedTeam, selectedStatus, debouncedQ])
+
+  // 디버깅: 명시적 조건 로그
+  console.log('🔍 렌더링 조건 체크:', {
+    loading,
+    isHydrated,
+    shouldShowLoading: loading || !isHydrated,
+    user: !!user,
+    hasWorkOrders: workOrders.length > 0
+  })
+
+  // 데이터 로딩 표시 - 모든 Hook 이후에 조건부 렌더링
+  if (loading || !isHydrated) {
+    console.log('🔄 로딩 화면 표시:', { loading, isHydrated })
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <span className="ml-3 text-gray-600">
+          {!isHydrated ? '인증 정보를 복원 중...' : '작업지시를 불러오는 중...'}
+        </span>
+      </div>
+    )
   }
 
-  // 필터 활성 개수 계산
-  const activeFiltersCount = [selectedTeam, selectedStatus, debouncedQ].filter(Boolean).length
+  console.log('✅ 메인 컨텐츠 렌더링')
 
   return (
     <div className="w-full mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 max-w-screen-sm md:max-w-2xl lg:max-w-5xl xl:max-w-7xl 2xl:max-w-[1400px] space-y-4 overflow-x-hidden">

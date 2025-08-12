@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { WorkOrder, WorkOrderFilter, ResponseNote, FieldReport } from '@/types'
-import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiPatch, apiDelete, apiUpload } from '@/config/api'
+import { API_ENDPOINTS, apiGet, apiPost, apiPut, apiPatch, apiDelete, apiUpload, AuthToken } from '@/config/api'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface UseWorkOrdersResult {
   workOrders: WorkOrder[]
@@ -44,6 +45,7 @@ export function useWorkOrders(
   initialLimit: number = 200,
   options?: UseWorkOrdersOptions
 ): UseWorkOrdersResult {
+  const { isHydrated, user } = useAuth()
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -130,10 +132,22 @@ export function useWorkOrders(
         sortOrder: 'DESC'
       })
 
-      // 필터 조건 추가
-      if (filter.operationTeam) params.set('team', filter.operationTeam)
-      if (filter.status) params.set('status', filter.status)
-      if (filter.searchTerm) params.set('search', filter.searchTerm)
+      // 팀 강제 주입: worker면 JWT 팀, admin은 필터 팀
+      if (user?.role === 'worker' && user.team) {
+        params.set('team', user.team)
+      } else if (filter.operationTeam) {
+        params.set('team', filter.operationTeam)
+      }
+
+      // 상태 조건 (전체는 제외)
+      if (filter.status && filter.status !== '전체') {
+        params.set('status', filter.status)
+      }
+
+      // 검색어
+      if (filter.searchTerm) {
+        params.set('search', filter.searchTerm)
+      }
 
       const url = `${API_ENDPOINTS.WORK_ORDERS.LIST}?${params}`
       console.log('📡 작업지시 조회 요청:', url)
@@ -190,13 +204,22 @@ export function useWorkOrders(
     } finally {
       setLoading(false)
     }
-  }, [currentFilter, currentPage, currentLimit])
+  }, [currentFilter, currentPage, currentLimit, user])
 
-  // 초기 데이터 로드 및 필터/페이지 변경 시 재로드
+  // 초기 데이터 로드 및 필터/페이지 변경 시 재로드 (hydration 완료 후만)
   useEffect(() => {
     if (options?.autoFetch === false) return
+    
+    // ✅ 스토어 재수화 완료 + 토큰 존재 시에만 쿼리 실행
+    const token = AuthToken.get()
+    if (!isHydrated || !token) {
+      console.log('🚫 쿼리 실행 보류:', { isHydrated, hasToken: !!token })
+      return
+    }
+
+    console.log('✅ 쿼리 실행 조건 만족:', { isHydrated, hasToken: !!token, userRole: user?.role, userTeam: user?.team })
     fetchWorkOrders()
-  }, [fetchWorkOrders, options?.autoFetch])
+  }, [fetchWorkOrders, options?.autoFetch, isHydrated, user])
 
   // 새로운 작업지시 추가 (단일/다중)
   const addWorkOrders = async (orders: Omit<WorkOrder, 'id' | 'status' | 'createdAt' | 'updatedAt'>[]) => {
@@ -411,6 +434,13 @@ export function useWorkOrders(
 
   // 데이터 새로고침
   const refreshData = async () => {
+    // hydration과 토큰 조건을 체크하고 fetchWorkOrders 호출
+    const token = AuthToken.get()
+    if (!isHydrated || !token) {
+      console.log('🚫 refreshData 보류:', { isHydrated, hasToken: !!token })
+      return
+    }
+    
     await fetchWorkOrders()
   }
 
