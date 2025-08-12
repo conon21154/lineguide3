@@ -467,7 +467,7 @@ export default function WorkBoard() {
           )}
         </div>
         
-        {(cleared ? 0 : workOrders.length) > 0 && (
+        {user?.role === 'admin' && (cleared ? 0 : workOrders.length) > 0 && (
           <button
             onClick={handleClearAll}
             className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-[13px] sm:text-sm font-medium flex-shrink-0"
