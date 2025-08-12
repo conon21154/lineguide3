@@ -10,7 +10,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
     dialect: 'sqlite',
     storage: './data/lineguide.db',
     logging: false,
-    timezone: '+09:00', // ✅ KST 고정
+    // SQLite는 timezone 설정을 지원하지 않음 (항상 UTC로 저장됨)
     pool: {
       max: 5,
       min: 0,
@@ -22,7 +22,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
       underscored: true
     }
   });
-  console.log('🗄️ SQLite 데이터베이스 모드로 실행 중 (KST 타임존)...');
+  console.log('🗄️ SQLite 데이터베이스 모드로 실행 중 (UTC 타임존)...');
 } else {
   // 개발환경: MySQL 사용
   sequelize = new Sequelize(
