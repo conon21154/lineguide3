@@ -5,6 +5,8 @@ import { WorkOrder, WorkOrderStatus } from '@/types'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
 import MemoForm from './MemoForm'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 
 interface WorkOrderTableProps {
   workOrders: WorkOrder[]
@@ -35,17 +37,17 @@ const StatusBadge = ({ status }: { status: WorkOrderStatus }) => {
     pending: {
       label: '대기',
       icon: Clock,
-      className: 'bg-warning-100 text-warning-800'
+      className: 'bg-yellow-100 text-yellow-800'
     },
     in_progress: {
       label: '진행중',
       icon: User,
-      className: 'bg-primary-100 text-primary-800'
+      className: 'bg-[#1E40AF]/10 text-[#1E40AF]'
     },
     completed: {
       label: '완료',
       icon: CheckCircle,
-      className: 'bg-success-100 text-success-800'
+      className: 'bg-green-100 text-green-800'
     }
   }
 
@@ -63,12 +65,12 @@ const StatusBadge = ({ status }: { status: WorkOrderStatus }) => {
 const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClose: () => void }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">작업지시 상세정보</h2>
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+        <div className="flex justify-between items-center p-6 border-b border-slate-200">
+          <h2 className="text-xl font-semibold text-slate-900">작업지시 상세정보</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-slate-400 hover:text-slate-600"
           >
             <X className="w-6 h-6" />
           </button>
@@ -299,7 +301,7 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
       {/* 모바일 카드 뷰 */}
       <div className="block lg:hidden space-y-3 overflow-x-hidden">
         {workOrders.map((workOrder) => (
-          <div key={workOrder.id} className="rounded-xl border border-slate-200 bg-white shadow-sm p-3 space-y-2">
+          <Card key={workOrder.id} className="p-3 space-y-2">
             {/* 상단: 관리번호 + 상태 배지 */}
             <div className="flex min-w-0 items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -312,7 +314,7 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
                   <div className="mt-1">
                     <span className={`inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium ${
                       workOrder.workType === 'DU측' 
-                        ? 'bg-blue-100 text-blue-800' 
+                        ? 'bg-[#1E40AF]/10 text-[#1E40AF]' 
                         : 'bg-green-100 text-green-800'
                     }`}>
                       {workOrder.workType}
@@ -385,10 +387,10 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
                 disabled={!isCompleted(workOrder.status)}
                 className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-xs rounded-md transition-colors border ${
                   !isCompleted(workOrder.status)
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200'
                     : workOrder.hasMemo
-                      ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200'
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200'
+                      ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200'
+                      : 'bg-[#1E40AF]/10 text-[#1E40AF] hover:bg-[#1E40AF]/20 border-[#1E40AF]/20'
                 }`}
               >
                 {workOrder.hasMemo ? (
@@ -405,57 +407,57 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
               <div className="flex justify-end gap-1 pt-1">
                 <button
                   onClick={() => setViewingDetailId(workOrder.id)}
-                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-500/30 flex items-center justify-center text-primary-600"
+                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[#1E40AF]/30 flex items-center justify-center text-[#1E40AF]"
                   title="상세보기"
                 >
                   <Eye className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleEditStart(workOrder)}
-                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-500/30 flex items-center justify-center text-primary-600"
+                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[#1E40AF]/30 flex items-center justify-center text-[#1E40AF]"
                   title="상태 변경"
                 >
                   <Edit3 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(workOrder.id)}
-                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-500/30 flex items-center justify-center text-danger-600"
+                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-red-500/30 flex items-center justify-center text-red-600"
                   title="삭제"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             )}
-          </div>
+          </Card>
         ))}
       </div>
       
       {/* 데스크톱 테이블 뷰 */}
       <div className="hidden lg:block overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리번호</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">팀</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">장비명</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">대표 RU</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">회신 메모</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">관리번호</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">팀</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">장비명</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">대표 RU</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">상태</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">회신 메모</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">액션</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-slate-200">
             {workOrders.map((workOrder) => (
-              <tr key={workOrder.id} className="hover:bg-gray-50">
+              <tr key={workOrder.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
                   <div className="text-sm font-mono">
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-slate-900">
                       {getBaseManagementNumber(workOrder.managementNumber)}
                     </div>
                     {workOrder.workType && (
                       <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${
                         workOrder.workType === 'DU측' 
-                          ? 'bg-blue-100 text-blue-800' 
+                          ? 'bg-[#1E40AF]/10 text-[#1E40AF]' 
                           : 'bg-green-100 text-green-800'
                       }`}>
                         {workOrder.workType}
@@ -463,9 +465,9 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-900">{workOrder.operationTeam}</td>
-                <td className="px-4 py-3 text-sm text-gray-900">{workOrder.equipmentName}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">
+                <td className="px-4 py-3 text-sm text-slate-900">{workOrder.operationTeam}</td>
+                <td className="px-4 py-3 text-sm text-slate-900">{workOrder.equipmentName}</td>
+                <td className="px-4 py-3 text-sm text-slate-500">
                   {getRepresentativeRuName(workOrder.ruInfoList) || workOrder.representativeRuId || '-'}
                 </td>
                 <td className="px-4 py-3">
@@ -513,10 +515,10 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
                     aria-label={workOrder.hasMemo ? '메모 작성완료' : (isCompleted(workOrder.status) ? '메모 작성' : '작성 불가')}
                     className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors border ${
                       !isCompleted(workOrder.status)
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200'
                         : workOrder.hasMemo
-                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200'
-                          : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200'
+                          ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200'
+                          : 'bg-[#1E40AF]/10 text-[#1E40AF] hover:bg-[#1E40AF]/20 border-[#1E40AF]/20'
                     }`}
                     title={!isCompleted(workOrder.status)
                       ? '완료된 작업만 회신 메모 작성 가능'
@@ -535,21 +537,21 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
                     <div className="flex space-x-2">
                       <button
                         onClick={() => setViewingDetailId(workOrder.id)}
-                        className="text-primary-600 hover:text-primary-900"
+                        className="text-[#1E40AF] hover:text-[#1E3A8A]"
                         title="상세보기"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleEditStart(workOrder)}
-                        className="text-primary-600 hover:text-primary-900"
+                        className="text-[#1E40AF] hover:text-[#1E3A8A]"
                         title="상태 변경"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(workOrder.id)}
-                        className="text-danger-600 hover:text-danger-900"
+                        className="text-red-600 hover:text-red-800"
                         title="삭제"
                       >
                         <Trash2 className="w-4 h-4" />

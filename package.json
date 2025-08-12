@@ -13,13 +13,14 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.84.2",
-    "clsx": "^2.0.0",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.284.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.15.0",
     "socket.io-client": "^4.8.1",
     "sonner": "^2.0.7",
+    "tailwind-merge": "^3.3.1",
     "use-debounce": "^10.0.5",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.7"

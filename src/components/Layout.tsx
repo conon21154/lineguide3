@@ -141,9 +141,9 @@ export default function Layout({ children }: LayoutProps) {
   const navigation = getNavigationItems(isAdmin, isMobileApp())
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-slate-50">
       {/* 최상단 헤더 - 로고와 사용자 정보만 */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+      <div className="bg-gradient-to-r from-[#1E40AF] via-[#1E3A8A] to-[#1E40AF] shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* 브랜드 */}
@@ -193,7 +193,7 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {/* 네비게이션 메뉴 */}
-      <nav className="bg-white/80 backdrop-blur-sm border-b border-white/20 shadow-sm">
+      <nav className="bg-white/80 backdrop-blur-sm border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center h-16">
             {/* 데스크톱 네비게이션 */}
@@ -209,7 +209,7 @@ export default function Layout({ children }: LayoutProps) {
                     className={clsx(
                       'inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 transform hover:scale-105',
                       isActive
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
+                        ? 'bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] text-white shadow-lg shadow-[#1E40AF]/25'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
                     )}
                   >
@@ -225,7 +225,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* 모바일 메뉴 */}
         {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-white/20 py-4 bg-white/90 backdrop-blur-sm">
+          <div className="sm:hidden border-t border-slate-200 py-4 bg-white/90 backdrop-blur-sm">
             <div className="flex flex-col space-y-2 px-4">
               {navigation.map((item) => {
                 const Icon = item.icon
@@ -239,7 +239,7 @@ export default function Layout({ children }: LayoutProps) {
                     className={clsx(
                       'flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-all duration-200',
                       isActive
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                        ? 'bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] text-white shadow-lg'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
                     )}
                   >
@@ -279,14 +279,14 @@ export default function Layout({ children }: LayoutProps) {
       </nav>
 
       <div className="flex min-h-[calc(100vh-8rem)]">
-        <main className={`flex-1 py-6 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
+        <main className={`flex-1 transition-all duration-300 ${
           location.pathname === '/' 
             ? sidebarCollapsed 
               ? 'max-w-7xl mx-auto' 
               : 'max-w-5xl mx-auto'
             : 'max-w-7xl mx-auto'
         }`}>
-          <div className="py-6 fade-in">
+          <div className="fade-in">
             {children}
           </div>
         </main>

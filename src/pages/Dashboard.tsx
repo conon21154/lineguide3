@@ -3,6 +3,8 @@ import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
 import { useDashboardFieldReplies, useToggleFieldReplyConfirm } from '@/hooks/useDashboardFieldReplies'
 import { OperationTeam, FieldReport } from '@/types'
 import { useState, useMemo, useEffect } from 'react'
+import { Card } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 const CalendarDayDetailModal = ({ 
   day, 
@@ -32,22 +34,22 @@ const CalendarDayDetailModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-xl">
+        <div className="flex justify-between items-center p-6 border-b border-slate-200">
+          <h2 className="text-xl font-semibold text-slate-900">
             {year}년 {monthNames[month]} {day}일 작업 상세
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X className="h-6 w-6" />
           </button>
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
           <div className="mb-4 flex items-center justify-between">
-            <div className="text-lg font-medium text-gray-900">
+            <div className="text-lg font-medium text-slate-900">
               총 {workOrders.length}건의 작업지시
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-slate-500">
               {Object.keys(teamGroups).length}개 운용팀
             </div>
           </div>
@@ -61,13 +63,13 @@ const CalendarDayDetailModal = ({
                 const completedCount = teamWorkOrders.filter(wo => wo.status === 'completed').length
 
                 return (
-                  <div key={team} className="border rounded-lg p-4">
+                  <div key={team} className="border border-slate-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#1E40AF]/10 text-[#1E40AF]">
                           {team}
                         </span>
-                        <span className="text-lg font-medium text-gray-900">
+                        <span className="text-lg font-medium text-slate-900">
                           {teamWorkOrders.length}건
                         </span>
                       </div>
@@ -78,7 +80,7 @@ const CalendarDayDetailModal = ({
                           </span>
                         )}
                         {inProgressCount > 0 && (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                          <span className="px-2 py-1 bg-[#1E40AF]/10 text-[#1E40AF] rounded">
                             진행중 {inProgressCount}
                           </span>
                         )}
@@ -92,18 +94,18 @@ const CalendarDayDetailModal = ({
                     
                     <div className="space-y-2">
                       {teamWorkOrders.map(wo => (
-                        <div key={wo.id} className="bg-gray-50 p-3 rounded">
+                        <div key={wo.id} className="bg-slate-50 p-3 rounded-lg">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="font-mono text-xs bg-white px-2 py-1 rounded inline-block mb-1">
                                 {wo.managementNumber.replace(/_DU측|_RU측/g, '')}
                               </div>
                               <div className="text-sm font-medium">{wo.equipmentName}</div>
-                              <div className="text-xs text-gray-600">{wo.concentratorName5G}</div>
+                              <div className="text-xs text-slate-600">{wo.concentratorName5G}</div>
                             </div>
                             <span className={`px-2 py-1 text-xs rounded ${
                               wo.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              wo.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                              wo.status === 'in_progress' ? 'bg-[#1E40AF]/10 text-[#1E40AF]' :
                               'bg-green-100 text-green-800'
                             }`}>
                               {wo.status === 'pending' ? '대기' : wo.status === 'in_progress' ? '진행중' : '완료'}
@@ -280,11 +282,11 @@ const SimpleCalendar = () => {
     <div>
       {/* 캘린더 헤더 */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-gray-900">작업 캘린더</h3>
+        <h3 className="text-lg font-medium text-slate-900">작업 캘린더</h3>
         <div className="flex items-center space-x-2">
           <button
             onClick={goToPreviousMonth}
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-1 hover:bg-slate-100 rounded"
           >
             <ChevronRight className="h-4 w-4 rotate-180" />
           </button>
@@ -293,7 +295,7 @@ const SimpleCalendar = () => {
           </span>
           <button
             onClick={goToNextMonth}
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-1 hover:bg-slate-100 rounded"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -304,7 +306,7 @@ const SimpleCalendar = () => {
       <div className="grid grid-cols-7 gap-1 text-center">
         {/* 요일 헤더 */}
         {weekDays.map(day => (
-          <div key={day} className="p-2 text-sm font-medium text-gray-500">
+          <div key={day} className="p-2 text-sm font-medium text-slate-500">
             {day}
           </div>
         ))}
@@ -333,8 +335,8 @@ const SimpleCalendar = () => {
             <div
               key={day}
               onClick={() => handleDayClick(day)}
-              className={`relative p-1 h-16 text-sm cursor-pointer hover:bg-gray-50 rounded border transition-colors ${
-                isToday ? 'bg-blue-50 border-blue-200 text-blue-900 font-medium' : 'border-gray-100'
+              className={`relative p-1 h-16 text-sm cursor-pointer hover:bg-slate-50 rounded border transition-colors ${
+                isToday ? 'bg-[#1E40AF]/10 border-[#1E40AF]/20 text-[#1E40AF] font-medium' : 'border-slate-100'
               } ${workCount > 0 ? 'hover:shadow-sm' : ''}`}
             >
               <div className="font-medium mb-1">{day}</div>
@@ -351,7 +353,7 @@ const SimpleCalendar = () => {
                     </div>
                   ))}
                   {teams.length > 2 && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-slate-500">
                       +{teams.length - 2}팀
                     </div>
                   )}
@@ -541,77 +543,75 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
-        <p className="mt-2 text-gray-600">
-          작업지시 현황을 한눈에 확인하세요
-        </p>
-      </div>
+    <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 bg-slate-50">
+      <PageHeader
+        title="대시보드"
+        subtitle="작업지시 현황을 한눈에 확인하세요"
+      />
 
       {/* 전체 통계 카드 */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card">
+        <Card>
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <BarChart3 className="h-6 w-6 text-gray-400" />
+              <BarChart3 className="h-6 w-6 text-slate-400" />
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">전체 작업</dt>
-                <dd className="text-lg font-medium text-gray-900">{statistics.total.toLocaleString()}</dd>
+                <dt className="text-sm font-medium text-slate-500 truncate">전체 작업</dt>
+                <dd className="text-lg font-medium text-slate-900">{statistics.total.toLocaleString()}</dd>
               </dl>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="card">
+        <Card>
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Clock className="h-6 w-6 text-warning-400" />
+              <Clock className="h-6 w-6 text-yellow-500" />
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">대기 중</dt>
-                <dd className="text-lg font-medium text-gray-900">{statistics.pending.toLocaleString()}</dd>
+                <dt className="text-sm font-medium text-slate-500 truncate">대기 중</dt>
+                <dd className="text-lg font-medium text-slate-900">{statistics.pending.toLocaleString()}</dd>
               </dl>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="card">
+        <Card>
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Users className="h-6 w-6 text-primary-400" />
+              <Users className="h-6 w-6 text-[#1E40AF]" />
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">진행 중</dt>
-                <dd className="text-lg font-medium text-gray-900">{statistics.inProgress.toLocaleString()}</dd>
+                <dt className="text-sm font-medium text-slate-500 truncate">진행 중</dt>
+                <dd className="text-lg font-medium text-slate-900">{statistics.inProgress.toLocaleString()}</dd>
               </dl>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="card">
+        <Card>
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <CheckCircle className="h-6 w-6 text-success-400" />
+              <CheckCircle className="h-6 w-6 text-green-500" />
             </div>
             <div className="ml-5 w-0 flex-1">
               <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">완료</dt>
-                <dd className="text-lg font-medium text-gray-900">{statistics.completed.toLocaleString()}</dd>
+                <dt className="text-sm font-medium text-slate-500 truncate">완료</dt>
+                <dd className="text-lg font-medium text-slate-900">{statistics.completed.toLocaleString()}</dd>
               </dl>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* 팀별 통계 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">운용팀별 현황</h3>
+        <Card>
+          <h3 className="text-lg font-medium text-slate-900 mb-4">운용팀별 현황</h3>
           <div className="space-y-4">
             {(() => {
               const teamsWithWork = Object.entries(statistics.byTeam)
@@ -621,13 +621,13 @@ export default function Dashboard() {
               if (teamsWithWork.length === 0) {
                 return (
                   <div className="text-center py-8">
-                    <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+                    <div className="mx-auto h-12 w-12 text-slate-400 mb-4">
                       <Users className="h-12 w-12" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-lg font-medium text-slate-900 mb-2">
                       작업지시가 없습니다
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-slate-600">
                       Excel 파일을 업로드하여 작업지시를 등록하세요
                     </p>
                   </div>
@@ -635,16 +635,16 @@ export default function Dashboard() {
               }
               
               return teamsWithWork.map(([team, stats]) => (
-                <div key={team} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="font-medium text-gray-900">{team}</div>
+                <div key={team} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div className="font-medium text-slate-900">{team}</div>
                   <div className="flex space-x-2 text-sm">
-                    <span className="px-2 py-1 bg-warning-100 text-warning-800 rounded">
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
                       대기 {stats.pending}
                     </span>
-                    <span className="px-2 py-1 bg-primary-100 text-primary-800 rounded">
+                    <span className="px-2 py-1 bg-[#1E40AF]/10 text-[#1E40AF] rounded">
                       진행 {stats.inProgress}
                     </span>
-                    <span className="px-2 py-1 bg-success-100 text-success-800 rounded">
+                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
                       완료 {stats.completed}
                     </span>
                   </div>
@@ -652,21 +652,21 @@ export default function Dashboard() {
               ));
             })()}
           </div>
-        </div>
+        </Card>
 
         {/* DU/RU 분리 통계 */}
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">DU/RU 작업 분리 현황</h3>
+        <Card>
+          <h3 className="text-lg font-medium text-slate-900 mb-4">DU/RU 작업 분리 현황</h3>
           <div className="space-y-3">
             {activeDuRuTeams.length === 0 ? (
               <div className="text-center py-8">
-                <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+                <div className="mx-auto h-12 w-12 text-slate-400 mb-4">
                   <BarChart3 className="h-12 w-12" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="text-lg font-medium text-slate-900 mb-2">
                   DU/RU 작업 데이터가 없습니다
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-slate-600">
                   작업지시를 등록하면 DU/RU별 통계가 표시됩니다
                 </p>
               </div>
@@ -680,20 +680,20 @@ export default function Dashboard() {
               if (duTotal === 0 && ruTotal === 0) return null
 
               return (
-                <div key={team} className="border rounded-lg">
+                <div key={team} className="border border-slate-200 rounded-lg">
                   <div 
-                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50"
+                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-50"
                     onClick={() => toggleTeamExpand(team as OperationTeam)}
                   >
                     <div className="flex items-center space-x-2">
                       {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
                       ) : (
-                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
                       )}
-                      <span className="font-medium text-gray-900">{team}</span>
+                      <span className="font-medium text-slate-900">{team}</span>
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-slate-600">
                       총 {duTotal + ruTotal}건
                     </div>
                   </div>
@@ -706,16 +706,16 @@ export default function Dashboard() {
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                               DU측
                             </span>
-                            <span className="text-sm text-gray-600">{duTotal}건</span>
+                            <span className="text-sm text-slate-600">{duTotal}건</span>
                           </div>
                           <div className="flex space-x-2 text-xs">
-                            <span className="px-2 py-1 bg-warning-100 text-warning-800 rounded">
+                            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
                               대기 {duRuStat.duWork.pending}
                             </span>
-                            <span className="px-2 py-1 bg-primary-100 text-primary-800 rounded">
+                            <span className="px-2 py-1 bg-[#1E40AF]/10 text-[#1E40AF] rounded">
                               진행 {duRuStat.duWork.inProgress}
                             </span>
-                            <span className="px-2 py-1 bg-success-100 text-success-800 rounded">
+                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
                               완료 {duRuStat.duWork.completed}
                             </span>
                           </div>
@@ -728,16 +728,16 @@ export default function Dashboard() {
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
                               RU측
                             </span>
-                            <span className="text-sm text-gray-600">{ruTotal}건</span>
+                            <span className="text-sm text-slate-600">{ruTotal}건</span>
                           </div>
                           <div className="flex space-x-2 text-xs">
-                            <span className="px-2 py-1 bg-warning-100 text-warning-800 rounded">
+                            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
                               대기 {duRuStat.ruWork.pending}
                             </span>
-                            <span className="px-2 py-1 bg-primary-100 text-primary-800 rounded">
+                            <span className="px-2 py-1 bg-[#1E40AF]/10 text-[#1E40AF] rounded">
                               진행 {duRuStat.ruWork.inProgress}
                             </span>
-                            <span className="px-2 py-1 bg-success-100 text-success-800 rounded">
+                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
                               완료 {duRuStat.ruWork.completed}
                             </span>
                           </div>
@@ -750,30 +750,30 @@ export default function Dashboard() {
             })
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* 현장회신 현황 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 현장회신 통계 */}
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">현장회신 현황</h3>
+        <Card>
+          <h3 className="text-lg font-medium text-slate-900 mb-4">현장회신 현황</h3>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{fieldReportStats.total}</div>
-              <div className="text-sm text-gray-600">총 회신</div>
+              <div className="text-2xl font-bold text-[#1E40AF]">{fieldReportStats.total}</div>
+              <div className="text-sm text-slate-600">총 회신</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">{fieldReportStats.unchecked}</div>
-              <div className="text-sm text-gray-600">미확인</div>
+              <div className="text-sm text-slate-600">미확인</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">{fieldReportStats.checked}</div>
-              <div className="text-sm text-gray-600">확인완료</div>
+              <div className="text-sm text-slate-600">확인완료</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">{fieldReportStats.recent}</div>
-              <div className="text-sm text-gray-600">24시간 내</div>
+              <div className="text-sm text-slate-600">24시간 내</div>
             </div>
           </div>
 
@@ -788,35 +788,35 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* 최근 현장회신 */}
-        <div className="card">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">최근 현장회신</h3>
+        <Card>
+          <h3 className="text-lg font-medium text-slate-900 mb-4">최근 현장회신</h3>
           {loadingReports ? (
             <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1E40AF] mx-auto"></div>
             </div>
           ) : fieldReports.length === 0 ? (
             <div className="text-center py-8">
-              <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">현장회신이 없습니다</p>
+              <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-2" />
+              <p className="text-slate-600">현장회신이 없습니다</p>
             </div>
           ) : (
             <div className="space-y-3">
               {fieldReports.slice(0, 5).map(report => (
-                <div key={report.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={report.id} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
                       <span className="text-xs font-mono bg-white px-2 py-1 rounded">
                         {report.managementNumber}
                       </span>
-                      <span className="text-xs text-gray-500">{report.operationTeam}</span>
+                      <span className="text-xs text-slate-500">{report.operationTeam}</span>
                     </div>
-                    <p className="text-sm text-gray-700 line-clamp-2">
+                    <p className="text-sm text-slate-700 line-clamp-2">
                       {report.summary.slice(0, 80)}...
                     </p>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-slate-500 mt-1">
                       {(() => {
                         const date = new Date(report.createdAt);
                         if (isNaN(date.getTime())) {
@@ -828,15 +828,15 @@ export default function Dashboard() {
                   </div>
                   <div className="ml-3">
                     <button
-                      onClick={() => handleToggleCheck(report.id, !report.adminChecked)}
+                      onClick={() => handleToggleCheck(report.id, !(report as any).adminChecked)}
                       className={`p-1 rounded ${
-                        report.adminChecked 
+                        (report as any).adminChecked 
                           ? 'bg-green-100 text-green-600 hover:bg-green-200' 
-                          : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                          : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                       }`}
-                      title={report.adminChecked ? '확인 완료 - 클릭하여 미확인으로 변경' : '미확인 - 클릭하여 확인 완료로 변경'}
+                      title={(report as any).adminChecked ? '확인 완료 - 클릭하여 미확인으로 변경' : '미확인 - 클릭하여 확인 완료로 변경'}
                     >
-                      {report.adminChecked ? (
+                      {(report as any).adminChecked ? (
                         <CheckCircle2 className="h-4 w-4" />
                       ) : (
                         <Clock className="h-4 w-4" />
@@ -847,20 +847,20 @@ export default function Dashboard() {
               ))}
               {fieldReports.length > 5 && (
                 <div className="text-center pt-2">
-                  <a href="/board" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                  <a href="/board" className="text-[#1E40AF] hover:text-[#1E3A8A] text-sm font-medium">
                     전체 {fieldReports.length}건 보기 →
                   </a>
                 </div>
               )}
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* 캘린더 */}
-      <div className="card">
+      <Card>
         <SimpleCalendar />
-      </div>
+      </Card>
     </div>
   )
 }
