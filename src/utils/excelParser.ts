@@ -54,7 +54,7 @@ function normalizeOperationTeam(value: string): OperationTeam {
   return '기타';
 }
 
-// 병합된 헤더 정보를 처리하는 함수 - 2~3행의 병합된 헤더 구조 분석
+// 병합된 헤더 정보를 처리하는 함수
 function processMergedHeaders(jsonData: unknown[][]): { [key: string]: number } {
   const headerMapping: { [key: string]: number } = {};
   

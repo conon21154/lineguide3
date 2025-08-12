@@ -1,11 +1,12 @@
 import { ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { BarChart3, Upload, Clipboard, Clock, ChevronLeft, ChevronRight, Printer, LogOut, User, Menu, X, MessageSquare } from 'lucide-react'
+import { BarChart3, Upload, Clipboard, Clock, ChevronLeft, ChevronRight, Printer, LogOut, User, Menu, X, MessageSquare, FileText } from 'lucide-react'
 import clsx from 'clsx'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { useAuth } from '@/contexts/AuthContext'
 import { isMobileApp } from '@/utils/platformDetection'
 import { Brand } from '@/components/common/Brand'
+import ExcelUploader from '@/components/ExcelUploader'
 
 interface LayoutProps {
   children: ReactNode
@@ -20,14 +21,12 @@ const getNavigationItems = (isAdmin: boolean, isMobile: boolean) => {
         { name: '작업게시판', href: '/', icon: Clipboard },
         { name: '현장 회신', href: '/board', icon: MessageSquare },
         { name: '대시보드', href: '/dashboard', icon: BarChart3 },
-        { name: '작업지시 업로드', href: '/upload', icon: Upload },
         { name: '라벨 프린터', href: '/label-printer', icon: Printer },
       ]
     } else {
       // 관리자 웹: 대시보드 중심
       return [
         { name: '대시보드', href: '/', icon: BarChart3 },
-        { name: '작업지시 업로드', href: '/upload', icon: Upload },
         { name: '작업게시판', href: '/workboard', icon: Clipboard },
         { name: '현장 회신', href: '/board', icon: MessageSquare },
         { name: '라벨 프린터', href: '/label-printer', icon: Printer },
@@ -76,9 +75,36 @@ const RecentWorkOrdersSidebar = ({ isCollapsed, onToggle }: { isCollapsed: boole
         
         {!isCollapsed && (
           <>
-            {recentWorkOrders.length > 0 ? (
-              <div className="space-y-3">
-                {recentWorkOrders.map((workOrder) => (
+            {/* 업로드 섹션 */}
+            <div className="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+              <div className="flex items-center space-x-2 mb-3">
+                <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <FileText className="w-3 h-3 text-white" />
+                </div>
+                <h4 className="text-sm font-semibold text-slate-800">작업지시 업로드</h4>
+              </div>
+              <ExcelUploader 
+                onUploadComplete={(result) => {
+                  if (result.success && result.isUploaded) {
+                    // 업로드 성공 시 페이지 새로고침
+                    window.location.reload()
+                  }
+                }}
+                compact={true}
+              />
+            </div>
+
+            {/* 최근 업로드 목록 */}
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 mb-3">
+                <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-3 h-3 text-white" />
+                </div>
+                <h4 className="text-sm font-semibold text-slate-800">최근 업로드</h4>
+              </div>
+              
+              {recentWorkOrders.length > 0 ? (
+                recentWorkOrders.map((workOrder) => (
                   <div key={workOrder.id} className="card-compact hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200">
                     <div className="text-sm font-semibold text-slate-800 truncate">
                       {workOrder.equipmentName}
@@ -111,16 +137,16 @@ const RecentWorkOrdersSidebar = ({ isCollapsed, onToggle }: { isCollapsed: boole
                       </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Clock className="w-8 h-8 text-slate-400" />
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <Clock className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <p className="text-slate-500 text-xs">업로드된 작업지시가 없습니다</p>
                 </div>
-                <p className="text-slate-500 text-sm">업로드된 작업지시가 없습니다</p>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>
@@ -313,7 +339,7 @@ export default function Layout({ children }: LayoutProps) {
 
       <div className="flex min-h-[calc(100vh-8rem)]">
         <main className={`flex-1 transition-all duration-300 ${
-          location.pathname === '/' 
+          (location.pathname === '/' || location.pathname === '/workboard')
             ? sidebarCollapsed 
               ? 'max-w-7xl mx-auto' 
               : 'max-w-5xl mx-auto'
@@ -324,7 +350,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </main>
         
-        {location.pathname === '/' && !isMobileApp() && (
+        {(location.pathname === '/' || location.pathname === '/workboard') && !isMobileApp() && (
           <RecentWorkOrdersSidebar 
             isCollapsed={sidebarCollapsed} 
             onToggle={toggleSidebar} 

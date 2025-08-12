@@ -8,13 +8,14 @@ import { ExcelParseResult } from '@/types'
 
 interface ExcelUploaderProps {
   onUploadComplete?: (result: ExcelParseResult) => void
+  compact?: boolean
 }
 
-export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) {
+export default function ExcelUploader({ onUploadComplete, compact = false }: ExcelUploaderProps) {
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [parseResult, setParseResult] = useState<ExcelParseResult | null>(null)
-  const { uploadCSV } = useWorkOrdersAPI()
+  const { uploadCSV, addWorkOrders } = useWorkOrdersAPI()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
@@ -91,7 +92,7 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
           }
         }
       } else {
-        console.log('📊 Excel 파일 파싱 시작')
+        console.log('Excel 파일 파싱 시작')
         result = await parseExcelFile(file)
       }
       
@@ -121,7 +122,7 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
     try {
       // Excel 파일만 여기서 처리 (CSV는 이미 백엔드로 업로드됨)
       const convertedData = convertToWorkOrderFormat(parseResult.data)
-      const result = await addWorkOrdersAPI(convertedData)
+      const result = await addWorkOrders(convertedData)
       
       if (result.success) {
         // 성공 상태로 변경하되 데이터는 유지하여 사용자가 확인할 수 있도록 함
@@ -153,16 +154,16 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
 
   if (parseResult) {
     return (
-      <div className="space-y-4">
+      <div className={`space-y-4 ${compact ? 'space-y-2' : ''}`}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">
+          <h3 className={`font-medium text-gray-900 ${compact ? 'text-sm' : 'text-lg'}`}>
             Excel 파일 분석 결과
           </h3>
           <button
             onClick={clearResult}
             className="p-2 text-gray-400 hover:text-gray-600"
           >
-            <X className="w-5 h-5" />
+            <X className={`${compact ? 'w-4 h-4' : 'w-5 h-5'}`} />
           </button>
         </div>
 
@@ -322,10 +323,10 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
                   </button>
                   <button
                     onClick={handleConfirmUpload}
-                    disabled={loading}
+                    disabled={uploading}
                     className="btn btn-primary"
                   >
-                    {loading ? '처리 중...' : 'JSON 데이터 확인'}
+                    {uploading ? '처리 중...' : 'JSON 데이터 확인'}
                   </button>
                 </>
               )}
@@ -360,9 +361,11 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
   }
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${compact ? 'space-y-2' : ''}`}>
       <div
-        className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        className={`relative border-2 border-dashed rounded-lg text-center transition-colors ${
+          compact ? 'p-4' : 'p-8'
+        } ${
           dragActive
             ? 'border-primary-500 bg-primary-50'
             : 'border-gray-300 hover:border-gray-400'
@@ -381,28 +384,32 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
           disabled={uploading}
         />
         
-        <div className="space-y-4">
-          <div className="mx-auto h-12 w-12 text-gray-400">
+        <div className={`space-y-4 ${compact ? 'space-y-2' : ''}`}>
+          <div className={`mx-auto text-gray-400 ${compact ? 'h-8 w-8' : 'h-12 w-12'}`}>
             {uploading ? (
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              <div className={`animate-spin rounded-full border-b-2 border-primary-600 ${compact ? 'h-8 w-8' : 'h-12 w-12'}`}></div>
             ) : (
-              <Upload className="h-12 w-12" />
+              <Upload className={compact ? 'h-8 w-8' : 'h-12 w-12'} />
             )}
           </div>
           
           <div>
-            <p className="text-lg text-gray-600">
+            <p className={`text-gray-600 ${compact ? 'text-sm' : 'text-lg'}`}>
               {uploading 
                 ? '파일을 분석하고 있습니다...'
+                : compact
+                ? '파일을 드래그하거나 클릭하세요'
                 : 'Excel 또는 CSV 파일을 여기로 드래그하거나 클릭하여 선택하세요'
               }
             </p>
-            <p className="text-sm text-gray-500 mt-1">
-              .xlsx, .xls, .csv 파일을 지원합니다
-            </p>
+            {!compact && (
+              <p className="text-sm text-gray-500 mt-1">
+                .xlsx, .xls, .csv 파일을 지원합니다
+              </p>
+            )}
           </div>
           
-          {!uploading && (
+          {!uploading && !compact && (
             <button className="btn btn-primary">
               파일 선택
             </button>
@@ -410,41 +417,6 @@ export default function ExcelUploader({ onUploadComplete }: ExcelUploaderProps) 
         </div>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-lg font-medium text-gray-900 mb-3">
-          📋 파일 요구사항
-        </h3>
-        
-        <div className="space-y-4">
-          <div>
-            <h4 className="font-medium text-gray-800 mb-2">📊 Excel 파일 (.xlsx, .xls)</h4>
-            <ul className="text-sm text-gray-600 space-y-1 ml-4">
-              <li>• <strong>헤더 구조:</strong> 2~3행에 병합된 헤더 (대분류/소분류)</li>
-              <li>• <strong>데이터 시작:</strong> 4행부터 개통 작업 데이터</li>
-              <li>• <strong>컬럼 순서:</strong> 헤더 텍스트 기반 자동 매핑 (순서 무관)</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className="font-medium text-gray-800 mb-2">📄 CSV 파일 (.csv) - 권장</h4>
-            <ul className="text-sm text-gray-600 space-y-1 ml-4">
-              <li>• <strong>헤더:</strong> 첫 번째 행에 컬럼명</li>
-              <li>• <strong>데이터:</strong> 두 번째 행부터 작업 데이터</li>
-              <li>• <strong>인코딩:</strong> UTF-8 (한글 지원)</li>
-              <li>• <strong>장점:</strong> 파싱 안정성, 데이터 무결성 보장 (CH3, CH6 등 원본 값 유지)</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className="font-medium text-gray-800 mb-2">📝 공통 요구사항</h4>
-            <ul className="text-sm text-gray-600 space-y-1 ml-4">
-              <li>• <strong>필수 필드:</strong> 관리번호, 작업요청일, DU측_운용팀, 대표_RU_ID, 대표_RU_명, 5G_Co_Site_수량, 5G_집중국명, 선번장, 종류, 서비스_구분, DU_ID, DU_명, 채널카드, 포트_A</li>
-              <li>• <strong>운용팀 형식:</strong> 울산T, 동부산T, 중부산T, 서부산T, 김해T, 창원T, 진주T, 통영T, 지하철T</li>
-              <li>• <strong>빈 값 처리:</strong> 자동으로 "N/A"로 변환</li>
-            </ul>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
