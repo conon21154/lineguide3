@@ -3,10 +3,9 @@ import ktMosLogo from '@/assets/images/kt-mos-logo.png'
 
 type BrandProps = { 
   className?: string
-  showTagline?: boolean
 }
 
-export function Brand({ className, showTagline = true }: BrandProps) {
+export function Brand({ className }: BrandProps) {
   const [imageError, setImageError] = useState(false)
   const baseClassName = "flex items-center gap-3"
   
@@ -41,8 +40,8 @@ export function Brand({ className, showTagline = true }: BrandProps) {
         )}
       </div>
       
-      {/* 메인 타이틀과 태그라인 */}
-      <div className="flex flex-col leading-tight">
+      {/* 메인 타이틀 */}
+      <div className="flex items-center">
         <div 
           className={`text-[22px] sm:text-[26px] font-black tracking-tight ${
             isWhiteText ? 'text-white' : 'text-slate-900 dark:text-slate-50'
@@ -50,15 +49,6 @@ export function Brand({ className, showTagline = true }: BrandProps) {
         >
           LineGuide
         </div>
-        {showTagline && (
-          <div 
-            className={`text-[10px] sm:text-[11px] font-medium -mt-1 ${
-              isWhiteText ? 'text-white/80' : 'text-slate-600'
-            }`}
-          >
-            남부
-          </div>
-        )}
       </div>
     </div>
   )
