@@ -49,8 +49,16 @@ const initializeDefaultUsers = async () => {
         console.log(`✅ 사용자 생성: ${worker.username} (${worker.name})`);
       }
       
-      // 각 팀별 샘플 작업지시 생성
-      console.log('📋 각 팀별 샘플 작업지시 생성 중...');
+      console.log('🎉 기본 사용자 데이터 생성 완료!');
+    } else {
+      console.log('✅ 기본 사용자 데이터가 이미 존재합니다.');
+    }
+
+    // 작업지시 샘플 데이터 생성 (사용자 존재 여부와 관계없이)
+    console.log('📋 각 팀별 샘플 작업지시 생성 중...');
+    const adminUser = await User.findOne({ where: { username: 'admin' } });
+    
+    if (adminUser) {
       const sampleWorkOrders = [
         { managementNumber: 'WO-2024-001_DU측', team: '울산T', workType: 'DU측', operationTeam: '울산T' },
         { managementNumber: 'WO-2024-002_RU측', team: '울산T', workType: 'RU측', operationTeam: '울산T' },
@@ -86,10 +94,6 @@ const initializeDefaultUsers = async () => {
         });
       }
       console.log('✅ 샘플 작업지시 생성 완료');
-
-      console.log('🎉 기본 사용자 데이터 생성 완료!');
-    } else {
-      console.log('✅ 기본 사용자 데이터가 이미 존재합니다.');
     }
     
   } catch (error) {
