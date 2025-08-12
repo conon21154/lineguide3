@@ -21,7 +21,7 @@ export default defineConfig(({ command, mode }) => ({
     }
   },
   // 배포 환경별 base 설정
-  base: mode === 'production' && process.env.GITHUB_PAGES === 'true' 
+  base: mode === 'production' 
     ? '/lineguide3/' 
     : '/',
   build: {
@@ -39,7 +39,7 @@ export default defineConfig(({ command, mode }) => ({
   // 개발 서버에서도 base 경로 처리
   define: {
     __BASE_URL__: JSON.stringify(
-      mode === 'production' && process.env.GITHUB_PAGES === 'true' 
+      mode === 'production' 
         ? '/lineguide3/' 
         : '/'
     )
