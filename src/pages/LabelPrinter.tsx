@@ -167,8 +167,17 @@ const getLabelMapping = (
          // 타입별 2×2 매핑 "고정" + 접미어
      const left1 =
        type === 'A' ? `${duidFinal}` :
-       type === 'B' ? withSuf(`5G MUX ${userInputs.muxA ?? ''}`, muxSuffix) :
-                      withSuf(`5G TIE ${userInputs.tieB ?? ''}`, tieSuffix);
+       type === 'B' ? 
+         // B타입: RU명만 (ID 제외)
+         (() => {
+           const ruName = labelData?.ruName?.trim() ?? '';
+           return ruName || '';
+         })() :
+         // C타입: RU명만 (ID 제외)
+         (() => {
+           const ruName = labelData?.ruName?.trim() ?? '';
+           return ruName || '';
+         })();
 
      const left2 =
        type === 'A' ? 
@@ -186,14 +195,39 @@ const getLabelMapping = (
            }
            return '';
          })() :
+       (type === 'B' || type === 'C') ?
+         // B타입, C타입: 회선번호 (숫자 우선 추출)
+         (() => {
+           const lineNumber = labelData?.lineNumber?.trim() ?? '';
+           // 숫자만 추출하되, 하이픈이나 공백이 있어도 그대로 표시
+           return lineNumber || '';
+         })() :
          `${labelData?.duTeam ?? ''}`;
 
     const right1 =
       type === 'A' ? withSuf(`5G MUX ${userInputs.muxA ?? ''}`, muxSuffix) :
-      type === 'B' ? withSuf(`5G TIE ${userInputs.tieB ?? ''}`, tieSuffix) :
-                     withSuf(`LTE MUX ${userInputs.lteMuxC ?? ''}`, lteMuxSuffix);
+      type === 'B' ? withSuf(`5G MUX ${userInputs.muxA ?? ''}`, muxSuffix) : // B타입: A타입의 5G MUX 연동
+                     withSuf(`5G TIE ${userInputs.tieB ?? ''}`, tieSuffix); // C타입: B타입의 5G TIE 연동
 
-    const right2 = `${labelData?.duTeam ?? ''}`;
+    const right2 = 
+      type === 'A' ? 
+        // A타입: RUID + RU명 조합 (둘 다 있으면 조합, 하나만 있으면 그것만, 없으면 팀명)
+        (() => {
+          const ruId = labelData?.ruId?.trim() ?? '';
+          const ruName = labelData?.ruName?.trim() ?? '';
+          
+          if (ruId && ruName) {
+            return `${ruId} ${ruName}`;
+          } else if (ruId) {
+            return ruId;
+          } else if (ruName) {
+            return ruName;
+          }
+          // RUID/RU명이 없을 경우에만 팀명 사용
+          return labelData?.duTeam ?? '';
+        })() :
+      type === 'B' ? withSuf(`5G TIE ${userInputs.tieB ?? ''}`, tieSuffix) : // B타입: 입력한 5G TIE 정보
+                     withSuf(`LTE MUX ${userInputs.lteMuxC ?? ''}`, lteMuxSuffix); // C타입: 입력한 LTE MUX/국간 정보
 
     return {
       left1: left1.trim(),
@@ -263,8 +297,8 @@ const LabelTypeSelector = ({
       </div>
       <div className="mt-2 text-xs text-slate-600">
         {selectedType === 'A' && '장비 ID + 장비명 / 5G MUX + 운용팀'}
-        {selectedType === 'B' && '5G MUX + 5G TIE / 운용팀 (A→B 연동)'}
-        {selectedType === 'C' && '5G TIE + LTE MUX / 운용팀 (B→C 연동)'}
+        {selectedType === 'B' && 'RU명 + 회선번호 / 5G MUX(A연동) + 5G TIE(입력)'}
+        {selectedType === 'C' && 'RU명 + 회선번호 / 5G TIE(B연동) + LTE MUX(입력)'}
       </div>
     </div>
   )
@@ -608,6 +642,7 @@ const renderLabelCanvas = (
         ctx.fillText(line, marginLeft, y)
       }
     })
+    
   } else {
     // 미리보기용 - 기준 크기 렌더링
     const displayWidth = BASE_W
@@ -648,6 +683,7 @@ const renderLabelCanvas = (
         ctx.fillText(line, marginLeft, y)
       }
     })
+    
   }
 }
 
