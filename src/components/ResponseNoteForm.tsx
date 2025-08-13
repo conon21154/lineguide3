@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Save, Trash2, RotateCcw, AlertTriangle, CheckCircle2, X } from 'lucide-react';
-import { WorkOrder, ResponseNoteData } from '@/types';
+import { MessageSquare, Save, Trash2, RotateCcw, AlertTriangle, CheckCircle2, X, Camera } from 'lucide-react';
+import { WorkOrder, ResponseNoteData, FieldPhoto } from '@/types';
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI';
+import CameraCapture from './CameraCapture';
 
 interface ResponseNoteFormProps {
   workOrder: WorkOrder;
@@ -26,6 +27,8 @@ export default function ResponseNoteForm({ workOrder, onClose, onSuccess }: Resp
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [templateLoaded, setTemplateLoaded] = useState(false);
+  const [photos, setPhotos] = useState<FieldPhoto[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
 
   // 완료 상태 확인
   const isCompleted = workOrder.status === 'completed' || workOrder.status === '확인완료';
@@ -34,6 +37,26 @@ export default function ResponseNoteForm({ workOrder, onClose, onSuccess }: Resp
   // side와 ruId 결정
   const side: 'DU' | 'RU' = workOrder.workType === 'DU측' ? 'DU' : 'RU';
   const ruId = workOrder.representativeRuId;
+
+  // 카메라 관련 함수들
+  const handlePhotoCaptured = (photo: FieldPhoto) => {
+    setPhotos(prev => [...prev, photo]);
+  };
+
+  const handlePhotoDelete = (photoId: string) => {
+    setPhotos(prev => prev.filter(photo => photo.id !== photoId));
+    // URL.revokeObjectURL로 메모리 해제
+    const photo = photos.find(p => p.id === photoId);
+    if (photo?.url) {
+      URL.revokeObjectURL(photo.url);
+    }
+  };
+
+  const handlePhotoDescription = (photoId: string, description: string) => {
+    setPhotos(prev => prev.map(photo => 
+      photo.id === photoId ? { ...photo, description } : photo
+    ));
+  };
 
   // 컴포넌트 마운트 시 중복 확인 및 템플릿 로드
   useEffect(() => {
@@ -234,6 +257,68 @@ export default function ResponseNoteForm({ workOrder, onClose, onSuccess }: Resp
               </div>
             </div>
 
+            {/* 현장 사진 섹션 */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">
+                  현장 사진 ({photos.length}/4)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowCamera(true)}
+                  disabled={!canPost || photos.length >= 4}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Camera className="w-4 h-4" />
+                  사진 촬영
+                </button>
+              </div>
+
+              {/* 촬영된 사진들 */}
+              {photos.length > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  {photos.map((photo) => (
+                    <div key={photo.id} className="relative bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="aspect-video relative">
+                        <img
+                          src={photo.url}
+                          alt={`현장사진 ${photo.id}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handlePhotoDelete(photo.id)}
+                          className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="p-2">
+                        <input
+                          type="text"
+                          placeholder="사진 설명 (선택사항)"
+                          value={photo.description || ''}
+                          onChange={(e) => handlePhotoDescription(photo.id, e.target.value)}
+                          className="w-full text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <div className="text-xs text-gray-500 mt-1">
+                          {new Date(photo.capturedAt).toLocaleString('ko-KR')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {photos.length === 0 && (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                  <Camera className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">현장 사진을 촬영해 주세요</p>
+                  <p className="text-xs mt-1">최대 4장까지 촬영 가능합니다</p>
+                </div>
+              )}
+            </div>
+
             {/* 버튼 */}
             <div className="flex justify-between pt-4">
               <div className="flex gap-2">
@@ -338,6 +423,18 @@ export default function ResponseNoteForm({ workOrder, onClose, onSuccess }: Resp
             </div>
           </div>
         </div>
+      )}
+
+      {/* 카메라 모달 */}
+      {showCamera && (
+        <CameraCapture
+          onPhotoCaptured={(photo) => {
+            handlePhotoCaptured(photo);
+            setShowCamera(false);
+          }}
+          maxPhotos={4}
+          currentPhotos={photos}
+        />
       )}
     </div>
   );
