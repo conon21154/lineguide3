@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import { WorkOrder, WorkOrderStatus } from '@/types'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
-import MemoForm from './MemoForm'
+import ResponseNoteForm from './ResponseNoteForm'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
@@ -573,8 +573,8 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
       )}
 
       {responseNoteId && (
-        <MemoForm
-          workOrderId={parseInt(responseNoteId)}
+        <ResponseNoteForm
+          workOrder={workOrders.find(wo => wo.id === responseNoteId)!}
           onClose={() => setResponseNoteId(null)}
           onSuccess={() => {
             setResponseNoteId(null);
