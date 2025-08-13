@@ -4,14 +4,14 @@ const OFFLINE_URL = '/offline.html';
 
 // 캐시할 핵심 리소스
 const STATIC_CACHE_URLS = [
-  '/',
-  '/offline.html',
-  '/manifest.json',
-  // 핵심 라우트들
-  '/workboard',
-  '/board', 
-  '/dashboard',
-  '/label-printer',
+  './',
+  './offline.html',
+  './manifest.json',
+  // 핵심 라우트들  
+  './workboard',
+  './board', 
+  './dashboard',
+  './label-printer',
   // 정적 자산들은 런타임에 추가
 ];
 
