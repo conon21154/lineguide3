@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, Save, AlertTriangle, CheckCircle2, Loader2, Camera } from 'lucide-react';
 import { useMemoForm } from '@/hooks/useMemoBase';
 import {
   generateTemplate,
@@ -11,6 +11,8 @@ import {
   type RuFormFields
 } from '@/utils/memoTemplate';
 import { toast } from 'sonner';
+import { FieldPhoto } from '@/types';
+import CameraCapture from './CameraCapture';
 
 interface MemoFormProps {
   workOrderId: number | string;
@@ -35,6 +37,30 @@ export default function MemoForm({ workOrderId, onClose, onSuccess }: MemoFormPr
   const [duFields, setDuFields] = useState<DuFormFields>(createInitialDuFields());
   const [ruFields, setRuFields] = useState<RuFormFields>(createInitialRuFields());
   const [preview, setPreview] = useState<string>('');
+  
+  // 카메라 상태
+  const [photos, setPhotos] = useState<FieldPhoto[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
+
+  // 카메라 관련 함수들
+  const handlePhotoCaptured = (photo: FieldPhoto) => {
+    setPhotos(prev => [...prev, photo]);
+  };
+
+  const handlePhotoDelete = (photoId: string) => {
+    setPhotos(prev => prev.filter(photo => photo.id !== photoId));
+    // URL.revokeObjectURL로 메모리 해제
+    const photo = photos.find(p => p.id === photoId);
+    if (photo?.url) {
+      URL.revokeObjectURL(photo.url);
+    }
+  };
+
+  const handlePhotoDescription = (photoId: string, description: string) => {
+    setPhotos(prev => prev.map(photo => 
+      photo.id === photoId ? { ...photo, description } : photo
+    ));
+  };
 
   // 베이스 정보 로드 시 초기값 설정
   useEffect(() => {
