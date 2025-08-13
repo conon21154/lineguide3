@@ -1,4 +1,5 @@
 import { ExcelParseResult, OperationTeam, ExtractedWorkOrderData, WorkOrder, RuInfo } from '@/types';
+import { normalizeCircuit } from '@/utils/telecom';
 
 const OPERATION_TEAMS: OperationTeam[] = [
   '울산T',
@@ -169,7 +170,12 @@ function parseCSVRow(row: string[], headerMapping: { [key: string]: number }): E
     대표_RU_명: safeValue(row[headerMapping['ruName']]),
     "5G_Co_Site_수량": safeValue(row[headerMapping['coSiteCount5g']]),
     "5G_집중국명": safeValue(row[headerMapping['focus5gName']]),
-    회선번호: safeValue(row[headerMapping['lineNumber']]),
+    회선번호: (() => {
+      const raw = row[headerMapping['lineNumber']];
+      const normalized = normalizeCircuit(raw);
+      console.log(`🔍 회선번호 정규화: "${raw}" -> "${normalized}"`);
+      return normalized;
+    })(),
     선번장: safeValue(row[headerMapping['lteMuxInfo']]),
     종류: safeValue(row[headerMapping['muxTypeMain']]),
     서비스_구분: safeValue(serviceTypeValue),

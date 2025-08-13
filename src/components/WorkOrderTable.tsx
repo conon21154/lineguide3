@@ -191,7 +191,7 @@ const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, on
             <div className="space-y-3">
               <div>
                 <span className="font-medium text-gray-700">회선번호:</span>
-                <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded mt-1 break-all">
+                <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded mt-1 whitespace-nowrap tabular-nums">
                   {workOrder.lineNumber}
                 </div>
               </div>

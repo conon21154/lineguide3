@@ -260,7 +260,7 @@ export default function ExcelUploader({ onUploadComplete, compact = false }: Exc
                           <td className="px-3 py-2 text-sm text-gray-900">
                             {order["5G_집중국명"]}
                           </td>
-                          <td className="px-3 py-2 text-sm text-gray-900 font-mono">
+                          <td className="px-3 py-2 text-sm text-gray-900 font-mono whitespace-nowrap tabular-nums">
                             {order.회선번호}
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-900">

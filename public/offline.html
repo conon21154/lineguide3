@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오프라인 - LineGuide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 400px;
+        }
+        
+        .icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        p {
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+        
+        .features {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .feature-icon {
+            margin-right: 0.5rem;
+            font-size: 1.2rem;
+        }
+        
+        .retry-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .retry-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .status {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📱</div>
+        <h1>오프라인 모드</h1>
+        <p>인터넷 연결이 없지만 LineGuide의 핵심 기능들은 계속 사용하실 수 있습니다.</p>
+        
+        <div class="features">
+            <div class="feature-item">
+                <span class="feature-icon">🏷️</span>
+                <span>라벨 프린터 (완전 오프라인 지원)</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">📋</span>
+                <span>이전에 조회한 작업지시</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">📸</span>
+                <span>현장 사진 촬영 및 임시 저장</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🔄</span>
+                <span>연결 복구 시 자동 동기화</span>
+            </div>
+        </div>
+        
+        <button class="retry-btn" onclick="tryReconnect()">
+            🔄 연결 다시 시도
+        </button>
+        
+        <div class="status" id="status">
+            연결 상태를 확인 중...
+        </div>
+    </div>
+    
+    <script>
+        // 연결 상태 확인
+        function updateConnectionStatus() {
+            const status = document.getElementById('status');
+            if (navigator.onLine) {
+                status.textContent = '✅ 인터넷에 연결됨 - 페이지를 새로고침하세요';
+                status.style.color = '#4ade80';
+            } else {
+                status.textContent = '❌ 오프라인 상태';
+                status.style.color = '#f87171';
+            }
+        }
+        
+        // 재연결 시도
+        function tryReconnect() {
+            if (navigator.onLine) {
+                window.location.href = '/';
+            } else {
+                alert('아직 인터넷에 연결되지 않았습니다. 잠시 후 다시 시도해주세요.');
+            }
+        }
+        
+        // 연결 상태 모니터링
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        
+        // 초기 상태 확인
+        updateConnectionStatus();
+        
+        // 주기적으로 연결 확인 (5초마다)
+        setInterval(updateConnectionStatus, 5000);
+    </script>
+</body>
+</html>

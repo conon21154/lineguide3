@@ -40,6 +40,11 @@ const ResponseNote = sequelize.define('ResponseNote', {
     type: DataTypes.DATE,
     allowNull: true,
     field: 'confirmed_at'
+  },
+  photos: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
   }
 }, {
   tableName: 'response_notes',

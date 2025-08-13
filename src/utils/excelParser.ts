@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { ExcelParseResult, OperationTeam, ExtractedWorkOrderData, WorkOrder, RuInfo } from '@/types';
+import { normalizeCircuit } from '@/utils/telecom';
 
 const OPERATION_TEAMS: OperationTeam[] = [
   '울산T',
@@ -219,10 +220,10 @@ function safeStringValue(value: unknown): string {
 
 // 작업지시 데이터 추출하여 DU측과 RU측 작업을 별도로 생성하는 함수
 function extractWorkOrders(row: unknown[], headerMapping: { [key: string]: number }): ExtractedWorkOrderData[] {
-  // 회선번호는 원본 숫자 형태로 보존 (과학적 표기법 방지)
+  // 회선번호 정규화 (지수표기법 처리)
   const rawLineNumber = row[headerMapping['lineNumber']];
-  const lineNumberStr = rawLineNumber !== undefined && rawLineNumber !== null ? 
-    String(rawLineNumber) : 'N/A';
+  const lineNumberStr = normalizeCircuit(rawLineNumber);
+  console.log(`🔍 Excel 회선번호 정규화: "${rawLineNumber}" -> "${lineNumberStr}"`);
   
   // 서비스 구분 디버깅
   const serviceTypeRaw = row[headerMapping['serviceType']];

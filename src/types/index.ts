@@ -66,6 +66,18 @@ export interface WorkOrder {
   responseNote?: ResponseNote;
 }
 
+// 현장 사진 인터페이스
+export interface FieldPhoto {
+  id: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  mimeType: string;
+  url: string;
+  description?: string;
+  capturedAt: string;
+}
+
 // 현장 회신 메모 인터페이스 (기존)
 export interface ResponseNote {
   // DU측 회신 메모 필드
@@ -86,6 +98,7 @@ export interface ResponseNote {
   updatedAt: string;                  // 회신 메모 작성/수정 시간
   adminChecked?: boolean;             // 관리자 확인 여부
   adminCheckedAt?: string;            // 관리자 확인 시간
+  photos?: FieldPhoto[];              // 현장 사진들 (최대 4장)
 }
 
 // 새로운 회신 메모 시스템 인터페이스

@@ -41,16 +41,11 @@ const normalizeTeam = (t) => {
 };
 
 
+const { normalizeCircuit } = require('../utils/telecom');
+
 const deSci = (val) => {
   if (!val) return undefined;
-  const s = String(val).trim();
-  if (/^\d+(\.\d+)?e\+?\d+$/i.test(s)) {
-    const n = Number(s);
-    if (Number.isFinite(n)) {
-      return String(Math.round(n));
-    }
-  }
-  return s;
+  return normalizeCircuit(val);
 };
 
 const getBaseMgmtNo = (mgmt) => {
