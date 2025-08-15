@@ -443,28 +443,29 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
               {isExpanded && (
                 <div className="ml-6 space-y-2 border-l-2 border-slate-200 pl-3">
                   {groupWorkOrders.map((workOrder) => (
-          <Card key={workOrder.id} className={`${dense ? 'p-2' : 'p-3'} space-y-2`}>
-            {/* 상단: 관리번호 + 상태 배지 */}
-            <div className="flex min-w-0 items-start justify-between gap-2">
+          <Card key={workOrder.id} className={`${dense ? 'p-2' : 'p-3'} space-y-2 overflow-visible`}>
+            {/* 상단: 관리번호 + 상태 배지 - 모바일 반응형 */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <div className="min-w-0 flex-1">
                 <div className={`${dense ? 'text-xs' : 'text-sm'} font-semibold text-slate-900 min-w-0`}>
                   <span className="block truncate" title={getBaseManagementNumber(workOrder.managementNumber)}>
                     {getBaseManagementNumber(workOrder.managementNumber)}
                   </span>
                 </div>
-                {workOrder.workType && (
-                  <div className="mt-1">
-                    <span className={`inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium ${
-                      workOrder.workType === 'DU측' 
-                        ? 'bg-[#1E40AF]/10 text-[#1E40AF]' 
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {workOrder.workType}
-                    </span>
-                  </div>
-                )}
               </div>
-              <div className="flex-shrink-0">
+              
+              {/* 칩 컨테이너: 모바일에서 줄바꿈, 데스크톱에서 1줄 */}
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                {workOrder.workType && (
+                  <span className={`inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium ${
+                    workOrder.workType === 'DU측' 
+                      ? 'bg-[#1E40AF]/10 text-[#1E40AF]' 
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {workOrder.workType}
+                  </span>
+                )}
+                <div className="shrink-0">
                 {editingId === workOrder.id ? (
                   <div className="space-y-2">
                     <select
@@ -501,6 +502,7 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
                 ) : (
                   <StatusBadge status={workOrder.status} />
                 )}
+                </div>
               </div>
             </div>
             
