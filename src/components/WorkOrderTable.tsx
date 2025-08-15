@@ -391,58 +391,70 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
           
           return (
             <div key={groupKey} className="space-y-2">
-              {/* 그룹 헤더 카드 */}
-              <Card 
-                className={`${dense ? 'p-2' : 'p-3'} cursor-pointer hover:bg-slate-50 transition-colors`}
-                onClick={() => toggleGroup(groupKey)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className={`${dense ? 'text-xs' : 'text-sm'} font-semibold text-slate-900`}>
-                      <div className="flex items-center gap-2">
-                        {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-slate-500" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-slate-500" />
-                        )}
-                        <span className="truncate" title={`${groupInfo.baseNumber}_${groupInfo.representativeRuName}`}>
-                          {groupInfo.baseNumber}_{groupInfo.representativeRuName}
-                        </span>
+              {/* 그룹 헤더 - 모바일 터치 최적화된 버튼 */}
+              <Card className={dense ? 'p-0' : 'p-0'}>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(groupKey)}
+                  aria-expanded={isExpanded}
+                  aria-label={`${groupInfo.baseNumber} 그룹 ${isExpanded ? '접기' : '펼치기'}`}
+                  className={`w-full text-left ${dense ? 'p-2' : 'p-3'} hover:bg-slate-50 active:bg-slate-100 transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded-2xl`}
+                >
+                  {/* 모바일: 세로 레이아웃, 데스크톱: 가로 레이아웃 */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    {/* 제목 영역 */}
+                    <div className="min-w-0 flex-1">
+                      <div className={`${dense ? 'text-xs' : 'text-sm'} font-semibold text-slate-900`}>
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+                          )}
+                          <span className="truncate" title={`${groupInfo.baseNumber}_${groupInfo.representativeRuName}`}>
+                            {groupInfo.baseNumber}_{groupInfo.representativeRuName}
+                          </span>
+                        </div>
+                      </div>
+                      <div className={`${dense ? 'text-xs' : 'text-sm'} text-slate-600 mt-1`}>
+                        작업요청일: {formatRequestDate(groupInfo.requestDate)}
                       </div>
                     </div>
-                    <div className={`${dense ? 'text-xs' : 'text-sm'} text-slate-600 mt-1`}>
-                      작업요청일: {formatRequestDate(groupInfo.requestDate)}
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    
+                    {/* 칩 컨테이너: 모바일에서 줄바꿈 */}
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium shrink-0 ${
                         groupInfo.duCount > 0 ? 'bg-[#1E40AF]/10 text-[#1E40AF]' : 'bg-gray-100 text-gray-400'
                       }`}>
                         DU {groupInfo.duCount}개
                       </span>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium shrink-0 ${
                         groupInfo.ruCount > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-400'
                       }`}>
                         RU {groupInfo.ruCount}개
                       </span>
                       {/* 상태 표시 */}
                       {groupInfo.hasCompleted && (
-                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
                       )}
                       {groupInfo.hasInProgress && !groupInfo.hasCompleted && (
-                        <User className="w-4 h-4 text-blue-600" />
+                        <User className="w-4 h-4 text-blue-600 shrink-0" />
                       )}
                       {groupInfo.hasPending && !groupInfo.hasInProgress && !groupInfo.hasCompleted && (
-                        <Clock className="w-4 h-4 text-yellow-600" />
+                        <Clock className="w-4 h-4 text-yellow-600 shrink-0" />
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
               </Card>
 
-              {/* 확장된 상세 카드들 */}
-              {isExpanded && (
-                <div className="ml-6 space-y-2 border-l-2 border-slate-200 pl-3">
-                  {groupWorkOrders.map((workOrder) => (
+              {/* 확장된 상세 카드들 - grid-rows 애니메이션 */}
+              <div className={`grid transition-all duration-300 ease-in-out ${
+                isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+              }`}>
+                <div className="overflow-hidden">
+                  <div className="ml-6 space-y-2 border-l-2 border-slate-200 pl-3 pt-2">
+                    {groupWorkOrders.map((workOrder) => (
           <Card key={workOrder.id} className={`${dense ? 'p-2' : 'p-3'} space-y-2 overflow-visible`}>
             {/* 상단: 관리번호 + 상태 배지 - 모바일 반응형 */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
@@ -573,9 +585,10 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
               </div>
             )}
           </Card>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
