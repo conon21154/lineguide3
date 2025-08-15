@@ -484,7 +484,22 @@ export default function WorkBoard() {
     return stats
   }, [workOrdersByTeam])
 
-  // 팀별 보기에서는 더 이상 collapse 상태가 필요하지 않음 (단순화됨)
+  // 작업지시가 로드되면 모든 관리번호 그룹을 기본적으로 접힌 상태로 설정
+  useEffect(() => {
+    if (workOrders.length > 0 && !hasInitialized) {
+      const allCollapsedIds = new Set<string>()
+      
+      // 팀별 보기에서 관리번호별 그룹 ID 추가
+      Object.entries(workOrdersByTeam).forEach(([team, managementNumbers]) => {
+        Object.keys(managementNumbers).forEach(managementNumber => {
+          allCollapsedIds.add(`mgmt-${managementNumber}`)
+        })
+      })
+      
+      setCollapsedWorkOrders(allCollapsedIds)
+      setHasInitialized(true)
+    }
+  }, [workOrders.length, hasInitialized, workOrdersByTeam])
 
   // URL 쿼리 변경 시 상태 업데이트만 수행 (필터는 별도 useEffect에서)
   useEffect(() => {
@@ -848,78 +863,18 @@ export default function WorkBoard() {
                     </div>
                     
                     {!isCollapsed && (
-                      <div className="border-t border-slate-200 space-y-3 md:space-y-4 mt-4 pt-4">
-                        {Object.entries(managementNumbers).map(([managementNumber, workOrderGroup]) => {
-                          const representativeRuName = getRepresentativeRuName(workOrderGroup);
-                          const requestDate = workOrderGroup.du?.requestDate || workOrderGroup.ru[0]?.requestDate || '';
-                          const formattedDate = formatRequestDate(requestDate);
-                          
-                          // 대표 작업지시 선택 (DU 우선, 없으면 첫 번째 RU)
-                          const representativeWorkOrder = workOrderGroup.du || workOrderGroup.ru[0];
-                          
-                          // 관리번호에서 접미사 분리
-                          const baseNumber = managementNumber;
-                          const workType = workOrderGroup.du && workOrderGroup.ru.length > 0 
-                            ? 'DU/RU측' 
-                            : workOrderGroup.du ? 'DU측' : 'RU측';
-                          
-                          return (
-                            <div key={managementNumber} className="border-b border-slate-100 last:border-b-0">
-                              {/* 최상위 카드 - 바로 상세 모달 열기 */}
-                              <div 
-                                className="p-4 cursor-pointer hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
-                                onClick={() => representativeWorkOrder && setViewingDetailId(representativeWorkOrder.id)}
-                                onKeyDown={(e) => {
-                                  if ((e.key === 'Enter' || e.key === ' ') && representativeWorkOrder) {
-                                    e.preventDefault();
-                                    setViewingDetailId(representativeWorkOrder.id);
-                                  }
-                                }}
-                                tabIndex={0}
-                                role="button"
-                                aria-label={`${managementNumber} 작업지시 상세보기`}
-                              >
-                                <div className="flex items-center justify-between gap-4">
-                                  {/* 왼쪽: 관리번호 */}
-                                  <div className="flex-shrink-0">
-                                    <div className="text-lg font-bold text-slate-900">
-                                      {baseNumber}
-                                    </div>
-                                    <div className="text-sm font-normal text-slate-600">
-                                      {workType}
-                                    </div>
-                                  </div>
-                                  
-                                  {/* 중앙: 대표 RU명 */}
-                                  <div className="flex-1 min-w-0 text-center">
-                                    <div className="text-sm font-medium text-slate-900 truncate" title={representativeRuName}>
-                                      {representativeRuName}
-                                    </div>
-                                  </div>
-                                  
-                                  {/* 오른쪽: 작업요청일 */}
-                                  <div className="flex-shrink-0 text-right">
-                                    <div className="text-sm font-medium text-slate-900">
-                                      {formattedDate}
-                                    </div>
-                                    <div className="flex gap-1 mt-1">
-                                      {workOrderGroup.du && (
-                                        <span className="inline-flex items-center h-5 px-2 rounded text-xs font-medium bg-[#1E40AF]/10 text-[#1E40AF]">
-                                          DU
-                                        </span>
-                                      )}
-                                      {workOrderGroup.ru.length > 0 && (
-                                        <span className="inline-flex items-center h-5 px-2 rounded text-xs font-medium bg-green-100 text-green-800">
-                                          RU{workOrderGroup.ru.length > 1 ? ` ${workOrderGroup.ru.length}개` : ''}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                      <div className="border-t border-slate-200 mt-4 pt-4">
+                        {/* 팀별로 그룹화된 작업지시들을 전체 목록과 동일한 WorkOrderTable로 표시 */}
+                        <WorkOrderTable 
+                          workOrders={Object.values(managementNumbers).flatMap(group => [
+                            ...(group.du ? [group.du] : []),
+                            ...group.ru
+                          ])} 
+                          dense={dense}
+                          onRefresh={refreshData}
+                          onUpdateStatus={updateStatus}
+                          onDeleteWorkOrder={deleteWorkOrder}
+                        />
                         
                         {/* 작업이 없는 경우 */}
                         {Object.keys(managementNumbers).length === 0 && (
