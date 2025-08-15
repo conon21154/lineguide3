@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Eye, MessageSquare, Filter, Search, ChevronDown, ChevronRight, Trash2, AlertTriangle, Download } from 'lucide-react';
+import { Eye, MessageSquare, Filter, Search, ChevronDown, ChevronRight, Trash2, AlertTriangle, Download, Image, X } from 'lucide-react';
 import { useResponseNotes } from '@/hooks/useResponseNotes';
 import { ResponseNoteData, WorkOrder } from '@/types';
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI';
@@ -14,6 +14,38 @@ import {
   exportResponseNotesWithSummary,
   COLUMN_OPTIONS
 } from '@/utils/excelUtils';
+
+// API 서버 기본 URL (uploads용)
+const API_SERVER_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 
+  (import.meta.env.MODE === 'production' 
+    ? 'https://lineguide3-backend.onrender.com' 
+    : 'http://localhost:5000');
+
+// 이미지 확대보기 모달
+const ImageModal = ({ 
+  imageUrl, 
+  onClose 
+}: { 
+  imageUrl: string; 
+  onClose: () => void; 
+}) => (
+  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70] p-4">
+    <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 w-10 h-10 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full flex items-center justify-center z-10"
+      >
+        <X className="w-6 h-6" />
+      </button>
+      <img
+        src={imageUrl}
+        alt="확대보기"
+        className="max-w-full max-h-full object-contain rounded-lg"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  </div>
+);
 
 // 엑셀 내보내기 모달
 const ExcelExportModal = ({ 
@@ -207,6 +239,7 @@ const ResponseNoteViewModal = ({
   onDelete: (id: string) => void;
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const handleDelete = () => {
     onDelete(note.id);
@@ -260,6 +293,38 @@ const ResponseNoteViewModal = ({
             </div>
           </div>
 
+
+          {/* 첨부된 사진 */}
+          {note.photos && note.photos.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                첨부된 사진 ({note.photos.length}개)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {note.photos.map((photo, index) => (
+                  <div key={photo.id || index} className="relative group">
+                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+                      <img
+                        src={`${API_SERVER_URL}${photo.url}`}
+                        alt={photo.description || `첨부 사진 ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onClick={() => setSelectedImageUrl(`${API_SERVER_URL}${photo.url}`)}
+                      />
+                    </div>
+                    {photo.description && (
+                      <div className="mt-1 text-xs text-gray-600 text-center truncate">
+                        {photo.description}
+                      </div>
+                    )}
+                    <div className="absolute top-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                      {index + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 버튼들 */}
           <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0 pt-4 border-t border-slate-200">
             <Button
@@ -307,6 +372,14 @@ const ResponseNoteViewModal = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 이미지 확대보기 모달 */}
+      {selectedImageUrl && (
+        <ImageModal
+          imageUrl={selectedImageUrl}
+          onClose={() => setSelectedImageUrl(null)}
+        />
       )}
     </div>
   );
@@ -698,7 +771,7 @@ export default function Board() {
               ? 'bg-red-50 text-red-800 border border-red-200'
               : 'bg-blue-50 text-blue-800 border border-blue-200'
           }`}>
-            {toast.type === 'success' && <CheckCircle className="w-4 h-4" />}
+            {toast.type === 'success' && <Eye className="w-4 h-4" />}
             {toast.type === 'error' && <AlertTriangle className="w-4 h-4" />}
             {toast.type === 'info' && <MessageSquare className="w-4 h-4" />}
             <span className="text-sm font-medium">{toast.message}</span>

@@ -2,8 +2,58 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { ResponseNote, WorkOrder } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
+const fs = require('fs').promises;
+const path = require('path');
+const crypto = require('crypto');
 
 const router = express.Router();
+
+// uploads 디렉토리 확인 및 생성
+const ensureUploadsDir = async () => {
+  const uploadsDir = path.join(__dirname, '../uploads');
+  try {
+    await fs.access(uploadsDir);
+  } catch {
+    await fs.mkdir(uploadsDir, { recursive: true });
+    console.log('📁 uploads 디렉토리 생성됨:', uploadsDir);
+  }
+};
+
+// base64 사진들을 파일로 저장하고 URL 배열 반환
+const savePhotosAndGetUrls = async (base64Photos) => {
+  if (!base64Photos || base64Photos.length === 0) {
+    return [];
+  }
+
+  await ensureUploadsDir();
+  const photoUrls = [];
+
+  for (const photo of base64Photos) {
+    try {
+      // 랜덤 파일명 생성
+      const fileId = crypto.randomBytes(16).toString('hex');
+      const filename = `photo_${Date.now()}_${fileId}.jpg`;
+      const filePath = path.join(__dirname, '../uploads', filename);
+      
+      // base64 데이터를 파일로 저장
+      await fs.writeFile(filePath, photo.data, 'base64');
+      
+      photoUrls.push({
+        id: crypto.randomBytes(8).toString('hex'),
+        url: `/uploads/${filename}`,
+        filename: photo.filename || filename,
+        description: photo.description || ''
+      });
+      
+      console.log('📸 사진 저장됨:', filename);
+    } catch (error) {
+      console.error('사진 저장 오류:', error);
+      // 개별 사진 오류는 무시하고 계속 진행
+    }
+  }
+
+  return photoUrls;
+};
 
 // 회신 메모 목록 조회 (삭제되지 않은 것만)
 router.get('/', authMiddleware, async (req, res) => {
@@ -19,6 +69,7 @@ router.get('/', authMiddleware, async (req, res) => {
         'side', 
         'ruId',
         'content',
+        'photos',  // 사진 필드 추가
         'createdBy',
         'confirmedAt',
         ['created_at', 'createdAt'],  // 명시적으로 created_at을 createdAt으로 매핑
@@ -122,7 +173,7 @@ router.get('/check-duplicate', authMiddleware, async (req, res) => {
 // 회신 메모 등록
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { workOrderId, content, side } = req.body;
+    const { workOrderId, content, side, photos } = req.body;
 
     // 필수 필드 검증
     if (!workOrderId || !content || !side) {
@@ -179,11 +230,20 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
+    // 사진 처리
+    let photoUrls = [];
+    if (photos && Array.isArray(photos) && photos.length > 0) {
+      console.log(`📸 사진 ${photos.length}개 처리 시작...`);
+      photoUrls = await savePhotosAndGetUrls(photos);
+      console.log(`📸 사진 처리 완료: ${photoUrls.length}개 저장됨`);
+    }
+
     // 회신 메모 생성 (content는 개행 포함해서 그대로 저장)
     const responseNote = await ResponseNote.create({
       workOrderId: workOrderIdNum,
       side: normalizedSide,
       content: content, // trim 하지 않음 - 개행과 공백 유지
+      photos: photoUrls, // 사진 URL 배열 저장
       createdBy: req.user.userId
     });
 

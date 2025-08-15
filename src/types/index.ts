@@ -108,6 +108,7 @@ export interface ResponseNoteData {
   side: 'DU' | 'RU';
   ruId?: string;
   content: string;
+  photos?: FieldPhoto[];
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string;

@@ -39,6 +39,23 @@ export function useResponseNotes(): UseResponseNotesResult {
       // API 응답 상태 확인 (개발 환경에서만)
       if (process.env.NODE_ENV === 'development') {
         console.log(`✅ ResponseNotes API: ${data?.length || 0}개 데이터 로드`);
+        
+        // 전체 데이터 구조 확인
+        if (data && data.length > 0) {
+          console.log('📋 전체 응답 데이터 샘플 (첫 번째 메모):', data[0]);
+          console.log('📋 모든 메모의 키 목록:', Object.keys(data[0]));
+        }
+        
+        // photos 데이터가 있는 메모가 있는지 확인
+        const notesWithPhotos = data.filter(note => note.photos && note.photos.length > 0);
+        if (notesWithPhotos.length > 0) {
+          console.log(`📸 사진이 있는 메모: ${notesWithPhotos.length}개`);
+          notesWithPhotos.forEach((note, index) => {
+            console.log(`  메모 ${index + 1} (ID: ${note.id}):`, note.photos);
+          });
+        } else {
+          console.log('📸 사진이 있는 메모: 0개 (photos 필드가 없거나 빈 배열)');
+        }
       }
       
       setResponseNotes(data);

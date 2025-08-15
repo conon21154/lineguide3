@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertTriangle, CheckCircle2, Loader2, Camera } from 'lucide-react';
+import { X, Save, AlertTriangle, CheckCircle2, Loader2, Camera, Upload, Trash2 } from 'lucide-react';
 import { useMemoForm } from '@/hooks/useMemoBase';
 import {
   generateTemplate,
@@ -41,6 +41,10 @@ export default function MemoForm({ workOrderId, onClose, onSuccess }: MemoFormPr
   // 카메라 상태
   const [photos, setPhotos] = useState<FieldPhoto[]>([]);
   const [showCamera, setShowCamera] = useState(false);
+  
+  // 파일 첨부 상태
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [filePreviewUrls, setFilePreviewUrls] = useState<{ [key: string]: string }>({});
 
   // 카메라 관련 함수들
   const handlePhotoCaptured = (photo: FieldPhoto) => {
@@ -61,6 +65,74 @@ export default function MemoForm({ workOrderId, onClose, onSuccess }: MemoFormPr
       photo.id === photoId ? { ...photo, description } : photo
     ));
   };
+
+  // 파일 첨부 관련 함수들
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    
+    // 총 사진 개수 제한 (기존 + 새로 선택한 것)
+    const totalCount = attachedFiles.length + imageFiles.length;
+    if (totalCount > 5) {
+      alert(`사진은 최대 5장까지 첨부할 수 있습니다. (현재: ${attachedFiles.length}장, 선택: ${imageFiles.length}장)`);
+      event.target.value = '';
+      return;
+    }
+
+    // 파일 크기 체크 (각 파일당 10MB 제한)
+    const oversizedFiles = imageFiles.filter(file => file.size > 10 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      alert(`파일 크기가 10MB를 초과하는 사진이 있습니다: ${oversizedFiles.map(f => f.name).join(', ')}`);
+      event.target.value = '';
+      return;
+    }
+    
+    // 이전 프리뷰 URL 정리
+    attachedFiles.forEach(file => {
+      if (filePreviewUrls[file.name]) {
+        URL.revokeObjectURL(filePreviewUrls[file.name]);
+      }
+    });
+
+    // 새 파일들 추가
+    setAttachedFiles(prev => [...prev, ...imageFiles]);
+    
+    // 새 프리뷰 URL 생성
+    const newPreviewUrls: { [key: string]: string } = {};
+    imageFiles.forEach(file => {
+      newPreviewUrls[file.name] = URL.createObjectURL(file);
+    });
+    
+    setFilePreviewUrls(prev => ({ ...prev, ...newPreviewUrls }));
+    
+    // input 초기화
+    event.target.value = '';
+  };
+
+  const handleFileRemove = (fileName: string) => {
+    setAttachedFiles(prev => prev.filter(file => file.name !== fileName));
+    
+    // 프리뷰 URL 정리
+    if (filePreviewUrls[fileName]) {
+      URL.revokeObjectURL(filePreviewUrls[fileName]);
+      setFilePreviewUrls(prev => {
+        const newUrls = { ...prev };
+        delete newUrls[fileName];
+        return newUrls;
+      });
+    }
+  };
+
+  // 컴포넌트 언마운트 시 URL 정리
+  useEffect(() => {
+    return () => {
+      Object.values(filePreviewUrls).forEach(url => {
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, [filePreviewUrls]);
 
   // 베이스 정보 로드 시 초기값 설정
   useEffect(() => {
@@ -113,7 +185,8 @@ export default function MemoForm({ workOrderId, onClose, onSuccess }: MemoFormPr
     saveMemo({
       workOrderId: baseInfo.workOrderId,
       content: preview,
-      side: baseInfo.side
+      side: baseInfo.side,
+      photos: attachedFiles.length > 0 ? attachedFiles : undefined
     });
   };
 
@@ -402,6 +475,69 @@ export default function MemoForm({ workOrderId, onClose, onSuccess }: MemoFormPr
                     </div>
                   </>
                 )}
+
+                {/* 사진 첨부 섹션 */}
+                <div className="mt-6 pt-4 border-t">
+                  <h4 className="font-medium text-gray-900 mb-3">사진 첨부</h4>
+                  
+                  {/* 파일 선택 버튼 */}
+                  <div className="mb-4">
+                    <label 
+                      htmlFor="photo-upload" 
+                      className={`inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-md hover:bg-blue-100 cursor-pointer transition-colors ${
+                        !canSave ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <Upload className="w-4 h-4" />
+                      사진 선택
+                    </label>
+                    <input
+                      id="photo-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      disabled={!canSave}
+                      className="hidden"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      JPG, PNG, GIF 등 이미지 파일만 첨부 가능합니다. (최대 5장, 각 파일 10MB 이하)
+                    </p>
+                  </div>
+
+                  {/* 첨부된 사진 미리보기 */}
+                  {attachedFiles.length > 0 && (
+                    <div className="space-y-3">
+                      <h5 className="text-sm font-medium text-gray-700">
+                        첨부된 사진 ({attachedFiles.length}개)
+                      </h5>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {attachedFiles.map((file, index) => (
+                          <div key={`${file.name}-${index}`} className="relative group">
+                            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                              <img
+                                src={filePreviewUrls[file.name]}
+                                alt={`첨부 사진 ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <button
+                              onClick={() => handleFileRemove(file.name)}
+                              disabled={!canSave}
+                              className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50"
+                              title="사진 삭제"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                            <div className="mt-1 text-xs text-gray-500 truncate">
+                              {file.name}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 미리보기 */}
