@@ -34,8 +34,8 @@ const CalendarDayDetailModal = ({
   const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] sm:max-h-[85vh] overflow-hidden shadow-xl mx-2 sm:mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-[9999] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[85vh] overflow-hidden shadow-xl mx-2 sm:mx-4 my-2 sm:my-0">
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-slate-200">
           <h2 className="text-lg sm:text-xl font-semibold text-slate-900">
             {year}년 {monthNames[month]} {day}일 작업 상세

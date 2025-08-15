@@ -29,7 +29,7 @@ const ImageModal = ({
   imageUrl: string; 
   onClose: () => void; 
 }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70] p-4">
+  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999] p-2 sm:p-4">
     <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
       <button
         onClick={onClose}
@@ -109,7 +109,7 @@ const ExcelExportModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-[9999]">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] sm:max-h-[85vh] overflow-y-auto shadow-xl mx-2 sm:mx-4">
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-slate-200">
           <h2 className="text-lg sm:text-xl font-semibold text-slate-900">엑셀 내보내기</h2>
@@ -247,7 +247,7 @@ const ResponseNoteViewModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-[9999]">
       <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] sm:max-h-[85vh] overflow-y-auto shadow-xl mx-2 sm:mx-4">
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-slate-200">
           <h2 className="text-lg sm:text-xl font-semibold text-slate-900">현장 회신 메모 상세</h2>
@@ -347,7 +347,7 @@ const ResponseNoteViewModal = ({
 
       {/* 삭제 확인 모달 */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <div className="bg-white rounded-2xl p-4 sm:p-6 max-w-md w-full mx-4 shadow-xl">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />

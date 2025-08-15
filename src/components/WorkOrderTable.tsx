@@ -108,8 +108,8 @@ const StatusBadge = ({ status }: { status: WorkOrderStatus }) => {
 
 const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClose: () => void }) => {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-[9999] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-xl my-2 sm:my-0">
         <div className="flex justify-between items-center p-6 border-b border-slate-200">
           <h2 className="text-xl font-semibold text-slate-900">작업지시 상세정보</h2>
           <button

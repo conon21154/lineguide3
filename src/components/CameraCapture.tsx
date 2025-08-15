@@ -134,7 +134,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    <div className="fixed inset-0 bg-black z-[9999] flex flex-col">
       {/* 카메라 헤더 */}
       <div className="bg-black bg-opacity-50 text-white p-4 flex justify-between items-center">
         <h3 className="text-lg font-medium">현장 사진 촬영</h3>
