@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Clock, User, CheckCircle, Edit3, Trash2, Eye, X, MessageSquare, CheckCircle2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Clock, User, CheckCircle, Edit3, Trash2, Eye, X, MessageSquare, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import { WorkOrder, WorkOrderStatus } from '@/types'
 import { useWorkOrders } from '@/hooks/useWorkOrders'
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 
 interface WorkOrderTableProps {
   workOrders: WorkOrder[]
+  dense?: boolean
   onRefresh?: () => Promise<void> | void
   onUpdateStatus?: (id: string, status: WorkOrder['status'], notes?: string) => Promise<{ success: boolean; error?: string }>
   onDeleteWorkOrder?: (id: string) => Promise<{ success: boolean; error?: string }>
@@ -111,6 +112,26 @@ const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, on
             </div>
             
             <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">DU 정보</h3>
+              <div className="space-y-3">
+                <div><span className="font-medium text-gray-700">DU ID:</span> {workOrder.duId}</div>
+                <div><span className="font-medium text-gray-700">DU명:</span> {workOrder.duName}</div>
+                <div><span className="font-medium text-gray-700">채널카드:</span> {workOrder.channelCard}</div>
+                <div><span className="font-medium text-gray-700">포트:</span> {workOrder.port}</div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">장비 정보</h3>
+              <div className="space-y-3">
+                <div><span className="font-medium text-gray-700">장비 타입:</span> {workOrder.equipmentType}</div>
+                <div><span className="font-medium text-gray-700">장비명:</span> {workOrder.equipmentName}</div>
+                <div><span className="font-medium text-gray-700">종류:</span> {workOrder.category}</div>
+                <div><span className="font-medium text-gray-700">서비스 위치:</span> {workOrder.serviceLocation}</div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 border-b pb-2">RU 정보</h3>
               <div className="space-y-3">
                 {workOrder.representativeRuId && (
@@ -162,26 +183,6 @@ const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, on
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">장비 정보</h3>
-              <div className="space-y-3">
-                <div><span className="font-medium text-gray-700">장비 타입:</span> {workOrder.equipmentType}</div>
-                <div><span className="font-medium text-gray-700">장비명:</span> {workOrder.equipmentName}</div>
-                <div><span className="font-medium text-gray-700">종류:</span> {workOrder.category}</div>
-                <div><span className="font-medium text-gray-700">서비스 위치:</span> {workOrder.serviceLocation}</div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">DU 정보</h3>
-              <div className="space-y-3">
-                <div><span className="font-medium text-gray-700">DU ID:</span> {workOrder.duId}</div>
-                <div><span className="font-medium text-gray-700">DU명:</span> {workOrder.duName}</div>
-                <div><span className="font-medium text-gray-700">채널카드:</span> {workOrder.channelCard}</div>
-                <div><span className="font-medium text-gray-700">포트:</span> {workOrder.port}</div>
               </div>
             </div>
           </div>
@@ -248,12 +249,13 @@ const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, on
   )
 }
 
-export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, onDeleteWorkOrder }: WorkOrderTableProps) {
+export default function WorkOrderTable({ workOrders, dense = false, onRefresh, onUpdateStatus, onDeleteWorkOrder }: WorkOrderTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingStatus, setEditingStatus] = useState<WorkOrderStatus>('pending')
   const [notes, setNotes] = useState('')
   const [viewingDetailId, setViewingDetailId] = useState<string | null>(null)
   const [responseNoteId, setResponseNoteId] = useState<string | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   
   // 상위에서 전달받은 함수들 사용 (낙관적 업데이트를 위해)
   const updateStatusFn = onUpdateStatus || (() => Promise.resolve({ success: false, error: '함수가 전달되지 않음' }))
@@ -296,16 +298,113 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
 
   const isCompleted = (status: WorkOrderStatus) => status === 'completed' || status === '확인완료' as any;
 
+  // 관리번호별 그룹화
+  const groupedWorkOrders = workOrders.reduce((groups, workOrder) => {
+    const baseNumber = getBaseManagementNumber(workOrder.managementNumber);
+    if (!groups[baseNumber]) {
+      groups[baseNumber] = [];
+    }
+    groups[baseNumber].push(workOrder);
+    return groups;
+  }, {} as Record<string, WorkOrder[]>);
+
+
+  // 그룹 확장/축소 토글
+  const toggleGroup = (groupKey: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupKey)) {
+      newExpanded.delete(groupKey);
+    } else {
+      newExpanded.add(groupKey);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  // 그룹 대표 정보 가져오기
+  const getGroupRepresentativeInfo = (workOrders: WorkOrder[]) => {
+    const firstOrder = workOrders[0];
+    const representativeRuName = getRepresentativeRuName(firstOrder.ruInfoList) || firstOrder.representativeRuId;
+    return {
+      baseNumber: getBaseManagementNumber(firstOrder.managementNumber),
+      representativeRuName: representativeRuName || '',
+      requestDate: firstOrder.requestDate,
+      operationTeam: firstOrder.operationTeam,
+      equipmentName: firstOrder.equipmentName,
+      hasCompleted: workOrders.some(wo => isCompleted(wo.status)),
+      hasPending: workOrders.some(wo => wo.status === 'pending'),
+      hasInProgress: workOrders.some(wo => wo.status === 'in_progress'),
+      duCount: workOrders.filter(wo => wo.workType === 'DU측').length,
+      ruCount: workOrders.filter(wo => wo.workType === 'RU측').length
+    };
+  };
+
   return (
     <div className="space-y-4">
-      {/* 모바일 카드 뷰 */}
-      <div className="block lg:hidden space-y-3 overflow-x-hidden">
-        {workOrders.map((workOrder) => (
-          <Card key={workOrder.id} className="p-3 space-y-2">
+      {/* 모바일 카드 뷰 - 그룹화된 형태 */}
+      <div className="block lg:hidden space-y-3 overflow-x-hidden tabular-nums">
+        {Object.entries(groupedWorkOrders).map(([groupKey, groupWorkOrders]) => {
+          const groupInfo = getGroupRepresentativeInfo(groupWorkOrders);
+          const isExpanded = expandedGroups.has(groupKey);
+          
+          return (
+            <div key={groupKey} className="space-y-2">
+              {/* 그룹 헤더 카드 */}
+              <Card 
+                className={`${dense ? 'p-2' : 'p-3'} cursor-pointer hover:bg-slate-50 transition-colors`}
+                onClick={() => toggleGroup(groupKey)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className={`${dense ? 'text-xs' : 'text-sm'} font-semibold text-slate-900`}>
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-slate-500" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-slate-500" />
+                        )}
+                        <span className="truncate" title={`${groupInfo.baseNumber}_대표RU명`}>
+                          {groupInfo.baseNumber}_대표RU명
+                        </span>
+                      </div>
+                    </div>
+                    <div className={`${dense ? 'text-xs' : 'text-sm'} text-slate-600 mt-1`}>
+                      작업요청일: {groupInfo.requestDate}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        groupInfo.duCount > 0 ? 'bg-[#1E40AF]/10 text-[#1E40AF]' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        DU {groupInfo.duCount}개
+                      </span>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        groupInfo.ruCount > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        RU {groupInfo.ruCount}개
+                      </span>
+                      {/* 상태 표시 */}
+                      {groupInfo.hasCompleted && (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      )}
+                      {groupInfo.hasInProgress && !groupInfo.hasCompleted && (
+                        <User className="w-4 h-4 text-blue-600" />
+                      )}
+                      {groupInfo.hasPending && !groupInfo.hasInProgress && !groupInfo.hasCompleted && (
+                        <Clock className="w-4 h-4 text-yellow-600" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* 확장된 상세 카드들 */}
+              {isExpanded && (
+                <div className="ml-6 space-y-2 border-l-2 border-slate-200 pl-3">
+                  {groupWorkOrders.map((workOrder) => (
+          <Card key={workOrder.id} className={`${dense ? 'p-2' : 'p-3'} space-y-2`}>
             {/* 상단: 관리번호 + 상태 배지 */}
             <div className="flex min-w-0 items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-slate-900 min-w-0">
+                <div className={`${dense ? 'text-xs' : 'text-sm'} font-semibold text-slate-900 min-w-0`}>
                   <span className="block truncate" title={getBaseManagementNumber(workOrder.managementNumber)}>
                     {getBaseManagementNumber(workOrder.managementNumber)}
                   </span>
@@ -363,7 +462,7 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
             </div>
             
             {/* 본문: 팀, 장비명, 대표 RU */}
-            <div className="grid grid-cols-1 gap-1 text-[13px] text-slate-700">
+            <div className={`grid grid-cols-1 gap-1 ${dense ? 'text-[11px]' : 'text-[13px]'} text-slate-700`}>
               <div className="min-w-0">
                 <span className="font-medium">팀: </span>
                 <span className="truncate" title={workOrder.operationTeam}>{workOrder.operationTeam}</span>
@@ -385,7 +484,7 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
               <button
                 onClick={() => setResponseNoteId(workOrder.id)}
                 disabled={!isCompleted(workOrder.status)}
-                className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-xs rounded-md transition-colors border ${
+                className={`w-full flex items-center justify-center gap-2 px-3 py-2 ${dense ? 'text-[10px]' : 'text-xs'} rounded-md transition-colors border ${
                   !isCompleted(workOrder.status)
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200'
                     : workOrder.hasMemo
@@ -429,28 +528,81 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
               </div>
             )}
           </Card>
-        ))}
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
       
       {/* 데스크톱 테이블 뷰 */}
       <div className="hidden lg:block overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
+        <table className="min-w-full divide-y divide-slate-200 tabular-nums">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">관리번호</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">팀</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">장비명</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">대표 RU</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">상태</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">회신 메모</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">액션</th>
+              <th className={`px-4 ${dense ? 'py-2' : 'py-3'} text-left text-xs font-medium text-slate-500 uppercase tracking-wider`}>관리번호</th>
+              <th className={`px-4 ${dense ? 'py-2' : 'py-3'} text-left text-xs font-medium text-slate-500 uppercase tracking-wider`}>팀</th>
+              <th className={`px-4 ${dense ? 'py-2' : 'py-3'} text-left text-xs font-medium text-slate-500 uppercase tracking-wider`}>장비명</th>
+              <th className={`px-4 ${dense ? 'py-2' : 'py-3'} text-left text-xs font-medium text-slate-500 uppercase tracking-wider`}>대표 RU</th>
+              <th className={`px-4 ${dense ? 'py-2' : 'py-3'} text-left text-xs font-medium text-slate-500 uppercase tracking-wider`}>상태</th>
+              <th className={`px-4 ${dense ? 'py-2' : 'py-3'} text-left text-xs font-medium text-slate-500 uppercase tracking-wider`}>회신 메모</th>
+              <th className={`px-4 ${dense ? 'py-2' : 'py-3'} text-left text-xs font-medium text-slate-500 uppercase tracking-wider`}>액션</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-slate-200">
-            {workOrders.map((workOrder) => (
-              <tr key={workOrder.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3">
-                  <div className="text-sm font-mono">
+            {Object.entries(groupedWorkOrders).map(([groupKey, groupWorkOrders]) => {
+              const groupInfo = getGroupRepresentativeInfo(groupWorkOrders);
+              const isExpanded = expandedGroups.has(groupKey);
+              
+              return (
+                <React.Fragment key={groupKey}>
+                  {/* 그룹 헤더 행 */}
+                  <tr 
+                    className="bg-slate-50 hover:bg-slate-100 cursor-pointer"
+                    onClick={() => toggleGroup(groupKey)}
+                  >
+                    <td colSpan={7} className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-slate-500" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-slate-500" />
+                          )}
+                          <div>
+                            <div className="font-medium text-slate-900">
+                              {groupInfo.baseNumber}_대표RU명
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              작업요청일: {groupInfo.requestDate} | 팀: {groupInfo.operationTeam}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            groupInfo.duCount > 0 ? 'bg-[#1E40AF]/10 text-[#1E40AF]' : 'bg-gray-100 text-gray-400'
+                          }`}>
+                            DU {groupInfo.duCount}개
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            groupInfo.ruCount > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-400'
+                          }`}>
+                            RU {groupInfo.ruCount}개
+                          </span>
+                          {groupInfo.hasCompleted && <CheckCircle className="w-4 h-4 text-green-600" />}
+                          {groupInfo.hasInProgress && !groupInfo.hasCompleted && <User className="w-4 h-4 text-blue-600" />}
+                          {groupInfo.hasPending && !groupInfo.hasInProgress && !groupInfo.hasCompleted && <Clock className="w-4 h-4 text-yellow-600" />}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  
+                  {/* 확장된 상세 행들 */}
+                  {isExpanded && groupWorkOrders.map((workOrder) => (
+              <tr key={workOrder.id} className={`hover:bg-slate-50 ${dense ? 'h-14' : ''}`}>
+                <td className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>
+                  <div className={`font-mono ${dense ? 'text-xs' : 'text-sm'}`}>
                     <div className="font-medium text-slate-900">
                       {getBaseManagementNumber(workOrder.managementNumber)}
                     </div>
@@ -465,12 +617,12 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-900">{workOrder.operationTeam}</td>
-                <td className="px-4 py-3 text-sm text-slate-900">{workOrder.equipmentName}</td>
-                <td className="px-4 py-3 text-sm text-slate-500">
+                <td className={`px-4 ${dense ? 'py-2' : 'py-3'} ${dense ? 'text-xs' : 'text-sm'} text-slate-900`}>{workOrder.operationTeam}</td>
+                <td className={`px-4 ${dense ? 'py-2' : 'py-3'} ${dense ? 'text-xs' : 'text-sm'} text-slate-900`}>{workOrder.equipmentName}</td>
+                <td className={`px-4 ${dense ? 'py-2' : 'py-3'} ${dense ? 'text-xs' : 'text-sm'} text-slate-500`}>
                   {getRepresentativeRuName(workOrder.ruInfoList) || workOrder.representativeRuId || '-'}
                 </td>
-                <td className="px-4 py-3">
+                <td className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>
                   {editingId === workOrder.id ? (
                     <div className="space-y-2">
                       <select
@@ -508,12 +660,12 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
                     <StatusBadge status={workOrder.status} />
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>
                   <button
                     onClick={() => setResponseNoteId(workOrder.id)}
                     disabled={!isCompleted(workOrder.status)}
                     aria-label={workOrder.hasMemo ? '메모 작성완료' : (isCompleted(workOrder.status) ? '메모 작성' : '작성 불가')}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors border ${
+                    className={`flex items-center gap-2 px-3 py-2 ${dense ? 'text-xs' : 'text-sm'} rounded-md transition-colors border ${
                       !isCompleted(workOrder.status)
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200'
                         : workOrder.hasMemo
@@ -532,7 +684,7 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
                     <span>{!isCompleted(workOrder.status) ? '작성 불가' : (workOrder.hasMemo ? '메모 작성완료' : '메모 작성')}</span>
                   </button>
                 </td>
-                <td className="px-4 py-3">
+                <td className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>
                   {editingId === workOrder.id ? null : (
                     <div className="flex space-x-2">
                       <button
@@ -560,7 +712,10 @@ export default function WorkOrderTable({ workOrders, onRefresh, onUpdateStatus, 
                   )}
                 </td>
               </tr>
-            ))}
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
