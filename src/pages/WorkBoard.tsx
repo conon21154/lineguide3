@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { useDebounce } from 'use-debounce'
-import { Search, Filter, ChevronDown, ChevronRight, Users, Trash2 } from 'lucide-react'
+import { Search, Filter, ChevronDown, ChevronRight, Users, Trash2, X, Eye, Clock, User, CheckCircle } from 'lucide-react'
 import { useWorkOrders as useWorkOrdersAPI } from '@/hooks/useWorkOrdersAPI'
 import { useAuth } from '@/contexts/AuthContext'
 import { WorkOrderFilter, OperationTeam, WorkOrderStatus, WorkOrder } from '@/types'
@@ -10,6 +10,225 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { PageHeader } from '@/components/ui/PageHeader'
+import clsx from 'clsx'
+
+// StatusBadge 컴포넌트
+const StatusBadge = ({ status }: { status: WorkOrderStatus }) => {
+  const statusConfig = {
+    pending: {
+      label: '대기',
+      icon: Clock,
+      className: 'bg-yellow-100 text-yellow-800'
+    },
+    in_progress: {
+      label: '진행중',
+      icon: User,
+      className: 'bg-[#1E40AF]/10 text-[#1E40AF]'
+    },
+    completed: {
+      label: '완료',
+      icon: CheckCircle,
+      className: 'bg-green-100 text-green-800'
+    }
+  }
+
+  const config = statusConfig[status]
+  const Icon = config.icon
+
+  return (
+    <span className={clsx('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', config.className)}>
+      <Icon className="w-3 h-3 mr-1" />
+      {config.label}
+    </span>
+  )
+}
+
+// 완전한 작업지시 상세 모달 (기존과 동일)
+const WorkOrderDetailModal = ({ workOrder, onClose }: { workOrder: WorkOrder, onClose: () => void }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+        <div className="flex justify-between items-center p-6 border-b border-slate-200">
+          <h2 className="text-xl font-semibold text-slate-900">작업지시 상세정보</h2>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">기본 정보</h3>
+              <div className="space-y-3">
+                <div>
+                  <span className="font-medium text-gray-700">관리번호:</span> 
+                  <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded mt-1 break-all">
+                    <div className="flex items-center space-x-2">
+                      <span>{workOrder.managementNumber.replace(/_DU측|_RU측/g, '')}</span>
+                      {workOrder.managementNumber.includes('_DU측') && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          DU측 작업
+                        </span>
+                      )}
+                      {workOrder.managementNumber.includes('_RU측') && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          RU측 작업
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">작업요청일:</span>
+                  <div className="text-sm mt-1 break-all">
+                    {workOrder.requestDate}
+                  </div>
+                </div>
+                <div><span className="font-medium text-gray-700">운용팀:</span> <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{workOrder.operationTeam}</span></div>
+                <div><span className="font-medium text-gray-700">상태:</span> <StatusBadge status={workOrder.status} /></div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">DU 정보</h3>
+              <div className="space-y-3">
+                <div><span className="font-medium text-gray-700">DU ID:</span> {workOrder.duId}</div>
+                <div><span className="font-medium text-gray-700">DU명:</span> {workOrder.duName}</div>
+                <div><span className="font-medium text-gray-700">채널카드:</span> {workOrder.channelCard}</div>
+                <div><span className="font-medium text-gray-700">포트:</span> {workOrder.port}</div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">장비 정보</h3>
+              <div className="space-y-3">
+                <div><span className="font-medium text-gray-700">장비 타입:</span> {workOrder.equipmentType}</div>
+                <div><span className="font-medium text-gray-700">장비명:</span> {workOrder.equipmentName}</div>
+                <div><span className="font-medium text-gray-700">종류:</span> {workOrder.category}</div>
+                <div><span className="font-medium text-gray-700">서비스 위치:</span> {workOrder.serviceLocation}</div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">RU 정보</h3>
+              <div className="space-y-3">
+                {workOrder.representativeRuId && (
+                  <div><span className="font-medium text-gray-700">대표 RU ID:</span> {workOrder.representativeRuId}</div>
+                )}
+                {workOrder.coSiteCount5G && (
+                  <div><span className="font-medium text-gray-700">5G Co-Site 수량:</span> {workOrder.coSiteCount5G}</div>
+                )}
+                {workOrder.concentratorName5G && workOrder.concentratorName5G !== 'N/A' && (
+                  <div><span className="font-medium text-gray-700">5G 집중국명:</span> {workOrder.concentratorName5G}</div>
+                )}
+                
+                {/* 여러 RU 정보 표시 */}
+                {workOrder.ruInfoList && workOrder.ruInfoList.length > 0 && (
+                  <div className="mt-4">
+                    <span className="font-medium text-gray-700">전체 RU 목록:</span>
+                    <div className="mt-2 space-y-2">
+                      {workOrder.ruInfoList.map((ru, index) => {
+                        const isRepresentative = ru.ruId === workOrder.representativeRuId;
+                        const muxCH = ru.serviceType || workOrder.muxInfo?.['서비스구분'] || workOrder.serviceType;
+                        
+                        return (
+                          <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-1">
+                                <div className="font-medium text-sm">{ru.ruName}</div>
+                                <div className="text-xs text-gray-600">ID: {ru.ruId}</div>
+                                {(ru.channelCard !== undefined && ru.channelCard !== '') && (
+                                  <div className="text-xs text-gray-600">채널카드: {ru.channelCard}</div>
+                                )}
+                                {(ru.port !== undefined && ru.port !== '') && (
+                                  <div className="text-xs text-gray-600">포트: {ru.port}</div>
+                                )}
+                                {muxCH && <div className="text-xs text-blue-600 font-medium">MUX CH: {muxCH}</div>}
+                              </div>
+                              {isRepresentative ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  대표 A
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                  RU #{index + 1}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">선번장 정보</h3>
+            <div className="space-y-3">
+              <div>
+                <span className="font-medium text-gray-700">회선번호:</span>
+                <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded mt-1 whitespace-nowrap tabular-nums">
+                  {workOrder.lineNumber}
+                </div>
+              </div>
+              {workOrder.muxInfo && (
+                <div>
+                  <span className="font-medium text-gray-700">LTE MUX/국간,간선망:</span>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="font-mono text-sm break-all">{workOrder.muxInfo.lteMux}</div>
+                    {workOrder.muxInfo.muxType && (
+                      <div className="text-xs text-gray-600 mt-1">MUX종류: {workOrder.muxInfo.muxType}</div>
+                    )}
+                    {workOrder.muxInfo.서비스구분 && (
+                      <div className="text-xs text-blue-600 mt-1 font-medium">
+                        서비스구분: {workOrder.muxInfo.서비스구분}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {workOrder.notes && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">메모</h3>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <div className="text-sm">{workOrder.notes}</div>
+              </div>
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">시간 정보</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+              <div><span className="font-medium">생성일:</span> {new Date(workOrder.createdAt).toLocaleString()}</div>
+              <div><span className="font-medium">수정일:</span> {new Date(workOrder.updatedAt).toLocaleString()}</div>
+              {workOrder.completedAt && (
+                <div><span className="font-medium">완료일:</span> {new Date(workOrder.completedAt).toLocaleString()}</div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-end p-6 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            className="btn btn-secondary"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 
 export default function WorkBoard() {
@@ -36,7 +255,93 @@ export default function WorkBoard() {
   const [viewMode, setViewMode] = useState<'list' | 'teams'>('teams')
   const [collapsedTeams, setCollapsedTeams] = useState<Set<OperationTeam>>(new Set())
   const [collapsedWorkOrders, setCollapsedWorkOrders] = useState<Set<string>>(new Set())
+  const [viewingDetailId, setViewingDetailId] = useState<string | null>(null)
   const [hasInitialized, setHasInitialized] = useState(false)
+  
+  // 대표 RU명 추론 함수
+  const getRepresentativeRuName = (workOrderGroup: { du: WorkOrder | null, ru: WorkOrder[] }) => {
+    // 1. DU 작업의 ruInfoList에서 대표 찾기
+    if (workOrderGroup.du?.ruInfoList?.length) {
+      const ruList = workOrderGroup.du.ruInfoList;
+      
+      // isRepresentative === true인 항목 찾기
+      const representative = ruList.find(ru => (ru as any).isRepresentative === true);
+      if (representative?.ruName) return representative.ruName;
+      
+      // '_RIU_A' 또는 '_A' 포함된 항목 찾기
+      const ruA = ruList.find(ru => ru.ruName && (ru.ruName.includes('_RIU_A') || ru.ruName.includes('_A')));
+      if (ruA?.ruName) return ruA.ruName;
+      
+      // 첫 번째 RU명 사용
+      if (ruList[0]?.ruName) return ruList[0].ruName;
+    }
+    
+    // 2. DU 작업에서 representativeRuId 필드 확인
+    if (workOrderGroup.du?.representativeRuId) {
+      return workOrderGroup.du.representativeRuId;
+    }
+    
+    // 3. RU 작업들에서 찾기
+    if (workOrderGroup.ru.length > 0) {
+      for (const ruWork of workOrderGroup.ru) {
+        if (ruWork.ruInfoList?.length) {
+          const representative = ruWork.ruInfoList.find(ru => (ru as any).isRepresentative === true);
+          if (representative?.ruName) return representative.ruName;
+          
+          const ruA = ruWork.ruInfoList.find(ru => ru.ruName && (ru.ruName.includes('_RIU_A') || ru.ruName.includes('_A')));
+          if (ruA?.ruName) return ruA.ruName;
+          
+          if (ruWork.ruInfoList[0]?.ruName) return ruWork.ruInfoList[0].ruName;
+        }
+        
+        // representativeRuId 필드 확인
+        if (ruWork.representativeRuId) return ruWork.representativeRuId;
+      }
+    }
+    
+    // 4. 어떤 정보도 없으면 기본값
+    return '대표RU명';
+  };
+  
+  // 작업요청일 포맷 함수 (08월13일(화) 형식)
+  const formatRequestDate = (dateStr?: string) => {
+    if (!dateStr || dateStr === 'undefined') return '';
+    try {
+      // 다양한 날짜 형식 처리
+      let date;
+      if (dateStr.includes('/')) {
+        // "2024/08/13" 형식
+        date = new Date(dateStr);
+      } else if (dateStr.includes('-')) {
+        // "2024-08-13" 형식
+        date = new Date(dateStr);
+      } else if (dateStr.length === 8) {
+        // "20240813" 형식
+        const year = dateStr.substring(0, 4);
+        const month = dateStr.substring(4, 6);
+        const day = dateStr.substring(6, 8);
+        date = new Date(`${year}-${month}-${day}`);
+      } else {
+        date = new Date(dateStr);
+      }
+      
+      if (isNaN(date.getTime())) {
+        return dateStr; // 파싱 실패 시 원본 반환
+      }
+      
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+      const weekday = weekdays[date.getDay()];
+      return `${month}월${day}일(${weekday})`;
+    } catch {
+      return dateStr;
+    }
+  };
+  
+  // 컴팩트 뷰 상태
+  const [dense, setDense] = useState(localStorage.getItem('wb:dense') !== 'false')
+  useEffect(() => { localStorage.setItem('wb:dense', String(dense)); }, [dense])
 
   // 효과적인 팀 계산: worker면 JWT 팀 강제, admin은 선택팀
   const effectiveTeam = useMemo(() => {
@@ -179,33 +484,7 @@ export default function WorkBoard() {
     return stats
   }, [workOrdersByTeam])
 
-  // 작업지시가 로드되면 모든 항목을 기본적으로 접힌 상태로 설정 (한 번만 실행)
-  useEffect(() => {
-    if (workOrders.length > 0 && !hasInitialized) {
-      const allWorkOrderIds = new Set<string>()
-      
-      // 모든 작업지시 ID를 수집
-      workOrders.forEach(workOrder => {
-        allWorkOrderIds.add(workOrder.id)
-      })
-      
-      // 팀별 보기에서 관리번호별 RU 그룹 ID도 추가
-      Object.entries(workOrdersByTeam).forEach(([team, managementNumbers]) => {
-        Object.keys(managementNumbers).forEach(managementNumber => {
-          allWorkOrderIds.add(`ru-${managementNumber}`)
-        })
-      })
-      
-      console.log('🔧 접힘 상태 초기화:', {
-        workOrdersCount: workOrders.length,
-        allWorkOrderIds: Array.from(allWorkOrderIds),
-        hasInitialized
-      })
-      
-      setCollapsedWorkOrders(allWorkOrderIds)
-      setHasInitialized(true)
-    }
-  }, [workOrders.length, hasInitialized])
+  // 팀별 보기에서는 더 이상 collapse 상태가 필요하지 않음 (단순화됨)
 
   // URL 쿼리 변경 시 상태 업데이트만 수행 (필터는 별도 useEffect에서)
   useEffect(() => {
@@ -394,6 +673,15 @@ export default function WorkBoard() {
               </span>
             )}
           </Button>
+          
+          <button
+            type="button"
+            onClick={() => setDense(v => !v)}
+            aria-pressed={dense}
+            className="rounded-lg border px-2.5 py-1.5 text-sm hover:bg-slate-50"
+          >
+            {dense ? '넓게 보기' : '컴팩트'}
+          </button>
         </div>
       </div>
 
@@ -484,6 +772,7 @@ export default function WorkBoard() {
         <div className="space-y-3 md:space-y-4">
           <WorkOrderTable 
             workOrders={visible} 
+            dense={dense}
             onRefresh={refreshData}
             onUpdateStatus={updateStatus}
             onDeleteWorkOrder={deleteWorkOrder}
@@ -560,99 +849,77 @@ export default function WorkBoard() {
                     
                     {!isCollapsed && (
                       <div className="border-t border-slate-200 space-y-3 md:space-y-4 mt-4 pt-4">
-                        {Object.entries(managementNumbers).map(([managementNumber, workOrderGroup]) => (
-                          <div key={managementNumber} className="p-3 border-b border-slate-100 last:border-b-0">
-                            <div className="flex min-w-0 items-start justify-between mb-4 gap-2">
-                              <div className="flex min-w-0 items-center gap-3">
-                                <h3 className="text-sm sm:text-lg font-semibold text-slate-900 min-w-0">
-                                  <span className="block truncate" title={`관리번호: ${managementNumber}`}>관리번호: {managementNumber}</span>
-                                </h3>
-                                {(() => {
-                                  // RU측 Co-site 수 계산
-                                  let ruCount = 0;
-                                  if (workOrderGroup.du?.coSiteCount5G) {
-                                    ruCount = Number(workOrderGroup.du.coSiteCount5G) || 0;
-                                  } else if (workOrderGroup.du?.ruInfoList?.length) {
-                                    ruCount = workOrderGroup.du.ruInfoList.length;
-                                  } else if (workOrderGroup.ru.length > 0) {
-                                    ruCount = workOrderGroup.ru.length;
+                        {Object.entries(managementNumbers).map(([managementNumber, workOrderGroup]) => {
+                          const representativeRuName = getRepresentativeRuName(workOrderGroup);
+                          const requestDate = workOrderGroup.du?.requestDate || workOrderGroup.ru[0]?.requestDate || '';
+                          const formattedDate = formatRequestDate(requestDate);
+                          
+                          // 대표 작업지시 선택 (DU 우선, 없으면 첫 번째 RU)
+                          const representativeWorkOrder = workOrderGroup.du || workOrderGroup.ru[0];
+                          
+                          // 관리번호에서 접미사 분리
+                          const baseNumber = managementNumber;
+                          const workType = workOrderGroup.du && workOrderGroup.ru.length > 0 
+                            ? 'DU/RU측' 
+                            : workOrderGroup.du ? 'DU측' : 'RU측';
+                          
+                          return (
+                            <div key={managementNumber} className="border-b border-slate-100 last:border-b-0">
+                              {/* 최상위 카드 - 바로 상세 모달 열기 */}
+                              <div 
+                                className="p-4 cursor-pointer hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+                                onClick={() => representativeWorkOrder && setViewingDetailId(representativeWorkOrder.id)}
+                                onKeyDown={(e) => {
+                                  if ((e.key === 'Enter' || e.key === ' ') && representativeWorkOrder) {
+                                    e.preventDefault();
+                                    setViewingDetailId(representativeWorkOrder.id);
                                   }
+                                }}
+                                tabIndex={0}
+                                role="button"
+                                aria-label={`${managementNumber} 작업지시 상세보기`}
+                              >
+                                <div className="flex items-center justify-between gap-4">
+                                  {/* 왼쪽: 관리번호 */}
+                                  <div className="flex-shrink-0">
+                                    <div className="text-lg font-bold text-slate-900">
+                                      {baseNumber}
+                                    </div>
+                                    <div className="text-sm font-normal text-slate-600">
+                                      {workType}
+                                    </div>
+                                  </div>
                                   
-                                  // RU측 Co-site가 있을 때만 배지 표시
-                                  return ruCount > 0 ? (
-                                    <span className="inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium bg-slate-100 text-slate-800">
-                                      RU측 {ruCount}개
-                                    </span>
-                                  ) : null;
-                                })()}
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                {workOrderGroup.du && (
-                                  <span className="inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium bg-[#1E40AF]/10 text-[#1E40AF]">
-                                    DU측
-                                  </span>
-                                )}
-                                {workOrderGroup.ru.length > 0 && (
-                                  <span className="inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium bg-green-100 text-green-800">
-                                    RU측 {workOrderGroup.ru.length}개
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-4">
-                              {/* DU측 작업 */}
-                              {workOrderGroup.du && (
-                                <div>
-                                  <button
-                                    className="w-full text-left flex items-center justify-between"
-                                    aria-expanded={!collapsedWorkOrders.has(workOrderGroup.du.id)}
-                                    onClick={() => workOrderGroup.du && toggleWorkOrderCollapse(workOrderGroup.du.id)}
-                                  >
-                                    <div className="flex items-center space-x-2">
-                                      <div className="w-3 h-3 bg-[#1E40AF] rounded-full"></div>
-                                      <h4 className="text-sm font-medium text-[#1E40AF]">DU측 작업 (집중국)</h4>
+                                  {/* 중앙: 대표 RU명 */}
+                                  <div className="flex-1 min-w-0 text-center">
+                                    <div className="text-sm font-medium text-slate-900 truncate" title={representativeRuName}>
+                                      {representativeRuName}
                                     </div>
-                                    <ChevronDown className={`w-4 h-4 transition ${collapsedWorkOrders.has(workOrderGroup.du.id) ? '' : 'rotate-180'}`} />
-                                  </button>
-                                  <div className={collapsedWorkOrders.has(workOrderGroup.du.id) ? 'mt-0' : 'mt-3'} style={{ display: collapsedWorkOrders.has(workOrderGroup.du.id) ? 'none' : 'block' }}>
-                                    <WorkOrderTable 
-                                      workOrders={[workOrderGroup.du]} 
-                                      onRefresh={refreshData}
-                                      onUpdateStatus={updateStatus}
-                                      onDeleteWorkOrder={deleteWorkOrder}
-                                    />
+                                  </div>
+                                  
+                                  {/* 오른쪽: 작업요청일 */}
+                                  <div className="flex-shrink-0 text-right">
+                                    <div className="text-sm font-medium text-slate-900">
+                                      {formattedDate}
+                                    </div>
+                                    <div className="flex gap-1 mt-1">
+                                      {workOrderGroup.du && (
+                                        <span className="inline-flex items-center h-5 px-2 rounded text-xs font-medium bg-[#1E40AF]/10 text-[#1E40AF]">
+                                          DU
+                                        </span>
+                                      )}
+                                      {workOrderGroup.ru.length > 0 && (
+                                        <span className="inline-flex items-center h-5 px-2 rounded text-xs font-medium bg-green-100 text-green-800">
+                                          RU{workOrderGroup.ru.length > 1 ? ` ${workOrderGroup.ru.length}개` : ''}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              )}
-                              
-                              {/* RU측 작업들 */}
-                              {workOrderGroup.ru.length > 0 && (
-                                <div>
-                                  <button
-                                    className="w-full text-left flex items-center justify-between"
-                                    aria-expanded={!collapsedWorkOrders.has(`ru-${managementNumber}`)}
-                                    onClick={() => toggleWorkOrderCollapse(`ru-${managementNumber}`)}
-                                  >
-                                    <div className="flex items-center space-x-2">
-                                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                      <h4 className="text-sm font-medium text-green-800">RU측 작업 (현장) - {workOrderGroup.ru.length}개</h4>
-                                    </div>
-                                    <ChevronDown className={`w-4 h-4 transition ${collapsedWorkOrders.has(`ru-${managementNumber}`) ? '' : 'rotate-180'}`} />
-                                  </button>
-                                  <div className={collapsedWorkOrders.has(`ru-${managementNumber}`) ? 'mt-0' : 'mt-3'} style={{ display: collapsedWorkOrders.has(`ru-${managementNumber}`) ? 'none' : 'block' }}>
-                                    <WorkOrderTable 
-                                      workOrders={workOrderGroup.ru} 
-                                      onRefresh={refreshData}
-                                      onUpdateStatus={updateStatus}
-                                      onDeleteWorkOrder={deleteWorkOrder}
-                                    />
-                                  </div>
-                                </div>
-                              )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                         
                         {/* 작업이 없는 경우 */}
                         {Object.keys(managementNumbers).length === 0 && (
@@ -667,6 +934,14 @@ export default function WorkBoard() {
               })
           )}
         </div>
+      )}
+      
+      {/* 상세 모달 */}
+      {viewingDetailId && (
+        <WorkOrderDetailModal
+          workOrder={workOrders.find(wo => wo.id === viewingDetailId)!}
+          onClose={() => setViewingDetailId(null)}
+        />
       )}
     </div>
   )

@@ -20,13 +20,56 @@ interface WorkOrderTableProps {
 const getBaseManagementNumber = (managementNumber?: string) =>
   (managementNumber || '').replace(/_(DU측|RU측)$/g, '')
 
-// 대표 RU명 선택: /(^|[_\s-])(A|32T_A|_A)\b/i 우선, 없으면 첫 RU
-const getRepresentativeRuName = (ruInfoList?: { ruName?: string }[]) => {
+// 대표 RU명 추론 함수 (WorkBoard와 동일한 로직)
+const getRepresentativeRuName = (ruInfoList?: { ruName?: string, ruId?: string }[]) => {
   if (!ruInfoList || ruInfoList.length === 0) return ''
-  const priority = ruInfoList.find(
-    ru => ru.ruName && /(^|[_\s-])(A|32T_A|_A)\b/i.test(ru.ruName)
-  )
-  return (priority?.ruName || ruInfoList[0]?.ruName || '').trim()
+  
+  // isRepresentative === true인 항목 찾기
+  const representative = ruInfoList.find(ru => (ru as any).isRepresentative === true);
+  if (representative?.ruName) return representative.ruName;
+  
+  // '_RIU_A' 또는 '_A' 포함된 항목 찾기
+  const ruA = ruInfoList.find(ru => ru.ruName && (ru.ruName.includes('_RIU_A') || ru.ruName.includes('_A')));
+  if (ruA?.ruName) return ruA.ruName;
+  
+  // 첫 번째 RU명 사용
+  return ruInfoList[0]?.ruName || '';
+}
+
+// 작업요청일 포맷 함수 (08월13일(화) 형식)
+const formatRequestDate = (dateStr?: string) => {
+  if (!dateStr || dateStr === 'undefined') return '';
+  try {
+    // 다양한 날짜 형식 처리
+    let date;
+    if (dateStr.includes('/')) {
+      // "2024/08/13" 형식
+      date = new Date(dateStr);
+    } else if (dateStr.includes('-')) {
+      // "2024-08-13" 형식
+      date = new Date(dateStr);
+    } else if (dateStr.length === 8) {
+      // "20240813" 형식
+      const year = dateStr.substring(0, 4);
+      const month = dateStr.substring(4, 6);
+      const day = dateStr.substring(6, 8);
+      date = new Date(`${year}-${month}-${day}`);
+    } else {
+      date = new Date(dateStr);
+    }
+    
+    if (isNaN(date.getTime())) {
+      return dateStr; // 파싱 실패 시 원본 반환
+    }
+    
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekday = weekdays[date.getDay()];
+    return `${month}월${day}일(${weekday})`;
+  } catch {
+    return dateStr;
+  }
 }
 
 // 팀 비교 유틸 (공백/제로폭 제거 후 비교)
@@ -362,13 +405,13 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
                         ) : (
                           <ChevronRight className="w-4 h-4 text-slate-500" />
                         )}
-                        <span className="truncate" title={`${groupInfo.baseNumber}_대표RU명`}>
-                          {groupInfo.baseNumber}_대표RU명
+                        <span className="truncate" title={`${groupInfo.baseNumber}_${groupInfo.representativeRuName}`}>
+                          {groupInfo.baseNumber}_{groupInfo.representativeRuName}
                         </span>
                       </div>
                     </div>
                     <div className={`${dense ? 'text-xs' : 'text-sm'} text-slate-600 mt-1`}>
-                      작업요청일: {groupInfo.requestDate}
+                      작업요청일: {formatRequestDate(groupInfo.requestDate)}
                     </div>
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -572,10 +615,10 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
                           )}
                           <div>
                             <div className="font-medium text-slate-900">
-                              {groupInfo.baseNumber}_대표RU명
+                              {groupInfo.baseNumber}_{groupInfo.representativeRuName}
                             </div>
                             <div className="text-sm text-slate-600">
-                              작업요청일: {groupInfo.requestDate} | 팀: {groupInfo.operationTeam}
+                              작업요청일: {formatRequestDate(groupInfo.requestDate)} | 팀: {groupInfo.operationTeam}
                             </div>
                           </div>
                         </div>
