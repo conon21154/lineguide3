@@ -3,8 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    @apply overflow-x-hidden;
+  }
+  
   body {
-    @apply bg-gradient-to-br from-slate-50 to-blue-50 text-slate-800 font-sans;
+    @apply bg-gradient-to-br from-slate-50 to-blue-50 text-slate-800 font-sans overflow-x-hidden;
   }
   
   * {

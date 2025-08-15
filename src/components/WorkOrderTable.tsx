@@ -390,7 +390,7 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
           const isExpanded = expandedGroups.has(groupKey);
           
           return (
-            <div key={groupKey} className="space-y-2">
+            <div key={groupKey} className="space-y-2 min-w-0">
               {/* 그룹 헤더 - 모바일 터치 최적화된 버튼 */}
               <Card className={dense ? 'p-0' : 'p-0'}>
                 <button
@@ -398,31 +398,33 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
                   onClick={() => toggleGroup(groupKey)}
                   aria-expanded={isExpanded}
                   aria-label={`${groupInfo.baseNumber} 그룹 ${isExpanded ? '접기' : '펼치기'}`}
-                  className={`w-full text-left ${dense ? 'p-2' : 'p-3'} hover:bg-slate-50 active:bg-slate-100 transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded-2xl`}
+                  className={`w-full text-left ${dense ? 'p-2' : 'p-3'} hover:bg-slate-50 active:bg-slate-100 transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded-2xl min-w-0`}
                 >
                   {/* 모바일: 세로 레이아웃, 데스크톱: 가로 레이아웃 */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
                     {/* 제목 영역 */}
                     <div className="min-w-0 flex-1">
-                      <div className={`${dense ? 'text-xs' : 'text-sm'} font-semibold text-slate-900`}>
-                        <div className="flex items-center gap-2">
+                      <div className={`${dense ? 'text-xs' : 'text-sm'} font-semibold text-slate-900 min-w-0`}>
+                        <div className="flex items-center gap-2 min-w-0">
                           {isExpanded ? (
                             <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
                           ) : (
                             <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
                           )}
-                          <span className="truncate" title={`${groupInfo.baseNumber}_${groupInfo.representativeRuName}`}>
-                            {groupInfo.baseNumber}_{groupInfo.representativeRuName}
+                          <span className="truncate min-w-0" title={`${groupInfo.baseNumber}_${groupInfo.representativeRuName}`}>
+                            <span className="break-all">{groupInfo.baseNumber}</span>
+                            <span className="inline-block">_</span>
+                            <span className="break-all">{groupInfo.representativeRuName}</span>
                           </span>
                         </div>
                       </div>
-                      <div className={`${dense ? 'text-xs' : 'text-sm'} text-slate-600 mt-1`}>
+                      <div className={`${dense ? 'text-xs' : 'text-sm'} text-slate-600 mt-1 break-words`}>
                         작업요청일: {formatRequestDate(groupInfo.requestDate)}
                       </div>
                     </div>
                     
-                    {/* 칩 컨테이너: 모바일에서 줄바꿈 */}
-                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                    {/* 칩 컨테이너: 모바일에서 줄바꿈 또는 가로 스크롤 */}
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 max-w-full">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium shrink-0 ${
                         groupInfo.duCount > 0 ? 'bg-[#1E40AF]/10 text-[#1E40AF]' : 'bg-gray-100 text-gray-400'
                       }`}>
@@ -434,15 +436,17 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
                         RU {groupInfo.ruCount}개
                       </span>
                       {/* 상태 표시 */}
-                      {groupInfo.hasCompleted && (
-                        <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-                      )}
-                      {groupInfo.hasInProgress && !groupInfo.hasCompleted && (
-                        <User className="w-4 h-4 text-blue-600 shrink-0" />
-                      )}
-                      {groupInfo.hasPending && !groupInfo.hasInProgress && !groupInfo.hasCompleted && (
-                        <Clock className="w-4 h-4 text-yellow-600 shrink-0" />
-                      )}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {groupInfo.hasCompleted && (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        )}
+                        {groupInfo.hasInProgress && !groupInfo.hasCompleted && (
+                          <User className="w-4 h-4 text-blue-600" />
+                        )}
+                        {groupInfo.hasPending && !groupInfo.hasInProgress && !groupInfo.hasCompleted && (
+                          <Clock className="w-4 h-4 text-yellow-600" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -455,19 +459,19 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
                 <div className="overflow-hidden">
                   <div className="ml-6 space-y-2 border-l-2 border-slate-200 pl-3 pt-2">
                     {groupWorkOrders.map((workOrder) => (
-          <Card key={workOrder.id} className={`${dense ? 'p-2' : 'p-3'} space-y-2 overflow-visible`}>
+          <Card key={workOrder.id} className={`${dense ? 'p-2' : 'p-3'} space-y-2 overflow-visible min-w-0`}>
             {/* 상단: 관리번호 + 상태 배지 - 모바일 반응형 */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
               <div className="min-w-0 flex-1">
                 <div className={`${dense ? 'text-xs' : 'text-sm'} font-semibold text-slate-900 min-w-0`}>
-                  <span className="block truncate" title={getBaseManagementNumber(workOrder.managementNumber)}>
+                  <span className="block break-all" title={getBaseManagementNumber(workOrder.managementNumber)}>
                     {getBaseManagementNumber(workOrder.managementNumber)}
                   </span>
                 </div>
               </div>
               
               {/* 칩 컨테이너: 모바일에서 줄바꿈, 데스크톱에서 1줄 */}
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 max-w-full">
                 {workOrder.workType && (
                   <span className={`inline-flex items-center h-6 px-2 rounded-md text-xs shrink-0 font-medium ${
                     workOrder.workType === 'DU측' 
@@ -479,11 +483,11 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
                 )}
                 <div className="shrink-0">
                 {editingId === workOrder.id ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <select
                       value={editingStatus}
                       onChange={(e) => setEditingStatus(e.target.value as WorkOrderStatus)}
-                      className="text-xs border rounded p-1"
+                      className="text-xs border rounded p-1 min-w-0"
                     >
                       <option value="pending">대기</option>
                       <option value="in_progress">진행중</option>
@@ -493,19 +497,19 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="메모 (선택사항)"
-                      className="w-full text-xs border rounded p-2"
+                      className="w-full text-xs border rounded p-2 min-w-0"
                       rows={2}
                     />
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-wrap">
                       <button
                         onClick={() => handleEditSave(workOrder.id)}
-                        className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+                        className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 shrink-0"
                       >
                         저장
                       </button>
                       <button
                         onClick={handleEditCancel}
-                        className="text-xs bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600"
+                        className="text-xs bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600 shrink-0"
                       >
                         취소
                       </button>
@@ -519,29 +523,29 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
             </div>
             
             {/* 본문: 팀, 장비명, 대표 RU */}
-            <div className={`grid grid-cols-1 gap-1 ${dense ? 'text-[11px]' : 'text-[13px]'} text-slate-700`}>
+            <div className={`grid grid-cols-1 gap-1 ${dense ? 'text-[11px]' : 'text-[13px]'} text-slate-700 min-w-0`}>
               <div className="min-w-0">
                 <span className="font-medium">팀: </span>
-                <span className="truncate" title={workOrder.operationTeam}>{workOrder.operationTeam}</span>
+                <span className="break-words" title={workOrder.operationTeam}>{workOrder.operationTeam}</span>
               </div>
               <div className="min-w-0">
                 <span className="font-medium">장비명: </span>
-                <span className="block truncate" title={workOrder.equipmentName}>{workOrder.equipmentName}</span>
+                <span className="block break-words" title={workOrder.equipmentName}>{workOrder.equipmentName}</span>
               </div>
               <div className="min-w-0">
                 <span className="font-medium">대표 RU: </span>
-                <span className="block truncate" title={getRepresentativeRuName(workOrder.ruInfoList) || workOrder.representativeRuId || '-'}>
+                <span className="block break-all" title={getRepresentativeRuName(workOrder.ruInfoList) || workOrder.representativeRuId || '-'}>
                   {getRepresentativeRuName(workOrder.ruInfoList) || workOrder.representativeRuId || '-'}
                 </span>
               </div>
             </div>
             
             {/* 회신 메모 버튼 */}
-            <div>
+            <div className="min-w-0">
               <button
                 onClick={() => setResponseNoteId(workOrder.id)}
                 disabled={!isCompleted(workOrder.status)}
-                className={`w-full flex items-center justify-center gap-2 px-3 py-2 ${dense ? 'text-[10px]' : 'text-xs'} rounded-md transition-colors border ${
+                className={`w-full flex items-center justify-center gap-2 px-3 py-2 ${dense ? 'text-[10px]' : 'text-xs'} rounded-md transition-colors border min-w-0 ${
                   !isCompleted(workOrder.status)
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200'
                     : workOrder.hasMemo
@@ -550,34 +554,34 @@ export default function WorkOrderTable({ workOrders, dense = false, onRefresh, o
                 }`}
               >
                 {workOrder.hasMemo ? (
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
                 ) : (
-                  <MessageSquare className="w-4 h-4" />
+                  <MessageSquare className="w-4 h-4 shrink-0" />
                 )}
-                <span>{!isCompleted(workOrder.status) ? '작성 불가' : (workOrder.hasMemo ? '메모 완료' : '메모 작성')}</span>
+                <span className="truncate">{!isCompleted(workOrder.status) ? '작성 불가' : (workOrder.hasMemo ? '메모 완료' : '메모 작성')}</span>
               </button>
             </div>
             
             {/* 액션 버튼들 */}
             {editingId !== workOrder.id && (
-              <div className="flex justify-end gap-1 pt-1">
+              <div className="flex justify-end gap-1 pt-1 shrink-0">
                 <button
                   onClick={() => setViewingDetailId(workOrder.id)}
-                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[#1E40AF]/30 flex items-center justify-center text-[#1E40AF]"
+                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[#1E40AF]/30 flex items-center justify-center text-[#1E40AF] shrink-0"
                   title="상세보기"
                 >
                   <Eye className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleEditStart(workOrder)}
-                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[#1E40AF]/30 flex items-center justify-center text-[#1E40AF]"
+                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[#1E40AF]/30 flex items-center justify-center text-[#1E40AF] shrink-0"
                   title="상태 변경"
                 >
                   <Edit3 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(workOrder.id)}
-                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-red-500/30 flex items-center justify-center text-red-600"
+                  className="w-9 h-9 rounded-md hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-red-500/30 flex items-center justify-center text-red-600 shrink-0"
                   title="삭제"
                 >
                   <Trash2 className="w-4 h-4" />

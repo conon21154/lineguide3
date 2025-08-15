@@ -628,7 +628,7 @@ export default function WorkBoard() {
   console.log('✅ 메인 컨텐츠 렌더링')
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 bg-slate-50">
+    <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 bg-slate-50 min-w-0">
       <PageHeader
         title="작업게시판"
         subtitle={
@@ -846,18 +846,18 @@ export default function WorkBoard() {
                         </div>
                       </div>
                       
-                      <div className="flex flex-wrap items-center gap-3 text-sm">
-                        <div className="inline-flex items-center gap-1">
+                      <div className="flex flex-wrap items-center gap-2 text-sm shrink-0">
+                        <div className="inline-flex items-center gap-1 shrink-0">
                           <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                          <span className="text-slate-600">대기 {stats.pending}</span>
+                          <span className="text-slate-600 whitespace-nowrap">대기 {stats.pending}</span>
                         </div>
-                        <div className="inline-flex items-center gap-1">
+                        <div className="inline-flex items-center gap-1 shrink-0">
                           <div className="w-3 h-3 bg-[#1E40AF] rounded-full"></div>
-                          <span className="text-slate-600">진행중 {stats.inProgress}</span>
+                          <span className="text-slate-600 whitespace-nowrap">진행중 {stats.inProgress}</span>
                         </div>
-                        <div className="inline-flex items-center gap-1">
+                        <div className="inline-flex items-center gap-1 shrink-0">
                           <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                          <span className="text-slate-600">완료 {stats.completed}</span>
+                          <span className="text-slate-600 whitespace-nowrap">완료 {stats.completed}</span>
                         </div>
                       </div>
                     </div>

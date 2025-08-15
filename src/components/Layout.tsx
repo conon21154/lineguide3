@@ -337,15 +337,15 @@ export default function Layout({ children }: LayoutProps) {
         )}
       </nav>
 
-      <div className="flex min-h-[calc(100vh-8rem)]">
-        <main className={`flex-1 transition-all duration-300 ${
+      <div className="flex min-h-[calc(100vh-8rem)] min-w-0">
+        <main className={`flex-1 transition-all duration-300 min-w-0 ${
           (location.pathname === '/' || location.pathname === '/workboard')
             ? sidebarCollapsed 
               ? 'max-w-7xl mx-auto' 
               : 'max-w-5xl mx-auto'
             : 'max-w-7xl mx-auto'
         }`}>
-          <div className="fade-in">
+          <div className="fade-in min-w-0">
             {children}
           </div>
         </main>
