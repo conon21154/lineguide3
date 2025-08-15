@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import ktMosLogo from '@/assets/images/kt-mos-logo.png'
+import ktMosLogoNew from '@/assets/images/kt-mos-logo-new.png'
 
 type BrandProps = { 
   className?: string
@@ -23,7 +23,7 @@ export function Brand({ className }: BrandProps) {
       <div className="flex-shrink-0 flex items-center justify-center">
         {!imageError ? (
           <img 
-            src={ktMosLogo}
+            src={ktMosLogoNew}
             alt="KT MOS"
             className="h-5 sm:h-6 w-auto object-contain"
             onError={handleImageError}
